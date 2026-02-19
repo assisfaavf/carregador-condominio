@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Painel do Carregador</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 0 16px; }
+    h1 { margin-bottom: 8px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    label { display:block; margin-top: 10px; }
+    input { width: 100%; padding: 10px; margin-top: 6px; }
+    button { margin-top: 12px; padding: 10px 14px; cursor: pointer; }
+    table { width:100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+    .muted { color:#666; font-size: 14px; }
+    .row { display:flex; gap:16px; }
+    .row > div { flex:1; }
+    pre { background:#f6f6f6; padding:10px; border-radius:8px; overflow:auto; }
+  </style>
+</head>
+<body>
+  <h1>Painel do Carregador</h1>
+  <p class="muted">Esta página conversa com seu backend (Express) via HTTP.</p>
+
+  <div class="card">
+    <h2>Criar sessão (teste)</h2>
+
+    <!-- Formulário simples para criar uma sessão -->
+    <div class="row">
+      <div>
+        <label>Usuário (ex: Apto 301)</label>
+        <input id="user" placeholder="Teste" />
+      </div>
+      <div>
+        <label>Energia (kWh)</label>
+        <input id="energy" type="number" step="0.01" placeholder="12.5" />
+      </div>
+    </div>
+
+    <button onclick="createSession()">Salvar sessão</button>
+    <pre id="createResult"></pre>
+  </div>
+
+  <div class="card">
+    <h2>Sessões registradas</h2>
+    <button onclick="loadSessions()">Atualizar lista</button>
+
+    <!-- Tabela onde vamos renderizar as sessões -->
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Usuário</th>
+          <th>Energia (kWh)</th>
+          <th>Data/Hora</th>
+        </tr>
+      </thead>
+      <tbody id="sessionsTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    // Função que chama GET /sessions e atualiza a tabela
+    async function loadSessions() {
+      const res = await fetch("/sessions"); // chama seu backend
+      const data = await res.json();
+
+      const tbody = document.getElementById("sessionsTable");
+      tbody.innerHTML = ""; // limpa tabela
+
+      // Para cada sessão, cria uma linha
+      for (const s of data) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${s.id}</td>
+          <td>${s.user}</td>
+          <td>${Number(s.energy).toFixed(2)}</td>
+          <td>${s.created_at}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // Função que chama POST /sessions com dados do formulário
+    async function createSession() {
+      const user = document.getElementById("user").value.trim();
+      const energy = Number(document.getElementById("energy").value);
+
+      // validação simples no front
+      if (!user) {
+        alert("Preencha o usuário.");
+        return;
+      }
+
+      const res = await fetch("/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user, energy })
+      });
+
+      const result = await res.json();
+      document.getElementById("createResult").textContent = JSON.stringify(result, null, 2);
+
+      // depois de criar, recarrega a lista
+      await loadSessions();
+    }
+
+    // Ao abrir a página, já carrega as sessões
+    loadSessions();
+  </script>
+</body>
+</html>
