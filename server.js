@@ -11,6 +11,12 @@ const db = require("./db");
 // 4) Cria o aplicativo (servidor)
 const app = express();
 
+// Função auxiliar: acha um DP específico dentro do array "result" do /status
+function findDp(statusData, code) {
+  const arr = statusData?.result || [];
+  return arr.find((x) => x.code === code);
+}
+
 // Middlewares
 app.use(express.json());
 app.use(express.static("public"));
@@ -104,6 +110,57 @@ app.post("/tuya/start", async (req, res) => {
     });
   }
 });
+
+// Start "seguro": só tenta iniciar se o carro estiver conectado
+app.post("/tuya/start-safe", async (req, res) => {
+  try {
+    const deviceId = process.env.TUYA_DEVICE_ID;
+
+    // 1) Lê o status atual do carregador na Tuya
+    const status = await getDeviceStatus(deviceId);
+
+    // Pega alguns estados importantes
+    const workState = findDp(status, "work_state")?.value;
+    const connectionState = findDp(status, "connection_state")?.value;
+
+    // 2) Regra inicial: se estiver no estado "controlpi_12v", assumimos que NÃO tem carro conectado
+    // (Depois vamos refinar quando você conectar um carro e ver quais estados mudam.)
+    const connected = connectionState && connectionState !== "controlpi_12v";
+
+    // 3) Se não estiver conectado, não inicia (evita cobrar sessão fantasma)
+    if (!connected) {
+      return res.status(409).json({
+        success: false,
+        message: "Carro não conectado. Conecte o veículo antes de iniciar.",
+        work_state: workState,
+        connection_state: connectionState,
+      });
+    }
+
+    // 4) Se conectado, envia comandos para iniciar carregamento
+    const result = await sendCommands(deviceId, [
+      { code: "work_mode", value: "charge_now" },
+      { code: "charge_cur_set", value: 32 },
+      { code: "switch", value: true },
+    ]);
+
+    res.json({
+      success: true,
+      message: "Comando de início enviado (start-safe).",
+      tuya: result,
+      work_state: workState,
+      connection_state: connectionState,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Erro no start-safe",
+      error: error.message,
+    });
+  }
+});
+
 
 // Rota para parar o carregamento
 app.post("/tuya/stop", async (req, res) => {

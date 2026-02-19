@@ -43,9 +43,20 @@
   </div>
 
   <div class="card">
+  <h2>Controle do Carregador</h2>
+  <p class="muted">Esses botões chamam seu backend, que chama a Tuya.</p>
+
+  <button onclick="refreshTuyaStatus()">Atualizar status</button>
+  <button onclick="startSafe()">Iniciar (safe)</button>
+  <button onclick="stopCharge()">Parar</button>
+
+  <h3>Status (Tuya)</h3>
+  <pre id="tuyaStatus">(clique em "Atualizar status")</pre>
+  </div>
+
+  <div class="card">
     <h2>Sessões registradas</h2>
     <button onclick="loadSessions()">Atualizar lista</button>
-
     <!-- Tabela onde vamos renderizar as sessões -->
     <table>
       <thead>
@@ -108,6 +119,58 @@
 
     // Ao abrir a página, já carrega as sessões
     loadSessions();
+
+    // ===============================
+    // FUNÇÕES DE CONTROLE DO CARREGADOR
+    // ===============================
+
+    // Atualiza o status do carregador (consulta /tuya/status)
+    async function refreshTuyaStatus() {
+      try {
+        const res = await fetch("/tuya/status");
+        const data = await res.json();
+
+        // Mostra o JSON formatado na tela
+        document.getElementById("tuyaStatus").textContent =
+          JSON.stringify(data, null, 2);
+      } catch (error) {
+        alert("Erro ao buscar status: " + error.message);
+      }
+    }
+
+    // Inicia carregamento usando start-safe
+    async function startSafe() {
+      try {
+        const res = await fetch("/tuya/start-safe", {
+          method: "POST"
+        });
+
+        const data = await res.json();
+
+        alert(data.message || "Resposta recebida");
+        await refreshTuyaStatus();
+
+      } catch (error) {
+        alert("Erro ao iniciar: " + error.message);
+      }
+    }
+
+    // Para o carregamento
+    async function stopCharge() {
+      try {
+        const res = await fetch("/tuya/stop", {
+          method: "POST"
+        });
+
+        const data = await res.json();
+
+        alert(data.message || "Resposta recebida");
+        await refreshTuyaStatus();
+
+      } catch (error) {
+        alert("Erro ao parar: " + error.message);
+      }
+    }
   </script>
 </body>
 </html>
