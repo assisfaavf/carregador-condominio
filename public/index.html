@@ -30,7 +30,7 @@
     <div class="row">
       <div>
         <label>Usuário (ex: Apto 301)</label>
-        <input id="user" placeholder="Teste" />
+        <input id="chargeUser" placeholder="Apto 301" />
       </div>
       <div>
         <label>Energia (kWh)</label>
@@ -47,7 +47,7 @@
   <p class="muted">Esses botões chamam seu backend, que chama a Tuya.</p>
 
   <button onclick="refreshTuyaStatus()">Atualizar status</button>
-  <button onclick="startSafe()">Iniciar (safe)</button>
+  <button onclick="startSession()">Iniciar (criar sessão)</button>
   <button onclick="stopCharge()">Parar</button>
 
   <h3>Status (Tuya)</h3>
@@ -171,6 +171,37 @@
         alert("Erro ao parar: " + error.message);
       }
     }
+    // Inicia uma sessão no seu sistema (salva no banco) e tenta iniciar o carregamento
+    async function startSession() {
+      try {
+        const user = document.getElementById("chargeUser").value.trim();
+
+        // Validação simples no navegador
+        if (!user) {
+          alert("Preencha o usuário (ex: Apto 301).");
+          return;
+        }
+
+        // Chama o backend /session/start enviando { user }
+        const res = await fetch("/session/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user })
+        });
+
+        const data = await res.json();
+
+        // Mostra a resposta do backend
+        alert(data.message || "Resposta recebida");
+
+        // Atualiza status e lista de sessões na tela
+        await refreshTuyaStatus();
+        await loadSessions();
+      } catch (error) {
+        alert("Erro no startSession: " + error.message);
+      }
+    }
+
   </script>
 </body>
 </html>

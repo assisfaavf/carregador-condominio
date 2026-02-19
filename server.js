@@ -161,7 +161,6 @@ app.post("/tuya/start-safe", async (req, res) => {
   }
 });
 
-
 // Rota para parar o carregamento
 app.post("/tuya/stop", async (req, res) => {
   try {
@@ -182,6 +181,72 @@ app.post("/tuya/stop", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Erro ao parar carregamento",
+      error: error.message,
+    });
+  }
+});
+
+// Inicia uma sessão no banco + tenta iniciar carregamento (safe)
+app.post("/session/start", async (req, res) => {
+  try {
+    const deviceId = process.env.TUYA_DEVICE_ID;
+
+    // 1) Pega usuário do corpo da requisição
+    const user = (req.body?.user || "").trim();
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Informe o usuário (ex: Apto 301)." });
+    }
+
+    // 2) Consulta status atual na Tuya
+    const status = await getDeviceStatus(deviceId);
+    const workState = findDp(status, "work_state")?.value;
+    const connectionState = findDp(status, "connection_state")?.value;
+
+    // 3) Regra inicial: se estiver "controlpi_12v", assumimos que não há carro conectado
+    const connected = connectionState && connectionState !== "controlpi_12v";
+    if (!connected) {
+      return res.status(409).json({
+        success: false,
+        message: "Carro não conectado. Conecte o veículo antes de iniciar.",
+        work_state: workState,
+        connection_state: connectionState,
+      });
+    }
+
+    // 4) Lê energia total para salvar como energia inicial
+    const totalRaw = findDp(status, "forward_energy_total")?.value;
+
+    // Muitos DPs vêm com scale 2 (centésimos). Vamos converter: 24823 -> 248.23
+    const startEnergyTotal = (typeof totalRaw === "number") ? totalRaw / 100 : null;
+
+    // 5) Cria sessão no banco como "running"
+    const stmt = db.prepare(`
+      INSERT INTO sessions (user, status, start_time, start_energy_total)
+      VALUES (?, ?, datetime('now'), ?)
+    `);
+    const result = stmt.run(user, "running", startEnergyTotal);
+
+    const sessionId = result.lastInsertRowid;
+
+    // 6) Envia comandos para iniciar
+    const tuyaResult = await sendCommands(deviceId, [
+      { code: "work_mode", value: "charge_now" },
+      { code: "charge_cur_set", value: 32 },
+      { code: "switch", value: true },
+    ]);
+
+    res.json({
+      success: true,
+      message: "Sessão iniciada e comando enviado.",
+      sessionId,
+      start_energy_total: startEnergyTotal,
+      tuya: tuyaResult,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Erro ao iniciar sessão",
       error: error.message,
     });
   }
