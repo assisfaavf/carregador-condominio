@@ -43,4 +43,27 @@ addColumnIfNotExists(`ALTER TABLE sessions ADD COLUMN end_energy_total REAL`);
 addColumnIfNotExists(`ALTER TABLE sessions ADD COLUMN energy_once REAL`);
 
 
+// ===============================
+// TABELA DE USUÁRIOS
+// ===============================
+// Guarda os dados do usuário e o hash da senha (nunca senha pura).
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    cpf TEXT NOT NULL UNIQUE,
+
+    password_hash TEXT NOT NULL,
+
+    role TEXT NOT NULL,      -- "resident" ou "visitor"
+    tower TEXT NOT NULL,     -- "mississipi" ou "missouri"
+    apartment TEXT NOT NULL, -- você pode usar "301" ou "0301" etc.
+
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )
+`).run();
+
+
 module.exports = db;

@@ -48,7 +48,7 @@
 
   <button onclick="refreshTuyaStatus()">Atualizar status</button>
   <button onclick="startSession()">Iniciar (criar sessão)</button>
-  <button onclick="stopCharge()">Parar</button>
+  <button onclick="stopSession()">Parar e finalizar finalizar sessão</button>
 
   <h3>Status (Tuya)</h3>
   <pre id="tuyaStatus">(clique em "Atualizar status")</pre>
@@ -63,8 +63,10 @@
         <tr>
           <th>ID</th>
           <th>Usuário</th>
-          <th>Energia (kWh)</th>
-          <th>Data/Hora</th>
+          <th>Status</th>
+          <th>Início</th>
+          <th>Fim</th>
+          <th>kWh (sessão)</th>
         </tr>
       </thead>
       <tbody id="sessionsTable"></tbody>
@@ -72,24 +74,47 @@
   </div>
 
   <script>
-    // Função que chama GET /sessions e atualiza a tabela
+    // Carrega as sessões do backend e preenche a tabela
     async function loadSessions() {
-      const res = await fetch("/sessions"); // chama seu backend
-      const data = await res.json();
+      try {
+        const res = await fetch("/sessions");
+        const sessions = await res.json();
 
-      const tbody = document.getElementById("sessionsTable");
-      tbody.innerHTML = ""; // limpa tabela
+        const tbody = document.getElementById("sessionsTable");
+        tbody.innerHTML = ""; // limpa tabela antes de renderizar
 
-      // Para cada sessão, cria uma linha
-      for (const s of data) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${s.id}</td>
-          <td>${s.user}</td>
-          <td>${Number(s.energy).toFixed(2)}</td>
-          <td>${s.created_at}</td>
-        `;
-        tbody.appendChild(tr);
+        if (!Array.isArray(sessions) || sessions.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6">Nenhuma sessão encontrada.</td></tr>`;
+          return;
+        }
+
+        for (const s of sessions) {
+          // kWh principal: preferir energy_once (novo modelo)
+          // se não tiver, cair para "energy" (modelo antigo)
+          const kwh =
+            s.energy_once != null ? Number(s.energy_once).toFixed(2) :
+            s.energy != null ? Number(s.energy).toFixed(2) :
+            "";
+
+          // datas: preferir start/end (novo) e cair para created_at (antigo)
+          const startTime = s.start_time || s.created_at || "";
+          const endTime = s.end_time || "";
+
+          const status = s.status || ""; // running / done (ou vazio no antigo)
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${s.id}</td>
+            <td>${s.user || ""}</td>
+            <td>${status}</td>
+            <td>${startTime}</td>
+            <td>${endTime}</td>
+            <td style="text-align:right">${kwh}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      } catch (error) {
+        alert("Erro ao carregar sessões: " + error.message);
       }
     }
 
@@ -154,23 +179,6 @@
         alert("Erro ao iniciar: " + error.message);
       }
     }
-
-    // Para o carregamento
-    async function stopCharge() {
-      try {
-        const res = await fetch("/tuya/stop", {
-          method: "POST"
-        });
-
-        const data = await res.json();
-
-        alert(data.message || "Resposta recebida");
-        await refreshTuyaStatus();
-
-      } catch (error) {
-        alert("Erro ao parar: " + error.message);
-      }
-    }
     // Inicia uma sessão no seu sistema (salva no banco) e tenta iniciar o carregamento
     async function startSession() {
       try {
@@ -201,6 +209,15 @@
         alert("Erro no startSession: " + error.message);
       }
     }
+
+    async function stopSession() {
+      const res = await fetch("/session/stop", { method: "POST" });
+      const data = await res.json();
+      alert(data.message || "Resposta recebida");
+      await refreshTuyaStatus();
+      await loadSessions();
+    }
+
 
   </script>
 </body>
