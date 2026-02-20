@@ -75,7 +75,18 @@
     async function loadSessions() {
       try {
         const res = await fetch("/sessions");
-        const sessions = await res.json();
+        const text = await res.text(); // pega qualquer resposta (JSON ou HTML)
+
+        let sessions;
+        try {
+          sessions = JSON.parse(text);
+        } catch (e) {
+          throw new Error("Resposta não é JSON. O servidor provavelmente retornou um erro HTML. Veja /sessions no navegador.");
+        }
+
+        if (!res.ok) {
+          throw new Error(sessions?.error || sessions?.message || "Erro ao carregar sessões.");
+        }
 
         const tbody = document.getElementById("sessionsTable");
         tbody.innerHTML = ""; // limpa tabela antes de renderizar

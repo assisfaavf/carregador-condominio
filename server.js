@@ -8,8 +8,16 @@ const express = require("express");
 const { getDeviceStatus, sendCommands } = require("./tuya_api");
 const db = require("./db");
 
+//Importa o JWT (token) e cookies (para guardar o token no navegador)
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
+
 // 4) Cria o aplicativo (servidor)
 const app = express();
+
+// 5) Biblioteca para gerar hash de senha
+const bcrypt = require("bcryptjs");
+const { Users } = require("@azure/cosmos");
 
 // Função auxiliar: acha um DP específico dentro do array "result" do /status
 function findDp(statusData, code) {
@@ -17,14 +25,52 @@ function findDp(statusData, code) {
   return arr.find((x) => x.code === code);
 }
 
-// 5) Biblioteca para gerar hash de senha
-const bcrypt = require("bcryptjs");
+//Cria um token JWT com os daods básicos do usuário
+function signToken(payload) {
+  const secret = process.env.JWT_SECRET;
+  const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
+  return jwt.sign(payload, secret, { expiresIn });
+}
 
+//Salvar o token em cookie httpOnly 
+function setAuthCookie(res, token) {
+  res.cookie("token", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false, //Quando for usar https mudar para true
+  });
+}
+
+//MiddleWare: Exige estar logado
+function requireAuth(req, res, next){
+  try{
+    const token = req.cookies?.token;
+
+    if(!token){
+      return res.status(401).json({ success: false, message: "Não autenticado."});
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+
+    next();
+  } catch (err){
+    return res.status(401).json({ success: false, message: "Token invalido ou expirado."});
+  }
+}
+
+//Middleware: Exige ser admin
+function requiresAdmin(req, res, next){
+  if (req.user?.role !== "admin"){
+    return res.status(403).json({success: false, message: "Acesso restrito a administradores."});
+  }
+  next();
+}
 
 // Middlewares
-app.use(express.json());
+app.use(express.json()); //Ativa o express
+app.use(cookieParser()); //Ativa o cookie parser
 app.use(express.static("public"));
-
 
 
 // Rota principal (home)
@@ -33,46 +79,26 @@ app.get("/", (req, res) => {
 });
 
 // Rota para criar uma sessão manualmente
-app.post("/sessions", (req, res) => {
-  const { user, energy } = req.body;
-  
-  // Verifica se o usuário foi enviado
-  if (!user) {
-    return res.status(400).json({ error: "Usuário é obrigatório" });
-  }
-  
-  // Insere no banco
-  const stmt = db.prepare(`
-    INSERT INTO sessions (user, energy)
-    VALUES (?, ?)
-  `);
-
-  const result = stmt.run(user, energy || 0);
-
-  res.json({
-    message: "Sessão criada",
-    id: result.lastInsertRowid
-  });
-});
-
-// Lista sessões (mais recentes primeiro)
 app.get("/sessions", (req, res) => {
-  const sessions = db.prepare(`
-    SELECT
-      id,
-      user,
-      status,
-      start_time,
-      end_time,
-      start_energy_total,
-      end_energy_total,
-      energy_once
-    FROM sessions
-    ORDER BY id DESC
-    LIMIT 50
-  `).all();
+  try {
+    // Puxa as sessões sem assumir colunas específicas
+    // (Assim, mesmo se você adicionar/remover colunas, não quebra o painel)
+    const sessions = db.prepare(`
+      SELECT *
+      FROM sessions
+      ORDER BY id DESC
+      LIMIT 50
+    `).all();
 
-  res.json(sessions);
+    res.json(sessions);
+  } catch (error) {
+    // Se der erro SQL, devolve JSON (não HTML) para o front conseguir mostrar a mensagem
+    res.status(500).json({
+      success: false,
+      message: "Erro ao listar sessões",
+      error: String(error.message || error),
+    });
+  }
 });
 
 // Rota de teste: mostra o status do carregador vindo da Tuya Cloud
@@ -99,109 +125,6 @@ app.get("/tuya/status", async (req, res) => {
   }
 });
 
-// Rota para iniciar o carregamento
-app.post("/tuya/start", async (req, res) => {
-  try {
-    const deviceId = process.env.TUYA_DEVICE_ID;
-
-    // Envia três comandos:
-    // 1) Define modo "charge_now" (carregar imediatamente)
-    // 2) Define corrente 32A (ajustável depois)
-    // 3) Liga o switch (true)
-    const result = await sendCommands(deviceId, [
-      { code: "work_mode", value: "charge_now" },
-      { code: "charge_cur_set", value: 32 },
-      { code: "switch", value: true },
-    ]);
-
-    res.json({
-      success: true,
-      message: "Carregamento iniciado",
-      tuya: result,
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Erro ao iniciar carregamento",
-      error: error.message,
-    });
-  }
-});
-
-// Start "seguro": só tenta iniciar se o carro estiver conectado
-app.post("/tuya/start-safe", async (req, res) => {
-  try {
-    const deviceId = process.env.TUYA_DEVICE_ID;
-
-    // 1) Lê o status atual do carregador na Tuya
-    const status = await getDeviceStatus(deviceId);
-
-    // Pega alguns estados importantes
-    const workState = findDp(status, "work_state")?.value;
-    const connectionState = findDp(status, "connection_state")?.value;
-
-    // Se o carregador estiver preso em "charger_end", tentamos "limpar" o estado antes de iniciar
-    if (workState === "charger_end") {
-      // 1) garante que está desligado
-      await sendCommands(deviceId, [{ code: "switch", value: false }]);
-
-      // 2) tenta limpar energia/estado da sessão (DP clear_energy)
-      await sendCommands(deviceId, [{ code: "clear_energy", value: true }]);
-
-      // 3) espera um pouco e lê status novamente
-      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-      await sleep(1500);
-
-      const status2 = await getDeviceStatus(deviceId);
-      // atualiza variáveis (para seguir o fluxo com o estado atualizado)
-      const newWorkState = findDp(status2, "work_state")?.value;
-      const newConnectionState = findDp(status2, "connection_state")?.value;
-
-      // se ainda estiver charger_end, a gente continua mesmo assim (alguns ficam assim até desconectar)
-      // mas pelo menos tentamos resetar os contadores.
-    }
-
-    // 2) Regra inicial: se estiver no estado "controlpi_12v", assumimos que NÃO tem carro conectado
-    // (Depois vamos refinar quando você conectar um carro e ver quais estados mudam.)
-    const connected = connectionState && connectionState !== "controlpi_12v";
-
-    // 3) Se não estiver conectado, não inicia (evita cobrar sessão fantasma)
-    if (!connected) {
-      return res.status(409).json({
-        success: false,
-        message: "Carro não conectado. Conecte o veículo antes de iniciar.",
-        work_state: workState,
-        connection_state: connectionState,
-      });
-    }
-
-    // 4) Se conectado, envia comandos para iniciar carregamento
-    const result = await sendCommands(deviceId, [
-      { code: "work_mode", value: "charge_now" },
-      { code: "charge_cur_set", value: 32 },
-      { code: "switch", value: true },
-    ]);
-
-    res.json({
-      success: true,
-      message: "Comando de início enviado (start-safe).",
-      tuya: result,
-      work_state: workState,
-      connection_state: connectionState,
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Erro no start-safe",
-      error: error.message,
-    });
-  }
-});
-
-
-
 // Inicia uma sessão no banco + tenta iniciar carregamento (safe)
 app.post("/session/start", async (req, res) => {
   try {
@@ -211,6 +134,23 @@ app.post("/session/start", async (req, res) => {
     const user = (req.body?.user || "").trim();
     if (!user) {
       return res.status(400).json({ success: false, message: "Informe o usuário (ex: Apto 301)." });
+    }
+
+    // Bloqueia se já existir uma sessão em andamento
+    const existing = db.prepare(`
+      SELECT id, user, start_time
+      FROM sessions
+      WHERE status = 'running'
+      ORDER BY id DESC
+      LIMIT 1
+    `).get();
+
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: `Já existe uma sessão em andamento (ID ${existing.id}, usuário ${existing.user}). Pare a sessão atual antes de iniciar outra.`,
+        existing,
+      });
     }
 
     // 2) Consulta status atual na Tuya
@@ -272,78 +212,6 @@ app.post("/session/start", async (req, res) => {
     }
   });
 
-// Para carregamento e FINALIZA a sessão "running" salvando a energia da sessão
-app.post("/session/stop", async (req, res) => {
-  try {
-    const deviceId = process.env.TUYA_DEVICE_ID;
-
-    // 1) Busca a última sessão em andamento
-    const running = db.prepare(`
-      SELECT * FROM sessions
-      WHERE status = 'running'
-      ORDER BY id DESC
-      LIMIT 1
-    `).get();
-
-    const baseline = running.star_once_raw;
-
-    if (!running) {
-      return res.status(400).json({
-        success: false,
-        message: "Nenhuma sessão em andamento encontrada."
-      });
-    }
-
-    // 2) Envia comando STOP
-    await sendCommands(deviceId, [{ code: "switch", value: false }]);
-
-    // 3) Faz polling: espera o carregador refletir o estado final
-    // (porque alguns DPs atualizam alguns segundos depois do stop)
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-    let lastStatus = null;
-    for (let i = 0; i < 10; i++) { // tenta por ~10 segundos
-      await sleep(1000);
-      lastStatus = await getDeviceStatus(deviceId);
-
-      const sw = findDp(lastStatus, "switch")?.value;
-      const ws = findDp(lastStatus, "work_state")?.value;
-
-      // Condição de parada do polling
-      if (sw === false || ws === "charger_free") break;
-    }
-
-    // 4) Pega energia final da sessão
-    const onceRaw = findDp(lastStatus, "charge_energy_once")?.value;
-
-    // scale 2 => 3735 vira 37.35 kWh
-    const energyOnce = (typeof onceRaw === "number") ? onceRaw / 100 : null;
-
-    // 5) Atualiza a sessão no banco
-    db.prepare(`
-      UPDATE sessions
-      SET status = 'done',
-          end_time = datetime('now','localtime'),
-          energy_once = ?
-      WHERE id = ?
-    `).run(energyOnce, running.id);
-
-    res.json({
-      success: true,
-      message: "Sessão finalizada.",
-      sessionId: running.id,
-      energy_once: energyOnce
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Erro ao finalizar sessão",
-      error: error.message
-    });
-  }
-});
-
 // Para o carregamento e FINALIZA a última sessão "running" no banco
 app.post("/session/stop", async (req, res) => {
   try {
@@ -356,6 +224,8 @@ app.post("/session/stop", async (req, res) => {
       ORDER BY id DESC
       LIMIT 1
     `).get();
+
+    const baseline = running.start_once_raw;
 
     if (!running) {
       return res.status(400).json({
@@ -434,10 +304,13 @@ app.post("/session/stop", async (req, res) => {
     db.prepare(`
       UPDATE sessions
       SET status = 'done',
-          end_time = datetime('now'),
-          energy_once = ?
+          end_time = datetime('now', 'localtime'),
+          energy_once = ?,
+          end_once_raw = ?
       WHERE id = ?
-    `).run(energyOnce, running.id);
+    `).run(energyOnce,
+      (typeof onceRaw === "number" ? onceRaw : null),
+      running.id);
 
     res.json({
       success: true,
@@ -509,7 +382,7 @@ app.post("/auth/register", (req, res) => {
     if (!password || password.length < 8) return res.status(400).json({ success: false, message: "Senha deve ter no mínimo 8 caracteres." });
 
     // role/tower com valores fixos (evita erro de digitação)
-    const allowedRoles = ["resident", "visitor"];
+    const allowedRoles = ["resident", "visitor", "admin"];
     const allowedTowers = ["mississipi", "missouri"];
 
     if (!allowedRoles.includes(role)) {
@@ -554,6 +427,88 @@ app.post("/auth/register", (req, res) => {
       error: msg,
     });
   }
+});
+
+//Rota para o Auth - Login
+app.post("/auth/login", (req, res) => {
+  try {
+    let { emailOrCpf, password } = req.body || {};
+
+    emailOrCpf = String(emailOrCpf || "").trim().toLowerCase();
+    password = String(password || "");
+
+    if (!emailOrCpf) {
+      return res.status(400).json({ success: false, message: "Informe email ou CPF."});
+    }
+    if (!password) {
+      return res.status(400).json({ success: false, message: "Informe a senha."});
+    }
+
+    //Se vier CPF com pontos e traços, remove tudo e fica só os números
+    const cpfOnly = emailOrCpf.replace(/\D/g, "");
+    
+    // Buscar por email ou CPF
+    const user = db.prepare(`
+      SELECT id, name, email, cpf, password_hash, role,tower, apartment
+      FROM users
+      WHERE email = ? OR cpf = ?
+      LIMIT 1
+       `).get(emailOrCpf, cpfOnly);
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Credenciais inválidas."});
+    }
+
+    //Confere senha
+    const ok = bcrypt.compareSync(password, user.password_hash);
+    if (!ok) {
+      return res.status(401).json({ success: false, message: "Credenciais inválidas."})
+    }
+
+    //Criar token com dados mínimos do usuário
+    const token = signToken({
+      id: user.id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      tower: user.tower,
+      apartment: user.apartment,
+    });
+
+    //Salva token em cookie
+    setAuthCookie(res, token);
+
+    //Retorna dados (sem password_hash)
+    res.json({
+      success: true,
+      message: "Login ok",
+      user: {
+        id: user.id,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        tower: user.tower,
+        apartment: user.apartment,
+      },
+    });
+  } catch (error) {
+    res.status(500),express.json({
+      success: false,
+      message: "Erro no login",
+      error: String(error.message || error),
+    });
+  }
+});
+
+//Quem está logando ? (usatoken do cookie)
+app.get("/auth/me", requireAuth, (req,res) => {
+  res.json({ success: true, user: req.user});
+});
+
+//Logout (apag cookie)
+app.post("/auth/logout", (req, res) => {
+  res.clearCookie("token");
+  res.json({ success: true, message: "Logout ok" });
 });
 
 
