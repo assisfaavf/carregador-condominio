@@ -15,7 +15,9 @@ db.prepare(`
     start_energy_total REAL,           -- total no início (ex: 248.23)
     end_energy_total REAL,             -- total no fim (opcional)
 
-    energy_once REAL                   -- energia da sessão (ex: 37.35)
+    energy_once REAL,                   -- energia da sessão (ex: 37.35)
+    
+    start_once_raw INTEGER
   )
 `).run();
 
@@ -41,6 +43,8 @@ addColumnIfNotExists(`ALTER TABLE sessions ADD COLUMN end_time TEXT`);
 addColumnIfNotExists(`ALTER TABLE sessions ADD COLUMN start_energy_total REAL`);
 addColumnIfNotExists(`ALTER TABLE sessions ADD COLUMN end_energy_total REAL`);
 addColumnIfNotExists(`ALTER TABLE sessions ADD COLUMN energy_once REAL`);
+addColumnIfNotExists('ALTER TABLE sessions ADD COLUMN start_once_raw INTEGER');
+addColumnIfNotExists('ALTER TABLE sessions ADD COLUMN end_once_raw INTEGER');
 
 
 // ===============================

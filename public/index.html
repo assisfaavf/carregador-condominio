@@ -32,14 +32,11 @@
         <label>Usuário (ex: Apto 301)</label>
         <input id="chargeUser" placeholder="Apto 301" />
       </div>
-      <div>
+      <!--<div>
         <label>Energia (kWh)</label>
         <input id="energy" type="number" step="0.01" placeholder="12.5" />
-      </div>
+      </div>-->
     </div>
-
-    <button onclick="createSession()">Salvar sessão</button>
-    <pre id="createResult"></pre>
   </div>
 
   <div class="card">
@@ -117,34 +114,6 @@
         alert("Erro ao carregar sessões: " + error.message);
       }
     }
-
-    // Função que chama POST /sessions com dados do formulário
-    async function createSession() {
-      const user = document.getElementById("user").value.trim();
-      const energy = Number(document.getElementById("energy").value);
-
-      // validação simples no front
-      if (!user) {
-        alert("Preencha o usuário.");
-        return;
-      }
-
-      const res = await fetch("/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user, energy })
-      });
-
-      const result = await res.json();
-      document.getElementById("createResult").textContent = JSON.stringify(result, null, 2);
-
-      // depois de criar, recarrega a lista
-      await loadSessions();
-    }
-
-    // Ao abrir a página, já carrega as sessões
-    loadSessions();
-
     // ===============================
     // FUNÇÕES DE CONTROLE DO CARREGADOR
     // ===============================
@@ -217,7 +186,10 @@
       await refreshTuyaStatus();
       await loadSessions();
     }
-
+    
+    
+    loadSessions();
+    refreshTuyaStatus();
 
   </script>
 </body>

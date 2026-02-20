@@ -215,6 +215,10 @@ app.post("/session/start", async (req, res) => {
 
     // 2) Consulta status atual na Tuya
     const status = await getDeviceStatus(deviceId);
+    // Guarda o valor atual do DP "charge_energy_once".
+    // Importante: durante a carga ele pode mostrar o valor da sessão ANTERIOR.
+    // Vamos salvar isso no banco para usar como "baseline" na hora do STOP.
+    const onceRawBefore = findDp(status, "charge_energy_once")?.value;
     const workState = findDp(status, "work_state")?.value;
     const connectionState = findDp(status, "connection_state")?.value;
     
@@ -237,10 +241,10 @@ app.post("/session/start", async (req, res) => {
     
     // 5) Cria sessão no banco como "running"
     const stmt = db.prepare(`
-      INSERT INTO sessions (user, status, start_time, start_energy_total)
-      VALUES (?, ?, datetime('now'), ?)
+      INSERT INTO sessions (user, status, start_time, start_energy_total, start_once_raw)
+      VALUES (?, ?, datetime('now','localtime'), ?, ?)
       `);
-      const result = stmt.run(user, "running", startEnergyTotal);
+      const result = stmt.run(user, "running", startEnergyTotal, (typeof onceRawBefore === "number" ? onceRawBefore : null));
       
       const sessionId = result.lastInsertRowid;
       
@@ -281,6 +285,8 @@ app.post("/session/stop", async (req, res) => {
       LIMIT 1
     `).get();
 
+    const baseline = running.star_once_raw;
+
     if (!running) {
       return res.status(400).json({
         success: false,
@@ -317,7 +323,7 @@ app.post("/session/stop", async (req, res) => {
     db.prepare(`
       UPDATE sessions
       SET status = 'done',
-          end_time = datetime('now'),
+          end_time = datetime('now','localtime'),
           energy_once = ?
       WHERE id = ?
     `).run(energyOnce, running.id);
@@ -364,22 +370,55 @@ app.post("/session/stop", async (req, res) => {
     // 3) Aguarda a Tuya atualizar os DPs (charge_energy_once normalmente atualiza após parar)
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+    // A Tuya pode atualizar o charge_energy_once em "etapas" após o stop.
+    // Então: esperamos ele mudar do baseline E ficar estável (sem mudar) por alguns ciclos.
+
     let status = null;
     let onceRaw = null;
 
-    // Vamos tentar por até ~12 segundos
-    for (let i = 0; i < 12; i++) {
-      await sleep(1000);
-      status = await getDeviceStatus(deviceId);
+    let lastOnceRaw = null;
+    let stableCount = 0;
 
-      // Captura o valor do DP
-      onceRaw = findDp(status, "charge_energy_once")?.value;
+    // vamos dar mais tempo: até 60 segundos (alguns EVSE demoram)
+    for (let i = 0; i < 60; i++) {
+      await sleep(1000);
+
+      status = await getDeviceStatus(deviceId);
 
       const sw = findDp(status, "switch")?.value;
       const ws = findDp(status, "work_state")?.value;
+      onceRaw = findDp(status, "charge_energy_once")?.value;
 
-      // Condição boa: switch já está false E work_state já está em "charger_end" ou "charger_free"
-      if (sw === false && (ws === "charger_end" || ws === "charger_free")) {
+      // Só começamos a considerar quando:
+      // - já está parado (switch false)
+      // - e está em estado de fim/idle
+      const stoppedOk = (sw === false) && (ws === "charger_end" || ws === "charger_free");
+
+      if (!stoppedOk) continue;
+
+      // Se ainda não é número, continua esperando
+      if (typeof onceRaw !== "number") continue;
+
+      // Se baseline existir, esperamos mudar do baseline
+      if (baseline != null && onceRaw === baseline) continue;
+
+      // Agora já mudou do baseline: precisamos esperar estabilizar
+      if (lastOnceRaw === null) {
+        lastOnceRaw = onceRaw;
+        stableCount = 0;
+        continue;
+      }
+
+      if (onceRaw === lastOnceRaw) {
+        stableCount += 1;
+      } else {
+        // mudou de novo -> zera estabilidade e atualiza last
+        lastOnceRaw = onceRaw;
+        stableCount = 0;
+      }
+
+      // Considera estável quando ficar igual por 3 leituras seguidas (~3s)
+      if (stableCount >= 3) {
         break;
       }
     }
