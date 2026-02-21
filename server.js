@@ -60,7 +60,7 @@ function requireAuth(req, res, next){
 }
 
 //Middleware: Exige ser admin
-function requiresAdmin(req, res, next){
+function requireAdmin(req, res, next){
   if (req.user?.role !== "admin"){
     return res.status(403).json({success: false, message: "Acesso restrito a administradores."});
   }
@@ -79,7 +79,7 @@ app.get("/", (req, res) => {
 });
 
 // Rota para criar uma sessão manualmente
-app.get("/sessions", (req, res) => {
+app.get("/sessions", requireAuth, requireAdmin, (req, res) => {
   try {
     // Puxa as sessões sem assumir colunas específicas
     // (Assim, mesmo se você adicionar/remover colunas, não quebra o painel)
@@ -101,8 +101,32 @@ app.get("/sessions", (req, res) => {
   }
 });
 
+//Admin: listar sessões que ainda estão "running"
+app.get("/admin/running-sessions", requireAuth, requireAdmin, (req, res) => {
+  const rows = db.prepare(`
+    SELECT id, user, status, start_time, end_time
+    FROM sessions
+    WHERE status ='running'
+    ORDER BY id DESC
+    `).all();
+
+    res.json({success: true, running: rows});
+});
+
+//Admin: Força finalizar TODAS as sessões "running"
+app.post("/admin/force-close-running", requireAuth, requireAdmin, (req, res) => {
+  const result = db.prepare(`
+    UPDATE sessions
+    SET status = 'done',
+        end_time = datetime('now', 'localtime')
+    WHERE status = 'running'
+    `).run();
+
+    req.json({ success: true, closed: result.changes });
+});
+
 // Rota de teste: mostra o status do carregador vindo da Tuya Cloud
-app.get("/tuya/status", async (req, res) => {
+app.get("/tuya/status", requireAuth, requireAdmin, async (req, res) => {
   try {
     const deviceId = process.env.TUYA_DEVICE_ID;
     
@@ -125,8 +149,84 @@ app.get("/tuya/status", async (req, res) => {
   }
 });
 
+// Endpoint "clean" para o usuário: devolve status resumido (sem JSON cru)
+app.get("/api/status", requireAuth, async (req, res) => {
+  try {
+    const deviceId = process.env.TUYA_DEVICE_ID;
+
+    const status = await getDeviceStatus(deviceId);
+
+    const workState = findDp(status, "work_state")?.value || null;
+    const connectionState = findDp(status, "connection_state")?.value || null;
+    const sw = findDp(status, "switch")?.value || false;
+
+    const connected = connectionState && connectionState !== "controlpi_12v";
+    const charging = sw === true && workState === "charger_charging";
+
+    // Tradução para estados mais simples
+    let state = "free";
+    let stateLabel = "Livre (sem carro conectado)";
+
+    if (connected) {
+      state = "connected";
+      stateLabel = "Conectado (pronto)";
+    }
+
+    if (workState === "charger_end") {
+      state = "ended";
+      stateLabel = "Finalizado (carro ainda conectado)";
+    }
+
+    if (charging) {
+      state = "charging";
+      stateLabel = "Carregando";
+    }
+
+    // ===== Estimativa de kWh ao vivo (versão 1 - simples e útil) =====
+    // Vamos usar a diferença do forward_energy_total desde que a sessão começou.
+    // Para isso, buscamos a sessão running do usuário atual (se existir).
+    const running = db.prepare(`
+      SELECT id, start_energy_total
+      FROM sessions
+      WHERE status = 'running'
+      ORDER BY id DESC
+      LIMIT 1
+    `).get();
+
+    const totalRaw = findDp(status, "forward_energy_total")?.value;
+    const totalKwh = (typeof totalRaw === "number") ? totalRaw / 100 : null;
+
+    let kwhEstimated = 0;
+    let sessionId = null;
+
+    if (running && typeof running.start_energy_total === "number" && typeof totalKwh === "number") {
+      sessionId = running.id;
+      kwhEstimated = Math.max(0, totalKwh - running.start_energy_total);
+    }
+
+    res.json({
+      success: true,
+      state,
+      stateLabel,
+      connected,
+      charging,
+      workState,
+      connectionState,
+      switch: sw,
+      sessionId,
+      kwhEstimated: Number(kwhEstimated.toFixed(2)),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Erro ao consultar status",
+      error: String(error.message || error),
+    });
+  }
+});
+
 // Inicia uma sessão no banco + tenta iniciar carregamento (safe)
-app.post("/session/start", async (req, res) => {
+app.post("/session/start", requireAuth, async (req, res) => {
   try {
     const deviceId = process.env.TUYA_DEVICE_ID;
     
@@ -213,7 +313,7 @@ app.post("/session/start", async (req, res) => {
   });
 
 // Para o carregamento e FINALIZA a última sessão "running" no banco
-app.post("/session/stop", async (req, res) => {
+app.post("/session/stop", requireAuth, async (req, res) => {
   try {
     const deviceId = process.env.TUYA_DEVICE_ID;
 
@@ -505,7 +605,7 @@ app.get("/auth/me", requireAuth, (req,res) => {
   res.json({ success: true, user: req.user});
 });
 
-//Logout (apag cookie)
+//Logout (apaga cookie)
 app.post("/auth/logout", (req, res) => {
   res.clearCookie("token");
   res.json({ success: true, message: "Logout ok" });

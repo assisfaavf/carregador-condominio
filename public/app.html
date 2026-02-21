@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Carregador - Usuário</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    button { margin-top: 10px; padding: 10px 14px; cursor: pointer; }
+    .muted { color:#666; font-size: 14px; }
+    .big { font-size: 22px; font-weight: bold; }
+    .row { display:flex; gap:12px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <h1>Carregador</h1>
+  <p class="muted" id="who">(carregando usuário...)</p>
+
+  <div class="card">
+    <div class="big" id="state">Status: ...</div>
+    <p class="muted">kWh estimado nesta sessão: <b id="kwh">0.00</b></p>
+
+    <div class="row">
+      <button onclick="start()">Iniciar</button>
+      <button onclick="stop()">Parar</button>
+      <button onclick="logout()">Sair</button>
+    </div>
+
+    <p class="muted" id="msg"></p>
+  </div>
+
+  <script>
+    async function requireLogin() {
+      const res = await fetch("/auth/me");
+      if (!res.ok) {
+        window.location.href = "/login.html";
+        return null;
+      }
+      const data = await res.json();
+      document.getElementById("who").textContent =
+        `Logado como: ${data.user.name} (${data.user.apartment || ""})`;
+      return data.user;
+    }
+
+    function mapStatus(work_state, connection_state, sw) {
+      // sw = switch true/false
+      // connection_state: controlpi_12v = desconectado
+      const connected = connection_state && connection_state !== "controlpi_12v";
+
+      if (!connected) return "Livre (sem carro conectado)";
+      if (sw === true && work_state === "charger_charging") return "Carregando";
+      if (work_state === "charger_end") return "Finalizado (carro ainda conectado)";
+      return "Conectado (pronto)";
+    }
+
+    async function getCleanStatus() {
+      const res = await fetch("/api/status");
+      const data = await res.json();
+
+      if (!res.ok) {
+        document.getElementById("state").textContent = "Status: erro";
+        document.getElementById("msg").textContent = data.message || "Erro";
+        return;
+      }
+
+      document.getElementById("state").textContent = "Status: " + data.stateLabel;
+      document.getElementById("kwh").textContent = data.kwhEstimated.toFixed(2);
+    }
+
+    async function start() {
+      const msg = document.getElementById("msg");
+      msg.textContent = "Iniciando...";
+
+      const res = await fetch("/session/start", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ user: "auto" })});
+      const data = await res.json();
+
+      msg.textContent = data.message || "Resposta recebida.";
+      await getCleanStatus();
+    }
+
+    async function stop() {
+      const msg = document.getElementById("msg");
+      msg.textContent = "Parando...";
+
+      const res = await fetch("/session/stop", { method: "POST" });
+      const data = await res.json();
+
+      msg.textContent = data.message || "Resposta recebida.";
+      await getCleanStatus();
+    }
+
+    async function logout() {
+      await fetch("/auth/logout", { method: "POST" });
+      window.location.href = "/login.html";
+    }
+
+    // init
+    requireLogin().then(() => {
+      getCleanStatus();
+      setInterval(getCleanStatus, 3000);
+    });
+  </script>
+</body>
+</html>
