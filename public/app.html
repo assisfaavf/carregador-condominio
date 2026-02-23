@@ -1,33 +1,46 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Carregador - Usuário</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin: 16px 0; }
-    button { margin-top: 10px; padding: 10px 14px; cursor: pointer; }
-    .muted { color:#666; font-size: 14px; }
-    .big { font-size: 22px; font-weight: bold; }
-    .row { display:flex; gap:12px; flex-wrap: wrap; }
-  </style>
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <h1>Carregador</h1>
-  <p class="muted" id="who">(carregando usuário...)</p>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <img src="/assets/Logo-rem.png" alt="Logo" class="logo" />
+        <button class="btn btn-secondary btn-inline" onclick="logout()" aria-label="Sair">Sair</button>
+      </div>
+    </header>
 
-  <div class="card">
-    <div class="big" id="state">Status: ...</div>
-    <p class="muted">kWh estimado nesta sessão: <b id="kwh">0.00</b></p>
+    <main class="main">
+      <div class="hero"></div>
 
-    <div class="row">
-      <button onclick="start()">Iniciar</button>
-      <button onclick="stop()">Parar</button>
-      <button onclick="logout()">Sair</button>
-    </div>
+      <div class="section-intro">
+        <h1 class="page-title">Painel do Carregador</h1>
+        <p id="who" class="page-subtitle">(carregando usuário...)</p>
+      </div>
 
-    <p class="muted" id="msg"></p>
+      <section class="panel">
+        <div id="state" class="status-main">Status: ...</div>
+
+        <div class="metrics">
+          <p>kWh estimado nesta sessão: <b id="kwh">0.00</b></p>
+          <p>Potência agora: <b id="power">--</b> kW</p>
+          <p>Corrente configurada: <b id="current">--</b> A</p>
+          <p>Tempo de sessão: <b id="elapsed">00:00</b></p>
+        </div>
+
+        <div class="actions-two mt-16">
+          <button onclick="startCharge()" class="btn btn-primary">Iniciar</button>
+          <button onclick="stopCharge()" class="btn btn-secondary">Parar</button>
+        </div>
+
+        <p id="msg" class="message"></p>
+      </section>
+    </main>
   </div>
 
   <script>
@@ -43,51 +56,105 @@
       return data.user;
     }
 
-    function mapStatus(work_state, connection_state, sw) {
-      // sw = switch true/false
-      // connection_state: controlpi_12v = desconectado
-      const connected = connection_state && connection_state !== "controlpi_12v";
+    function formatElapsed(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      const mm = String(m).padStart(2, "0");
+      const ss = String(s).padStart(2, "0");
+      return `${mm}:${ss}`;
+    }
 
+    async function refreshLive() {
+      try {
+        const res = await fetch("/api/live");
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          document.getElementById("state").textContent = "Status: erro";
+          document.getElementById("msg").textContent = "Erro ao atualizar";
+          return;
+        }
+
+        const label = mapStatus(data.workState, data.connectionState, data.switch);
+        document.getElementById("state").textContent = "Status: " + label;
+        document.getElementById("kwh").textContent = Number(data.kwhEstimated || 0).toFixed(2);
+        document.getElementById("power").textContent = data.powerKw == null ? "--" : Number(data.powerKw).toFixed(2);
+        document.getElementById("current").textContent = data.currentSetA == null ? "--" : data.currentSetA;
+        document.getElementById("elapsed").textContent = formatElapsed(data.elapsedSeconds || 0);
+      } catch (error) {
+        console.error("Erro refreshLive", error);
+      }
+    }
+
+    async function startCharge() {
+      const msg = document.getElementById("msg");
+      msg.textContent = "Enviando comando de iniciar...";
+      msg.className = "message";
+
+      try {
+        const res = await fetch("/session/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          let details = "";
+          if (data && data.debug) {
+            const ws = data.debug.work_state ?? "null";
+            const cs = data.debug.connection_state ?? "null";
+            const sw = data.debug.switch ?? "null";
+            details = ` [work_state=${ws}, connection_state=${cs}, switch=${sw}]`;
+          }
+          if (data && data.reasonCode) {
+            details = `${details} (${data.reasonCode})`;
+          }
+          msg.textContent = (data.message || `Falha ao iniciar (HTTP ${res.status})`) + details;
+          msg.className = "message error";
+          return;
+        }
+
+        msg.textContent = data.message || "Sessão iniciada.";
+        msg.className = "message ok";
+        await refreshLive();
+      } catch (e) {
+        msg.textContent = "Erro: " + e.message;
+        msg.className = "message error";
+      }
+    }
+
+    async function stopCharge() {
+      const msg = document.getElementById("msg");
+      msg.textContent = "Enviando comando de parar...";
+      msg.className = "message";
+
+      try {
+        const res = await fetch("/session/stop", { method: "POST" });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          msg.textContent = data.message || `Falha ao parar (HTTP ${res.status})`;
+          msg.className = "message error";
+          return;
+        }
+
+        msg.textContent = data.message || "Sessão finalizada.";
+        msg.className = "message ok";
+        await refreshLive();
+      } catch (e) {
+        msg.textContent = "Erro: " + e.message;
+        msg.className = "message error";
+      }
+    }
+
+    function mapStatus(work_state, connection_state, sw) {
+      const connected = connection_state && connection_state !== "controlpi_12v";
       if (!connected) return "Livre (sem carro conectado)";
       if (sw === true && work_state === "charger_charging") return "Carregando";
       if (work_state === "charger_end") return "Finalizado (carro ainda conectado)";
       return "Conectado (pronto)";
-    }
-
-    async function getCleanStatus() {
-      const res = await fetch("/api/status");
-      const data = await res.json();
-
-      if (!res.ok) {
-        document.getElementById("state").textContent = "Status: erro";
-        document.getElementById("msg").textContent = data.message || "Erro";
-        return;
-      }
-
-      document.getElementById("state").textContent = "Status: " + data.stateLabel;
-      document.getElementById("kwh").textContent = data.kwhEstimated.toFixed(2);
-    }
-
-    async function start() {
-      const msg = document.getElementById("msg");
-      msg.textContent = "Iniciando...";
-
-      const res = await fetch("/session/start", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ user: "auto" })});
-      const data = await res.json();
-
-      msg.textContent = data.message || "Resposta recebida.";
-      await getCleanStatus();
-    }
-
-    async function stop() {
-      const msg = document.getElementById("msg");
-      msg.textContent = "Parando...";
-
-      const res = await fetch("/session/stop", { method: "POST" });
-      const data = await res.json();
-
-      msg.textContent = data.message || "Resposta recebida.";
-      await getCleanStatus();
     }
 
     async function logout() {
@@ -95,10 +162,9 @@
       window.location.href = "/login.html";
     }
 
-    // init
     requireLogin().then(() => {
-      getCleanStatus();
-      setInterval(getCleanStatus, 3000);
+      refreshLive();
+      setInterval(refreshLive, 3000);
     });
   </script>
 </body>

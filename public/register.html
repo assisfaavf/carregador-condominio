@@ -1,0 +1,176 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastrar - Carregador</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <img alt="Logo" class="logo" src="/assets/Logo-rem.png" />
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="hero"></div>
+
+      <div class="section-intro">
+        <h1 class="page-title">Crie sua conta</h1>
+        <p class="page-subtitle">Cadastre-se para liberar o carregador do condomínio.</p>
+      </div>
+
+      <section class="panel form-wrap">
+        <form id="registerForm" class="form">
+          <div class="field">
+            <label for="name">Nome completo</label>
+            <input id="name" autocomplete="name" class="input" placeholder="Ex: João da Silva" required />
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" class="input" placeholder="Ex: joao@email.com" required />
+          </div>
+
+          <div class="field">
+            <label for="cpf">CPF (somente números)</label>
+            <input id="cpf" inputmode="numeric" class="input" placeholder="Ex: 12345678909" required />
+          </div>
+
+          <div class="field">
+            <label for="password">Senha (mín. 8 caracteres)</label>
+            <div class="password-wrap">
+              <input id="password" type="password" autocomplete="new-password" class="input" placeholder="••••••••" required />
+              <button id="togglePassword" class="icon-btn" type="button" aria-label="Mostrar ou ocultar senha">
+                <svg id="eyeOpenIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                  <path d="M12 5c-5.27 0-9.48 3.11-11 7 1.52 3.89 5.73 7 11 7s9.48-3.11 11-7c-1.52-3.89-5.73-7-11-7Zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/>
+                </svg>
+                <svg id="eyeClosedIcon" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                  <path d="m3.28 2 18.72 18.72-1.27 1.28-3.15-3.15A11.2 11.2 0 0 1 12 20c-5.27 0-9.48-3.11-11-7a12.4 12.4 0 0 1 4.12-5.17L2 3.28 3.28 2Zm5.6 5.6 1.47 1.47A4 4 0 0 1 14.93 13l1.57 1.57A6 6 0 0 0 8.88 7.6Zm10.84 7.02-2.02-2.02c.49-.5.93-1.04 1.3-1.6A12.67 12.67 0 0 0 12 6c-1.07 0-2.1.13-3.08.37L7.3 4.75A14.8 14.8 0 0 1 12 4c5.27 0 9.48 3.11 11 7a14.4 14.4 0 0 1-3.28 3.62Z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="field">
+              <label for="role">Tipo</label>
+              <select id="role" class="select">
+                <option value="resident">Morador</option>
+                <option value="visitor">Visitante</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="tower">Torre</label>
+              <select id="tower" class="select">
+                <option value="mississipi">Mississipi</option>
+                <option value="missouri">Missouri</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="apartment">Apartamento</label>
+            <input id="apartment" class="input" placeholder="Ex: 301" required />
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" type="submit">Cadastrar</button>
+            <a href="/login.html" class="btn btn-secondary">Já tenho conta</a>
+          </div>
+
+          <p id="msg" class="message"></p>
+        </form>
+      </section>
+
+      <div class="footer-stats">
+        <div class="stat">
+          <div class="stat-label">Rede</div>
+          <div class="stat-value">ONLINE</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Criptografia</div>
+          <div class="stat-value">AES-256</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Versão</div>
+          <div class="stat-value">v4.2.0</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function onlyDigits(s) {
+      return String(s || "").replace(/\D/g, "");
+    }
+
+    const form = document.getElementById("registerForm");
+    const msg = document.getElementById("msg");
+    const passwordInput = document.getElementById("password");
+    const togglePasswordBtn = document.getElementById("togglePassword");
+
+    togglePasswordBtn.addEventListener("click", () => {
+      const isPassword = passwordInput.type === "password";
+      passwordInput.type = isPassword ? "text" : "password";
+      document.getElementById("eyeOpenIcon").classList.toggle("hidden", isPassword);
+      document.getElementById("eyeClosedIcon").classList.toggle("hidden", !isPassword);
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = "";
+      msg.className = "message";
+
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const cpf = onlyDigits(document.getElementById("cpf").value);
+      const password = document.getElementById("password").value;
+      const role = document.getElementById("role").value;
+      const tower = document.getElementById("tower").value;
+      const apartment = document.getElementById("apartment").value.trim();
+
+      if (!name) return showError("Informe seu nome.");
+      if (!email) return showError("Informe seu email.");
+      if (!cpf || cpf.length !== 11) return showError("CPF inválido (11 números).");
+      if (!password || password.length < 8) return showError("Senha deve ter no mínimo 8 caracteres.");
+      if (!apartment) return showError("Informe o apartamento.");
+
+      const payload = { name, email, cpf, password, role, tower, apartment };
+
+      try {
+        const res = await fetch("/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          return showError(data.message || `Erro ao cadastrar (HTTP ${res.status})`);
+        }
+
+        showOk("Cadastro realizado! Agora faça login.");
+        setTimeout(() => {
+          window.location.href = "/login.html";
+        }, 1000);
+      } catch (err) {
+        showError("Falha de rede: " + err.message);
+      }
+    });
+
+    function showError(text) {
+      msg.textContent = text;
+      msg.className = "message error";
+    }
+
+    function showOk(text) {
+      msg.textContent = text;
+      msg.className = "message ok";
+    }
+  </script>
+</body>
+</html>
