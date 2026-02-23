@@ -28,6 +28,7 @@
 
         <div class="metrics">
           <p>kWh estimado nesta sessão: <b id="kwh">0.00</b></p>
+          <p>Preço estimado: <b id="price">--</b></p>
           <p>Potência agora: <b id="power">--</b> kW</p>
           <p>Corrente configurada: <b id="current">--</b> A</p>
           <p>Tempo de sessão: <b id="elapsed">00:00</b></p>
@@ -78,6 +79,10 @@
         const label = mapStatus(data.workState, data.connectionState, data.switch);
         document.getElementById("state").textContent = "Status: " + label;
         document.getElementById("kwh").textContent = Number(data.kwhEstimated || 0).toFixed(2);
+        document.getElementById("price").textContent =
+          (typeof data.priceEstimated === "number" && Number.isFinite(data.priceEstimated))
+            ? `R$ ${data.priceEstimated.toFixed(2)}`
+            : "--";
         document.getElementById("power").textContent = data.powerKw == null ? "--" : Number(data.powerKw).toFixed(2);
         document.getElementById("current").textContent = data.currentSetA == null ? "--" : data.currentSetA;
         document.getElementById("elapsed").textContent = formatElapsed(data.elapsedSeconds || 0);

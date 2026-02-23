@@ -41,6 +41,43 @@ function scale2ToKwh(raw) {
   return typeof raw === "number" ? raw / 100 : null;
 }
 
+function toFiniteNumber(v) {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const n = Number(v.replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function readDpNumber(statusData, code) {
+  return toFiniteNumber(findDp(statusData, code)?.value);
+}
+
+function pickPowerKwFromStatus(statusData) {
+  // Alguns modelos usam códigos diferentes para potência instantânea.
+  const raw =
+    readDpNumber(statusData, "power_total") ??
+    readDpNumber(statusData, "cur_power") ??
+    readDpNumber(statusData, "charge_power") ??
+    readDpNumber(statusData, "power");
+
+  if (raw == null) return null;
+  if (raw <= 0) return 0;
+
+  // Normalmente vem em watts; em alguns firmwares pode já vir em kW.
+  return raw > 30 ? (raw / 1000) : raw;
+}
+
+function estimatePowerKwFromSession(kwhEstimated, elapsedSeconds) {
+  const kwh = toFiniteNumber(kwhEstimated);
+  const sec = toFiniteNumber(elapsedSeconds);
+  if (kwh == null || sec == null || sec <= 0) return null;
+  const kw = kwh / (sec / 3600);
+  if (!Number.isFinite(kw) || kw < 0) return null;
+  return kw;
+}
+
 // sleep (para polling)
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -322,12 +359,11 @@ app.get("/api/live", requireAuth, async (req, res) => {
     const charging = (workState === "charger_charging") || (sw === true);
 
     // DPs úteis
-    const powerTotal = findDp(status, "power_total")?.value; // provável W
-    const currentSet = findDp(status, "charge_cur_set")?.value; // A
-    const totalRaw = findDp(status, "forward_energy_total")?.value; // scale2
+    const currentSet = readDpNumber(status, "charge_cur_set"); // A
+    const totalRaw = readDpNumber(status, "forward_energy_total"); // scale2
 
     const totalKwh = scale2ToKwh(totalRaw);
-    const powerKw = typeof powerTotal === "number" ? powerTotal / 1000 : null;
+    let powerKw = pickPowerKwFromStatus(status);
 
     // Sessão running do usuário (para não mostrar kWh fantasma)
     const running = db.prepare(`
@@ -348,6 +384,16 @@ app.get("/api/live", requireAuth, async (req, res) => {
       elapsedSeconds = calcDurationSeconds(running.start_time);
     }
 
+    if (powerKw == null || powerKw <= 0) {
+      const estimatedPower = estimatePowerKwFromSession(kwhEstimated, elapsedSeconds);
+      if (estimatedPower != null) powerKw = estimatedPower;
+    }
+
+    const tariff = getTariffPerKwh();
+    const priceEstimated = Number.isFinite(tariff)
+      ? Number((kwhEstimated * tariff).toFixed(2))
+      : null;
+
     return res.json({
       success: true,
       charging,
@@ -357,10 +403,11 @@ app.get("/api/live", requireAuth, async (req, res) => {
 
       sessionId,
       kwhEstimated: Number(kwhEstimated.toFixed(2)),
+      priceEstimated,
       elapsedSeconds,
 
       powerKw: powerKw != null ? Number(powerKw.toFixed(2)) : null,
-      currentSetA: typeof currentSet === "number" ? currentSet : null,
+      currentSetA: currentSet != null ? currentSet : null,
       totalKwh: totalKwh != null ? Number(totalKwh.toFixed(2)) : null,
     });
   } catch (error) {
@@ -383,12 +430,11 @@ app.get("/api/admin/live", requireAuth, requireAdmin, async (req, res) => {
     const workState = findDp(status, "work_state")?.value || null;
     const sw = findDp(status, "switch")?.value ?? false;
 
-    const powerTotal = findDp(status, "power_total")?.value;
-    const currentSet = findDp(status, "charge_cur_set")?.value;
-    const totalRaw = findDp(status, "forward_energy_total")?.value;
+    const currentSet = readDpNumber(status, "charge_cur_set");
+    const totalRaw = readDpNumber(status, "forward_energy_total");
 
     const totalKwh = scale2ToKwh(totalRaw);
-    const powerKw = (typeof powerTotal === "number") ? powerTotal / 1000 : null;
+    let powerKw = pickPowerKwFromStatus(status);
     const charging = (workState === "charger_charging") || (sw === true);
 
     const running = db.prepare(`
@@ -443,6 +489,11 @@ app.get("/api/admin/live", requireAuth, requireAdmin, async (req, res) => {
       };
     }
 
+    if ((powerKw == null || powerKw <= 0) && session) {
+      const estimatedPower = estimatePowerKwFromSession(session.kwhEstimated, session.elapsedSeconds);
+      if (estimatedPower != null) powerKw = estimatedPower;
+    }
+
     const stateLabel = pickChargerStateLabel(workState, sw);
 
     return res.json({
@@ -452,7 +503,7 @@ app.get("/api/admin/live", requireAuth, requireAdmin, async (req, res) => {
       workState,
       switch: sw,
       powerKw: powerKw != null ? Number(powerKw.toFixed(2)) : null,
-      currentSetA: (typeof currentSet === "number") ? currentSet : null,
+      currentSetA: currentSet != null ? currentSet : null,
       totalKwh: totalKwh != null ? Number(totalKwh.toFixed(2)) : null,
       runningSession: session,
     });
