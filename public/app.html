@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Carregador - Usuário</title>
+  <title>Carregador - Usuario</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -20,23 +20,104 @@
 
       <div class="section-intro">
         <h1 class="page-title">Painel do Carregador</h1>
-        <p id="who" class="page-subtitle">(carregando usuário...)</p>
+        <p id="who" class="page-subtitle">(carregando usuario...)</p>
       </div>
+
+      <section class="panel">
+        <h2 class="section-title">Endereco</h2>
+
+        <div class="field">
+          <label for="addressSelect">Selecione o endereco</label>
+          <select id="addressSelect" class="select">
+            <option value="">Carregando enderecos...</option>
+          </select>
+        </div>
+
+        <div class="actions mt-16">
+          <button id="toggleAddressFormBtn" class="btn btn-secondary">+ Novo endereco</button>
+        </div>
+
+        <form id="newAddressForm" class="form mt-16 hidden">
+          <div class="field">
+            <label for="addressLabel">Rotulo</label>
+            <input id="addressLabel" class="input" placeholder="Principal" required />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="field">
+              <label for="addressStreet">Rua</label>
+              <input id="addressStreet" class="input" placeholder="Rua Exemplo" />
+            </div>
+            <div class="field">
+              <label for="addressNumber">Numero</label>
+              <input id="addressNumber" class="input" placeholder="123" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="field">
+              <label for="addressComplement">Complemento</label>
+              <input id="addressComplement" class="input" placeholder="Apto, bloco..." />
+            </div>
+            <div class="field">
+              <label for="addressNeighborhood">Bairro</label>
+              <input id="addressNeighborhood" class="input" placeholder="Centro" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="field">
+              <label for="addressCity">Cidade</label>
+              <input id="addressCity" class="input" placeholder="Fortaleza" />
+            </div>
+            <div class="field">
+              <label for="addressState">Estado</label>
+              <input id="addressState" class="input" placeholder="CE" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="field">
+              <label for="addressZip">CEP</label>
+              <input id="addressZip" class="input" placeholder="00000-000" />
+            </div>
+            <label class="checkline">
+              <input id="addressDefault" type="checkbox" />
+              Marcar como endereco padrao
+            </label>
+          </div>
+
+          <div class="actions-two">
+            <button type="submit" class="btn btn-primary">Salvar endereco</button>
+            <button id="cancelAddressFormBtn" type="button" class="btn btn-secondary">Cancelar</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2 class="section-title">Estacao / Carregador</h2>
+
+        <div class="field">
+          <label for="stationSelect">Selecione a estacao</label>
+          <select id="stationSelect" class="select">
+            <option value="">Carregando estacoes...</option>
+          </select>
+        </div>
+      </section>
 
       <section class="panel">
         <div id="state" class="status-main">Status: ...</div>
 
         <div class="metrics">
-          <p>kWh estimado nesta sessão: <b id="kwh">0.00</b></p>
-          <p>Preço estimado: <b id="price">--</b></p>
-          <p>Potência agora: <b id="power">--</b> kW</p>
+          <p>kWh estimado nesta sessao: <b id="kwh">0.00</b></p>
+          <p>Preco estimado: <b id="price">--</b></p>
+          <p>Potencia agora: <b id="power">--</b> kW</p>
           <p>Corrente configurada: <b id="current">--</b> A</p>
-          <p>Tempo de sessão: <b id="elapsed">00:00</b></p>
+          <p>Tempo de sessao: <b id="elapsed">00:00</b></p>
         </div>
 
-        <div class="actions-two mt-16">
-          <button onclick="startCharge()" class="btn btn-primary">Iniciar</button>
-          <button onclick="stopCharge()" class="btn btn-secondary">Parar</button>
+        <div class="actions mt-16">
+          <button id="actionBtn" class="btn btn-primary">Iniciar carregamento</button>
         </div>
 
         <p id="msg" class="message"></p>
@@ -44,7 +125,65 @@
     </main>
   </div>
 
+  <div id="stopModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="stopModalTitle">
+    <div class="modal-backdrop" data-close-modal="1"></div>
+    <div class="modal-card">
+      <h3 id="stopModalTitle">Confirmar encerramento</h3>
+      <p>Tem certeza que deseja encerrar o carregamento?</p>
+      <div class="actions-two mt-16">
+        <button id="stopModalCancel" class="btn btn-secondary">Cancelar</button>
+        <button id="stopModalConfirm" class="btn btn-primary">Encerrar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    const ADDRESS_STORAGE_KEY = "selected_address_id";
+    const STATION_STORAGE_KEY = "selected_station_id";
+    const POLL_MS = 3000;
+
+    const state = {
+      user: null,
+      addresses: [],
+      stations: [],
+      live: null,
+      current: null,
+      lastKwhByStation: {},
+      actionBusy: false,
+      actionBusyLabel: "",
+      refreshBusy: false,
+      pollTimer: null,
+      elapsedTimer: null,
+      modalResolve: null,
+      modalBusy: false,
+    };
+
+    function setMsg(text, type = "") {
+      const msg = document.getElementById("msg");
+      msg.textContent = text || "";
+      msg.className = type ? `message ${type}` : "message";
+    }
+
+    function formatTelemetryError(raw) {
+      const text = String(raw || "").replace(/\s+/g, " ").trim();
+      return text ? ` Detalhe: ${text}` : "";
+    }
+
+    function getCachedKwh(stationId) {
+      return state.lastKwhByStation[String(stationId)];
+    }
+
+    function setCachedKwh(stationId, kwh) {
+      if (!stationId) return;
+      if (typeof kwh !== "number" || !Number.isFinite(kwh)) return;
+      state.lastKwhByStation[String(stationId)] = kwh;
+    }
+
+    function clearCachedKwh(stationId) {
+      if (!stationId) return;
+      delete state.lastKwhByStation[String(stationId)];
+    }
+
     async function requireLogin() {
       const res = await fetch("/auth/me");
       if (!res.ok) {
@@ -52,114 +191,395 @@
         return null;
       }
       const data = await res.json();
-      document.getElementById("who").textContent =
-        `Logado como: ${data.user.name} (${data.user.apartment || ""})`;
+      document.getElementById("who").textContent = `Logado como: ${data.user.name} (${data.user.apartment || ""})`;
       return data.user;
     }
 
     function formatElapsed(sec) {
-      const m = Math.floor(sec / 60);
-      const s = sec % 60;
-      const mm = String(m).padStart(2, "0");
-      const ss = String(s).padStart(2, "0");
-      return `${mm}:${ss}`;
+      const total = Math.max(0, Math.floor(Number(sec || 0)));
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      if (h > 0) {
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      }
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
     }
 
-    async function refreshLive() {
-      try {
-        const res = await fetch("/api/live");
-        const data = await res.json();
+    function getLiveElapsedSecondsNow() {
+      const startTime = state.live?.runningSession?.start_time;
+      if (startTime) {
+        const parsed = Date.parse(startTime);
+        if (Number.isFinite(parsed)) {
+          return Math.max(0, Math.floor((Date.now() - parsed) / 1000));
+        }
+      }
+      return Math.max(0, Math.floor(Number(state.live?.elapsedSeconds || 0)));
+    }
 
-        if (!res.ok || !data.success) {
-          document.getElementById("state").textContent = "Status: erro";
-          document.getElementById("msg").textContent = "Erro ao atualizar";
+    function renderElapsedNow() {
+      document.getElementById("elapsed").textContent = formatElapsed(getLiveElapsedSecondsNow());
+    }
+
+    function mapStatus(workState, connectionState, sw) {
+      const connected = connectionState && connectionState !== "controlpi_12v";
+      if (!connected) return "Livre (sem carro conectado)";
+      if (sw === true && workState === "charger_charging") return "Carregando";
+      if (workState === "charger_end") return "Finalizado (carro ainda conectado)";
+      return "Conectado (pronto)";
+    }
+
+    function getSelectedAddressId() {
+      const n = Number(document.getElementById("addressSelect").value);
+      return Number.isInteger(n) && n > 0 ? n : null;
+    }
+
+    function getSelectedStationId() {
+      const n = Number(document.getElementById("stationSelect").value);
+      return Number.isInteger(n) && n > 0 ? n : null;
+    }
+
+    function hasActiveSession() {
+      return Boolean(state.current && state.current.active === true);
+    }
+
+    function fillAddressesSelect() {
+      const select = document.getElementById("addressSelect");
+      const savedId = Number(localStorage.getItem(ADDRESS_STORAGE_KEY) || "0");
+      const savedIsValid = state.addresses.some((item) => item.id === savedId);
+      const fallback = state.addresses.find((item) => item.is_default) || state.addresses[0] || null;
+      const selectedId = savedIsValid ? savedId : (fallback ? fallback.id : null);
+
+      select.innerHTML = "";
+      if (state.addresses.length === 0) {
+        select.innerHTML = '<option value="">Nenhum endereco cadastrado</option>';
+        localStorage.removeItem(ADDRESS_STORAGE_KEY);
+        renderActionButton();
+        return;
+      }
+
+      for (const address of state.addresses) {
+        const suffix = address.is_default ? " [padrao]" : "";
+        const text = `${address.label}${suffix} - ${address.street || ""} ${address.number || ""}`.trim();
+        const option = document.createElement("option");
+        option.value = String(address.id);
+        option.textContent = text;
+        select.appendChild(option);
+      }
+
+      if (selectedId) {
+        select.value = String(selectedId);
+        localStorage.setItem(ADDRESS_STORAGE_KEY, String(selectedId));
+      }
+      renderActionButton();
+    }
+
+    function fillStationsSelect() {
+      const select = document.getElementById("stationSelect");
+      const savedId = Number(localStorage.getItem(STATION_STORAGE_KEY) || "0");
+      const savedIsValid = state.stations.some((item) => item.id === savedId);
+      const fallback = state.stations[0] || null;
+      const selectedId = savedIsValid ? savedId : (fallback ? fallback.id : null);
+
+      select.innerHTML = "";
+      if (state.stations.length === 0) {
+        select.innerHTML = '<option value="">Nenhuma estacao ativa</option>';
+        localStorage.removeItem(STATION_STORAGE_KEY);
+        renderActionButton();
+        return;
+      }
+
+      for (const station of state.stations) {
+        const location = station.location_label ? ` - ${station.location_label}` : "";
+        const option = document.createElement("option");
+        option.value = String(station.id);
+        option.textContent = `${station.name}${location} (${station.max_current_a}A)`;
+        select.appendChild(option);
+      }
+
+      if (selectedId) {
+        select.value = String(selectedId);
+        localStorage.setItem(STATION_STORAGE_KEY, String(selectedId));
+      }
+      renderActionButton();
+    }
+
+    async function loadAddresses() {
+      const res = await fetch("/api/my/addresses");
+      const data = await res.json().catch(() => ({}));
+      state.addresses = res.ok && data.success && Array.isArray(data.addresses) ? data.addresses : [];
+      fillAddressesSelect();
+    }
+
+    async function loadStations() {
+      const res = await fetch("/api/stations");
+      const data = await res.json().catch(() => ({}));
+      state.stations = res.ok && data.success && Array.isArray(data.stations) ? data.stations : [];
+      fillStationsSelect();
+    }
+
+    function renderActionButton() {
+      const btn = document.getElementById("actionBtn");
+      if (!btn) return;
+
+      if (state.actionBusy) {
+        btn.disabled = true;
+        btn.textContent = state.actionBusyLabel || "Processando...";
+        return;
+      }
+
+      if (hasActiveSession()) {
+        btn.classList.remove("btn-primary");
+        btn.classList.add("btn-secondary");
+        btn.textContent = "Encerrar carregamento";
+        btn.disabled = false;
+        return;
+      }
+
+      btn.classList.remove("btn-secondary");
+      btn.classList.add("btn-primary");
+      btn.textContent = "Iniciar carregamento";
+
+      const stationSelected = Boolean(getSelectedStationId());
+      const addressSelected = Boolean(getSelectedAddressId());
+      const occupiedByOther = Boolean(state.current && state.current.occupied && state.current.active !== true);
+      btn.disabled = !stationSelected || !addressSelected || occupiedByOther;
+    }
+
+    async function refreshState() {
+      if (state.refreshBusy) return;
+      state.refreshBusy = true;
+      try {
+        const stationId = getSelectedStationId();
+        if (!stationId) {
+          state.current = null;
+          state.live = null;
+          document.getElementById("state").textContent = "Status: selecione uma estacao";
+          document.getElementById("kwh").textContent = "0.00";
+          document.getElementById("price").textContent = "--";
+          document.getElementById("power").textContent = "--";
+          document.getElementById("current").textContent = "--";
+          document.getElementById("elapsed").textContent = "00:00";
           return;
         }
 
-        const label = mapStatus(data.workState, data.connectionState, data.switch);
+        const [liveRes, currentRes] = await Promise.all([
+          fetch(`/api/live?station_id=${stationId}`),
+          fetch(`/api/session/current?station_id=${stationId}`),
+        ]);
+
+        const liveData = await liveRes.json().catch(() => ({}));
+        const currentData = await currentRes.json().catch(() => ({}));
+
+        if (!liveRes.ok || !liveData.success) {
+          document.getElementById("state").textContent = "Status: erro";
+          setMsg(liveData.message || "Erro ao atualizar live.", "error");
+          return;
+        }
+        if (!currentRes.ok || !currentData.success) {
+          document.getElementById("state").textContent = "Status: erro";
+          setMsg(currentData.message || "Erro ao consultar sessao atual.", "error");
+          return;
+        }
+
+        state.live = liveData;
+        state.current = currentData;
+
+        const label = mapStatus(liveData.workState, liveData.connectionState, liveData.switch);
+        const running = Boolean(liveData.runningSession);
+        const incomingKwh = Number(liveData.kwhEstimated);
+        const hasIncomingKwh = Number.isFinite(incomingKwh);
+        const cachedKwh = getCachedKwh(stationId);
+        const kwhToShow = running
+          ? (hasIncomingKwh ? incomingKwh : (Number.isFinite(cachedKwh) ? cachedKwh : 0))
+          : 0;
+
+        if (running && hasIncomingKwh) setCachedKwh(stationId, incomingKwh);
+        if (!running) clearCachedKwh(stationId);
+
         document.getElementById("state").textContent = "Status: " + label;
-        document.getElementById("kwh").textContent = Number(data.kwhEstimated || 0).toFixed(2);
-        document.getElementById("price").textContent =
-          (typeof data.priceEstimated === "number" && Number.isFinite(data.priceEstimated))
-            ? `R$ ${data.priceEstimated.toFixed(2)}`
-            : "--";
-        document.getElementById("power").textContent = data.powerKw == null ? "--" : Number(data.powerKw).toFixed(2);
-        document.getElementById("current").textContent = data.currentSetA == null ? "--" : data.currentSetA;
-        document.getElementById("elapsed").textContent = formatElapsed(data.elapsedSeconds || 0);
+        document.getElementById("kwh").textContent = Number(kwhToShow).toFixed(2);
+        document.getElementById("price").textContent = typeof liveData.priceEstimated === "number"
+          ? `R$ ${liveData.priceEstimated.toFixed(2)}`
+          : "--";
+        document.getElementById("power").textContent = liveData.powerKw == null ? "--" : Number(liveData.powerKw).toFixed(2);
+        document.getElementById("current").textContent = liveData.currentSetA == null ? "--" : liveData.currentSetA;
+        renderElapsedNow();
+
+        if (state.current.occupied && !state.current.active) {
+          const extra = liveData.telemetry_unavailable
+            ? ` Telemetria Tuya indisponivel.${formatTelemetryError(liveData.telemetry_error)}`
+            : "";
+          setMsg(`Estacao ocupada por outro usuario.${extra}`, "error");
+        } else if (liveData.telemetry_unavailable) {
+          setMsg(
+            `Telemetria Tuya indisponivel no momento. Mostrando apenas dados locais.${formatTelemetryError(liveData.telemetry_error)}`,
+            "error"
+          );
+        }
       } catch (error) {
-        console.error("Erro refreshLive", error);
+        setMsg("Falha ao atualizar estado: " + error.message, "error");
+      } finally {
+        state.refreshBusy = false;
+        renderActionButton();
       }
     }
 
-    async function startCharge() {
-      const msg = document.getElementById("msg");
-      msg.textContent = "Enviando comando de iniciar...";
-      msg.className = "message";
+    function showAddressForm(show) {
+      const form = document.getElementById("newAddressForm");
+      form.classList.toggle("hidden", !show);
+      if (!show) form.reset();
+    }
+
+    async function createAddress(event) {
+      event.preventDefault();
+
+      const payload = {
+        label: document.getElementById("addressLabel").value.trim(),
+        street: document.getElementById("addressStreet").value.trim(),
+        number: document.getElementById("addressNumber").value.trim(),
+        complement: document.getElementById("addressComplement").value.trim(),
+        neighborhood: document.getElementById("addressNeighborhood").value.trim(),
+        city: document.getElementById("addressCity").value.trim(),
+        state: document.getElementById("addressState").value.trim(),
+        zip: document.getElementById("addressZip").value.trim(),
+        is_default: document.getElementById("addressDefault").checked,
+      };
+
+      if (!payload.label) return setMsg("Informe o rotulo do endereco.", "error");
+
+      try {
+        const res = await fetch("/api/my/addresses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          return setMsg(data.message || `Falha ao criar endereco (HTTP ${res.status})`, "error");
+        }
+
+        showAddressForm(false);
+        await loadAddresses();
+        document.getElementById("addressSelect").value = String(data.address.id);
+        localStorage.setItem(ADDRESS_STORAGE_KEY, String(data.address.id));
+        setMsg("Endereco criado com sucesso.", "ok");
+      } catch (error) {
+        setMsg("Erro ao criar endereco: " + error.message, "error");
+      }
+    }
+
+    function setModalLoading(isLoading) {
+      state.modalBusy = isLoading;
+      const confirmBtn = document.getElementById("stopModalConfirm");
+      const cancelBtn = document.getElementById("stopModalCancel");
+      confirmBtn.disabled = isLoading;
+      cancelBtn.disabled = isLoading;
+      confirmBtn.textContent = isLoading ? "Encerrando..." : "Encerrar";
+    }
+
+    function closeStopModal(result) {
+      if (state.modalBusy) return;
+      const modal = document.getElementById("stopModal");
+      modal.classList.add("hidden");
+      const resolve = state.modalResolve;
+      state.modalResolve = null;
+      if (resolve) resolve(Boolean(result));
+    }
+
+    function openStopModal() {
+      const modal = document.getElementById("stopModal");
+      modal.classList.remove("hidden");
+      setModalLoading(false);
+      return new Promise((resolve) => { state.modalResolve = resolve; });
+    }
+
+    async function performStart() {
+      const addressId = getSelectedAddressId();
+      const stationId = getSelectedStationId();
+      if (!addressId) return setMsg("Selecione um endereco antes de iniciar.", "error");
+      if (!stationId) return setMsg("Selecione uma estacao antes de iniciar.", "error");
+
+      state.actionBusy = true;
+      state.actionBusyLabel = "Iniciando...";
+      renderActionButton();
+      setMsg("Iniciando carregamento...");
 
       try {
         const res = await fetch("/session/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
+          body: JSON.stringify({ address_id: addressId, station_id: stationId }),
         });
-
         const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          let details = "";
-          if (data && data.debug) {
-            const ws = data.debug.work_state ?? "null";
-            const cs = data.debug.connection_state ?? "null";
-            const sw = data.debug.switch ?? "null";
-            details = ` [work_state=${ws}, connection_state=${cs}, switch=${sw}]`;
-          }
-          if (data && data.reasonCode) {
-            details = `${details} (${data.reasonCode})`;
-          }
-          msg.textContent = (data.message || `Falha ao iniciar (HTTP ${res.status})`) + details;
-          msg.className = "message error";
-          return;
-        }
-
-        msg.textContent = data.message || "Sessão iniciada.";
-        msg.className = "message ok";
-        await refreshLive();
-      } catch (e) {
-        msg.textContent = "Erro: " + e.message;
-        msg.className = "message error";
+        if (!res.ok) return setMsg(data.message || `Falha ao iniciar (HTTP ${res.status})`, "error");
+        setMsg(data.message || "Sessao iniciada.", "ok");
+      } catch (error) {
+        setMsg("Erro ao iniciar: " + error.message, "error");
+      } finally {
+        state.actionBusy = false;
+        state.actionBusyLabel = "";
+        await refreshState();
       }
     }
 
-    async function stopCharge() {
-      const msg = document.getElementById("msg");
-      msg.textContent = "Enviando comando de parar...";
-      msg.className = "message";
+    async function performStop() {
+      const stationId = getSelectedStationId();
+      if (!stationId) return setMsg("Selecione uma estacao para encerrar.", "error");
+
+      state.actionBusy = true;
+      state.actionBusyLabel = "Encerrando...";
+      renderActionButton();
+      setMsg("Encerrando carregamento...");
+      setModalLoading(true);
 
       try {
-        const res = await fetch("/session/stop", { method: "POST" });
+        const res = await fetch("/session/stop", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ station_id: stationId }),
+        });
         const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          msg.textContent = data.message || `Falha ao parar (HTTP ${res.status})`;
-          msg.className = "message error";
-          return;
-        }
-
-        msg.textContent = data.message || "Sessão finalizada.";
-        msg.className = "message ok";
-        await refreshLive();
-      } catch (e) {
-        msg.textContent = "Erro: " + e.message;
-        msg.className = "message error";
+        if (!res.ok) return setMsg(data.message || `Falha ao encerrar (HTTP ${res.status})`, "error");
+        setMsg(data.message || "Sessao encerrada.", "ok");
+      } catch (error) {
+        setMsg("Erro ao encerrar: " + error.message, "error");
+      } finally {
+        setModalLoading(false);
+        state.actionBusy = false;
+        state.actionBusyLabel = "";
+        await refreshState();
       }
     }
 
-    function mapStatus(work_state, connection_state, sw) {
-      const connected = connection_state && connection_state !== "controlpi_12v";
-      if (!connected) return "Livre (sem carro conectado)";
-      if (sw === true && work_state === "charger_charging") return "Carregando";
-      if (work_state === "charger_end") return "Finalizado (carro ainda conectado)";
-      return "Conectado (pronto)";
+    async function handlePrimaryAction() {
+      if (state.actionBusy) return;
+      if (!hasActiveSession()) return performStart();
+      const confirmed = await openStopModal();
+      if (!confirmed) return;
+      await performStop();
+    }
+
+    function startPolling() {
+      if (state.pollTimer) clearInterval(state.pollTimer);
+      state.pollTimer = setInterval(refreshState, POLL_MS);
+    }
+
+    function stopPolling() {
+      if (!state.pollTimer) return;
+      clearInterval(state.pollTimer);
+      state.pollTimer = null;
+    }
+
+    function startElapsedTicker() {
+      if (state.elapsedTimer) clearInterval(state.elapsedTimer);
+      state.elapsedTimer = setInterval(renderElapsedNow, 1000);
+    }
+
+    function stopElapsedTicker() {
+      if (!state.elapsedTimer) return;
+      clearInterval(state.elapsedTimer);
+      state.elapsedTimer = null;
     }
 
     async function logout() {
@@ -167,10 +587,50 @@
       window.location.href = "/login.html";
     }
 
-    requireLogin().then(() => {
-      refreshLive();
-      setInterval(refreshLive, 3000);
-    });
+    function setupEvents() {
+      document.getElementById("toggleAddressFormBtn").addEventListener("click", () => showAddressForm(true));
+      document.getElementById("cancelAddressFormBtn").addEventListener("click", () => showAddressForm(false));
+      document.getElementById("newAddressForm").addEventListener("submit", createAddress);
+      document.getElementById("actionBtn").addEventListener("click", handlePrimaryAction);
+
+      document.getElementById("addressSelect").addEventListener("change", (event) => {
+        const id = Number(event.target.value);
+        if (Number.isInteger(id) && id > 0) localStorage.setItem(ADDRESS_STORAGE_KEY, String(id));
+        renderActionButton();
+      });
+
+      document.getElementById("stationSelect").addEventListener("change", (event) => {
+        const id = Number(event.target.value);
+        if (Number.isInteger(id) && id > 0) localStorage.setItem(STATION_STORAGE_KEY, String(id));
+        refreshState();
+      });
+
+      document.getElementById("stopModalCancel").addEventListener("click", () => closeStopModal(false));
+      document.getElementById("stopModalConfirm").addEventListener("click", () => closeStopModal(true));
+      document.querySelector("#stopModal .modal-backdrop").addEventListener("click", () => closeStopModal(false));
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          const modal = document.getElementById("stopModal");
+          if (!modal.classList.contains("hidden")) closeStopModal(false);
+        }
+      });
+
+      window.addEventListener("beforeunload", () => {
+        stopPolling();
+        stopElapsedTicker();
+      });
+    }
+
+    (async () => {
+      state.user = await requireLogin();
+      if (!state.user) return;
+      setupEvents();
+      await Promise.all([loadAddresses(), loadStations()]);
+      await refreshState();
+      startPolling();
+      startElapsedTicker();
+    })();
   </script>
 </body>
 </html>

@@ -108,8 +108,7 @@
           return;
         }
 
-        const role = data?.user?.role;
-        if (role === "admin") {
+        if (data?.user?.is_admin === true) {
           window.location.href = "/admin.html";
         } else {
           window.location.href = "/app.html";

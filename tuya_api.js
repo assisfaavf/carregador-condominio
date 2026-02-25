@@ -1,22 +1,23 @@
-// tuya_api.js
-// Aqui ficam as funções que conversam com a Tuya Cloud.
-// A ideia é deixar a "parte chata" (assinatura, token) isolada,
-// para o resto do projeto ficar simples.
-
 const crypto = require("crypto");
 
-// Lê as credenciais do .env (carregado no server.js via dotenv)
 const BASE_URL = process.env.TUYA_BASE_URL;
 const ACCESS_ID = process.env.TUYA_ACCESS_ID;
 const ACCESS_SECRET = process.env.TUYA_ACCESS_SECRET;
 
-// Cache simples do token na memória (para não pedir token toda hora)
 let cachedToken = null;
 let cachedTokenExpireAt = 0;
+let tokenRequestInFlight = null;
 
-/**
- * Gera HMAC-SHA256 em HEX maiúsculo (formato exigido pela Tuya).
- */
+class TuyaRequestError extends Error {
+  constructor(message, details = {}) {
+    super(message);
+    this.name = "TuyaRequestError";
+    this.status = details.status ?? null;
+    this.response = details.response ?? null;
+    this.code = details.code ?? null;
+  }
+}
+
 function hmacSha256HexUpper(key, content) {
   return crypto
     .createHmac("sha256", key)
@@ -25,43 +26,26 @@ function hmacSha256HexUpper(key, content) {
     .toUpperCase();
 }
 
-/**
- * Monta a assinatura da Tuya.
- * A Tuya pede uma assinatura baseada em:
- * - método HTTP (GET/POST)
- * - hash do body (SHA256)
- * - caminho da URL (path + query)
- * - timestamp
- * - e seu Access ID/Secret
- */
 function buildSignature({ method, pathWithQuery, bodyText, token, t }) {
-  // Hash SHA256 do corpo (mesmo que esteja vazio)
   const bodyHash = crypto
     .createHash("sha256")
     .update(bodyText || "", "utf8")
     .digest("hex");
 
-  // canonicalHeaders vazio (aqui estamos usando o mínimo necessário)
   const stringToSign = [
     method.toUpperCase(),
     bodyHash,
     "",
-    pathWithQuery
+    pathWithQuery,
   ].join("\n");
 
-  // Conteúdo final que será assinado
   const signContent = `${ACCESS_ID}${token || ""}${t}${stringToSign}`;
-
-  // Assina com o Access Secret
   return hmacSha256HexUpper(ACCESS_SECRET, signContent);
 }
 
-/**
- * Função base para fazer request na Tuya.
- */
 async function tuyaRequest({ method, path, body, token }) {
   if (!BASE_URL || !ACCESS_ID || !ACCESS_SECRET) {
-    throw new Error("Faltam variáveis Tuya no .env (TUYA_BASE_URL, TUYA_ACCESS_ID, TUYA_ACCESS_SECRET).");
+    throw new Error("Faltam variaveis Tuya no .env (TUYA_BASE_URL, TUYA_ACCESS_ID, TUYA_ACCESS_SECRET).");
   }
 
   const t = Date.now().toString();
@@ -75,7 +59,6 @@ async function tuyaRequest({ method, path, body, token }) {
     t,
   });
 
-  // Headers obrigatórios
   const headers = {
     client_id: ACCESS_ID,
     t,
@@ -83,87 +66,161 @@ async function tuyaRequest({ method, path, body, token }) {
     sign,
   };
 
-  // Se já tiver token, manda também
   if (token) headers.access_token = token;
-
-  // Se tiver body, define content-type
   if (body) headers["Content-Type"] = "application/json";
 
   const url = `${BASE_URL}${path}`;
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body ? bodyText : undefined,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
 
-  const data = await res.json().catch(() => ({}));
+  let res = null;
+  let data = null;
 
-  // Se der erro, joga um erro com detalhes para facilitar debug
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: body ? bodyText : undefined,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    const code = error?.name === "AbortError" ? "ETIMEDOUT" : "NETWORK_ERROR";
+    throw new TuyaRequestError(`Tuya network error: ${String(error.message || error)}`, { code });
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  data = await res.json().catch(() => ({}));
+
   if (!res.ok || data?.success === false) {
-    throw new Error(`Tuya error: HTTP ${res.status} - ${JSON.stringify(data)}`);
+    throw new TuyaRequestError(`Tuya error: HTTP ${res.status} - ${JSON.stringify(data)}`, {
+      status: res.status,
+      response: data,
+      code: data?.code ? String(data.code) : null,
+    });
   }
 
   return data;
 }
 
-/**
- * Pega o access_token e guarda em cache.
- */
+function resetCachedToken() {
+  cachedToken = null;
+  cachedTokenExpireAt = 0;
+}
+
+function isTuyaTokenError(error) {
+  if (!error) return false;
+
+  const code = String(error.code || "");
+  const responseCode = String(error.response?.code || "");
+  const msg = String(error.message || "").toLowerCase();
+
+  if (code === "1010" || code === "1011" || responseCode === "1010" || responseCode === "1011") {
+    return true;
+  }
+
+  if (msg.includes("token") && (msg.includes("invalid") || msg.includes("expired"))) {
+    return true;
+  }
+
+  return false;
+}
+
+function isRetryableTuyaError(error) {
+  if (!error) return false;
+  if (isTuyaTokenError(error)) return true;
+
+  const code = String(error.code || "");
+  const msg = String(error.message || "").toLowerCase();
+
+  if (code === "NETWORK_ERROR" || code === "ETIMEDOUT") return true;
+  if (msg.includes("fetch failed") || msg.includes("network")) return true;
+
+  return false;
+}
+
 async function getAccessToken() {
   const now = Date.now();
 
-  // Reaproveita token se ainda estiver válido
   if (cachedToken && now < cachedTokenExpireAt) {
     return cachedToken;
   }
 
-  // Endpoint do token: GET /v1.0/token?grant_type=1
-  const data = await tuyaRequest({
-    method: "GET",
-    path: "/v1.0/token?grant_type=1",
-    token: null,
-  });
-
-  const token = data?.result?.access_token;
-  const expire = data?.result?.expire_time; // em segundos
-
-  if (!token) {
-    throw new Error(`Não consegui obter access_token: ${JSON.stringify(data)}`);
+  if (tokenRequestInFlight) {
+    return tokenRequestInFlight;
   }
 
-  cachedToken = token;
-  // expira 30s antes do tempo real, por segurança
-  cachedTokenExpireAt = now + (expire * 1000) - 30000;
+  tokenRequestInFlight = (async () => {
+    const data = await tuyaRequest({
+      method: "GET",
+      path: "/v1.0/token?grant_type=1",
+      token: null,
+    });
 
-  return token;
+    const token = data?.result?.access_token;
+    const expire = Number(data?.result?.expire_time);
+
+    if (!token || !Number.isFinite(expire) || expire <= 0) {
+      throw new Error(`Nao consegui obter access_token: ${JSON.stringify(data)}`);
+    }
+
+    cachedToken = token;
+    cachedTokenExpireAt = Date.now() + (expire * 1000) - 30000;
+    return token;
+  })();
+
+  try {
+    return await tokenRequestInFlight;
+  } finally {
+    tokenRequestInFlight = null;
+  }
 }
 
-/**
- * Busca status do dispositivo (lista de DPs).
- */
+async function runWithTokenAndRetry(fn) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const token = await getAccessToken();
+      return await fn(token);
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryableTuyaError(error) || attempt === 1) {
+        throw error;
+      }
+
+      if (isTuyaTokenError(error)) {
+        resetCachedToken();
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  }
+
+  throw lastError;
+}
+
 async function getDeviceStatus(deviceId) {
-  const token = await getAccessToken();
-  return tuyaRequest({
-    method: "GET",
-    path: `/v1.0/iot-03/devices/${deviceId}/status`,
-    token,
-  });
+  return runWithTokenAndRetry((token) => (
+    tuyaRequest({
+      method: "GET",
+      path: `/v1.0/iot-03/devices/${deviceId}/status`,
+      token,
+    })
+  ));
 }
 
-// Envia comandos para o carregador (ex.: switch, work_mode, corrente)
 async function sendCommands(deviceId, commands) {
-  const token = await getAccessToken();
-  return tuyaRequest({
-    method: "POST",
-    path: `/v1.0/iot-03/devices/${deviceId}/commands`,
-    token,
-    body: { commands },
-  });
+  return runWithTokenAndRetry((token) => (
+    tuyaRequest({
+      method: "POST",
+      path: `/v1.0/iot-03/devices/${deviceId}/commands`,
+      token,
+      body: { commands },
+    })
+  ));
 }
-
-
-// No final:
 
 module.exports = { getDeviceStatus, sendCommands };
-

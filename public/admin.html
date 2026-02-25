@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
@@ -20,236 +20,156 @@
 
       <div class="section-intro">
         <h1 class="page-title">Painel Admin</h1>
-        <p class="page-subtitle">Operação do carregador em tempo real.</p>
+        <p class="page-subtitle">Operacao do carregador em tempo real.</p>
       </div>
 
       <section class="panel">
         <div id="chargerState" class="status-main">Status: ...</div>
 
         <div class="metrics mt-16">
-          <p>Potência agora: <b id="powerKw">--</b> kW</p>
+          <p>Potencia agora: <b id="powerKw">--</b> kW</p>
           <p>Corrente configurada: <b id="currentSetA">--</b> A</p>
           <p>kWh total no equipamento: <b id="totalKwh">--</b></p>
-          <p>Sessão ativa: <b id="hasRunning">Não</b></p>
+          <p>Sessao ativa: <b id="hasRunning">Nao</b></p>
         </div>
       </section>
 
       <section class="panel">
-        <h2 class="section-title">Sessão em andamento</h2>
+        <h2 class="section-title">Sessao em andamento</h2>
         <div class="metrics">
-          <p>Usuário: <b id="runUser">--</b></p>
-          <p>Início: <b id="runStart">--</b></p>
+          <p>Usuario: <b id="runUser">--</b></p>
+          <p>Inicio: <b id="runStart">--</b></p>
           <p>Tempo: <b id="runElapsed">00:00</b></p>
           <p>kWh estimado: <b id="runKwh">0.00</b></p>
-          <p>Preço estimado: <b id="runPrice">--</b></p>
-          <p>ID sessão: <b id="runId">--</b></p>
+          <p>Preco estimado: <b id="runPrice">--</b></p>
+          <p>ID sessao: <b id="runId">--</b></p>
         </div>
       </section>
 
       <section class="panel">
         <h2 class="section-title">Controle</h2>
+        <p id="controlStationLabel" class="mini-note">Estacao selecionada: --</p>
 
-        <div class="field">
-          <label for="userSelect">Iniciar para usuário</label>
-          <select id="userSelect" class="select">
-            <option value="">Carregando usuários...</option>
+        <div class="field mt-16">
+          <label for="controlStationSelect">Estacao</label>
+          <select id="controlStationSelect" class="select">
+            <option value="">Selecione uma estacao...</option>
           </select>
         </div>
 
-        <div class="actions-three mt-16">
-          <button onclick="startForSelected()" class="btn btn-primary">Iniciar</button>
-          <button onclick="stopGlobal()" class="btn btn-secondary">Parar</button>
-          <button onclick="refreshAll()" class="btn btn-secondary">Atualizar</button>
+        <div id="startUserField" class="field mt-16">
+          <label for="userSelect">Iniciar para usuario</label>
+          <select id="userSelect" class="select">
+            <option value="">Carregando usuarios...</option>
+          </select>
+        </div>
+
+        <div id="startAddressField" class="field mt-16">
+          <label for="userAddressSelect">Endereco do usuario</label>
+          <select id="userAddressSelect" class="select">
+            <option value="">Selecione um usuario...</option>
+          </select>
+        </div>
+
+        <div id="runningSummary" class="metrics mt-16 hidden">
+          <p>Carregando agora: <b id="runningUserInline">--</b></p>
+          <p>Sessao ativa: <b id="runningSessionInline">--</b></p>
+        </div>
+
+        <div class="actions-two mt-16">
+          <button id="adminActionBtn" class="btn btn-primary">Iniciar carregamento</button>
+          <button id="refreshBtn" class="btn btn-secondary">Atualizar</button>
         </div>
 
         <p id="msg" class="message"></p>
       </section>
 
       <section class="panel">
+        <h2 class="section-title">Gerenciar Estacoes</h2>
+
+        <form id="stationForm" class="form">
+          <input id="stationId" type="hidden" />
+
+          <div class="form-grid-2">
+            <div class="field">
+              <label for="stationName">Nome</label>
+              <input id="stationName" class="input" required />
+            </div>
+            <div class="field">
+              <label for="stationLocation">Localizacao</label>
+              <input id="stationLocation" class="input" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="field">
+              <label for="stationDevice">Tuya Device ID</label>
+              <input id="stationDevice" class="input" required />
+            </div>
+            <div class="field">
+              <label for="stationCurrent">Corrente maxima (A)</label>
+              <input id="stationCurrent" type="number" min="1" class="input" value="32" />
+            </div>
+          </div>
+
+          <label class="checkline">
+            <input id="stationActive" type="checkbox" checked />
+            Estacao ativa
+          </label>
+
+          <div class="actions-two">
+            <button type="submit" class="btn btn-primary">Salvar estacao</button>
+            <button type="button" id="stationResetBtn" class="btn btn-secondary">Limpar</button>
+          </div>
+        </form>
+
+        <p id="stationMsg" class="message"></p>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Local</th>
+                <th>Tuya Device</th>
+                <th>A max</th>
+                <th>Status</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody id="stationsTableBody">
+              <tr><td colspan="7">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
         <h2 class="section-title">Debug</h2>
         <div class="actions-three">
-          <button onclick="loadSessions()" class="btn btn-secondary">Ver sessões</button>
+          <button onclick="loadSessions()" class="btn btn-secondary">Ver sessoes</button>
           <button onclick="loadTuya()" class="btn btn-secondary">Ver status Tuya</button>
-          <button onclick="clearOutput()" class="btn btn-secondary">Limpar saída</button>
+          <button onclick="clearOutput()" class="btn btn-secondary">Limpar saida</button>
         </div>
         <pre id="out" class="output">(vazio)</pre>
       </section>
     </main>
   </div>
 
-  <script>
-    function setMsg(text, type = "") {
-      const msg = document.getElementById("msg");
-      msg.textContent = text || "";
-      msg.className = type ? `message ${type}` : "message";
-    }
+  <div id="adminStopModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminStopModalTitle">
+    <div class="modal-backdrop" data-close-admin-modal="1"></div>
+    <div class="modal-card">
+      <h3 id="adminStopModalTitle">Confirmar encerramento</h3>
+      <p>Tem certeza que deseja encerrar o carregamento?</p>
+      <div class="actions-two mt-16">
+        <button id="adminStopCancel" class="btn btn-secondary">Cancelar</button>
+        <button id="adminStopConfirm" class="btn btn-primary">Encerrar</button>
+      </div>
+    </div>
+  </div>
 
-    function formatElapsed(sec) {
-      const s = Number(sec || 0);
-      const h = Math.floor(s / 3600);
-      const m = Math.floor((s % 3600) / 60);
-      const r = s % 60;
-      if (h > 0) {
-        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
-      }
-      return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
-    }
-
-    function fmt(v, digits = 2) {
-      return (typeof v === "number" && Number.isFinite(v)) ? v.toFixed(digits) : "--";
-    }
-
-    async function requireAdmin() {
-      const res = await fetch("/auth/me");
-      if (!res.ok) {
-        window.location.href = "/login.html";
-        return false;
-      }
-      const data = await res.json();
-      if (data.user.role !== "admin") {
-        window.location.href = "/app.html";
-        return false;
-      }
-      return true;
-    }
-
-    async function loadUsers() {
-      const res = await fetch("/admin/users");
-      const data = await res.json().catch(() => ({}));
-
-      const sel = document.getElementById("userSelect");
-      sel.innerHTML = "";
-
-      if (!res.ok || !data.success || !Array.isArray(data.users)) {
-        sel.innerHTML = '<option value="">Erro ao carregar usuários</option>';
-        return;
-      }
-
-      sel.innerHTML = '<option value="">Selecione um usuário...</option>';
-      for (const u of data.users) {
-        const label = `${u.tower || "-"} / ${u.apartment || "-"} - ${u.name || "Sem nome"} (${u.role || "user"})`;
-        const opt = document.createElement("option");
-        opt.value = String(u.id);
-        opt.textContent = label;
-        sel.appendChild(opt);
-      }
-    }
-
-    async function refreshAdminLive() {
-      const res = await fetch("/api/admin/live");
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok || !data.success) {
-        document.getElementById("chargerState").textContent = "Status: erro";
-        return;
-      }
-
-      document.getElementById("chargerState").textContent = `Status: ${data.stateLabel || "--"}`;
-      document.getElementById("powerKw").textContent = fmt(data.powerKw);
-      document.getElementById("currentSetA").textContent = fmt(data.currentSetA, 0);
-      document.getElementById("totalKwh").textContent = fmt(data.totalKwh);
-
-      const running = data.runningSession;
-      document.getElementById("hasRunning").textContent = running ? "Sim" : "Não";
-
-      if (!running) {
-        document.getElementById("runUser").textContent = "--";
-        document.getElementById("runStart").textContent = "--";
-        document.getElementById("runElapsed").textContent = "00:00";
-        document.getElementById("runKwh").textContent = "0.00";
-        document.getElementById("runPrice").textContent = "--";
-        document.getElementById("runId").textContent = "--";
-        return;
-      }
-
-      const u = running.user;
-      const userLabel = u ? `${u.name || "-"} (${u.tower || "-"}/${u.apartment || "-"})` : `User ${running.user_id || "-"}`;
-
-      document.getElementById("runUser").textContent = userLabel;
-      document.getElementById("runStart").textContent = running.start_time || "--";
-      document.getElementById("runElapsed").textContent = formatElapsed(running.elapsedSeconds);
-      document.getElementById("runKwh").textContent = fmt(running.kwhEstimated);
-      document.getElementById("runPrice").textContent = (typeof running.priceEstimated === "number") ? `R$ ${running.priceEstimated.toFixed(2)}` : "--";
-      document.getElementById("runId").textContent = running.id || "--";
-    }
-
-    async function startForSelected() {
-      const userId = Number(document.getElementById("userSelect").value);
-      if (!Number.isFinite(userId) || userId <= 0) {
-        setMsg("Selecione um usuário válido.", "error");
-        return;
-      }
-
-      setMsg("Iniciando sessão...", "");
-
-      const res = await fetch("/admin/session/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        let details = "";
-        if (data?.reasonCode) details += ` (${data.reasonCode})`;
-        if (data?.debug) {
-          details += ` [work_state=${data.debug.work_state ?? "null"}, connection_state=${data.debug.connection_state ?? "null"}, switch=${data.debug.switch ?? "null"}]`;
-        }
-        setMsg((data.message || `Falha ao iniciar (HTTP ${res.status})`) + details, "error");
-        return;
-      }
-
-      setMsg(data.message || "Sessão iniciada.", "ok");
-      await refreshAdminLive();
-    }
-
-    async function stopGlobal() {
-      setMsg("Parando sessão...", "");
-
-      const res = await fetch("/admin/session/stop", { method: "POST" });
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setMsg(data.message || `Falha ao parar (HTTP ${res.status})`, "error");
-        return;
-      }
-
-      setMsg(data.message || "Sessão finalizada.", "ok");
-      await refreshAdminLive();
-    }
-
-    async function refreshAll() {
-      await Promise.all([refreshAdminLive(), loadUsers()]);
-      setMsg("Dados atualizados.", "ok");
-    }
-
-    async function loadSessions() {
-      const res = await fetch("/sessions");
-      const data = await res.json().catch(() => ({}));
-      document.getElementById("out").textContent = JSON.stringify(data, null, 2);
-    }
-
-    async function loadTuya() {
-      const res = await fetch("/tuya/status");
-      const data = await res.json().catch(() => ({}));
-      document.getElementById("out").textContent = JSON.stringify(data, null, 2);
-    }
-
-    function clearOutput() {
-      document.getElementById("out").textContent = "(vazio)";
-    }
-
-    async function logout() {
-      await fetch("/auth/logout", { method: "POST" });
-      window.location.href = "/login.html";
-    }
-
-    (async () => {
-      const ok = await requireAdmin();
-      if (!ok) return;
-      await refreshAll();
-      setInterval(refreshAdminLive, 3000);
-    })();
-  </script>
+  <script src="/admin.js"></script>
 </body>
 </html>
+
