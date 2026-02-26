@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark min-h-screen flex flex-col items-center justify-center p-4 selection:bg-primary selection:text-background-dark">
+<div class="w-full max-w-md w-full flex flex-col gap-6">
+<!-- Header / Logo Area -->
+<div class="flex flex-col items-center justify-center pt-8 pb-6">
+<div class="w-full h-48 rounded-xl overflow-hidden relative mb-6 shadow-2xl ring-1 ring-white/10">
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark/80 to-transparent z-10"></div>
+<div class="w-full h-full bg-center bg-cover" data-alt="Abstract eco-friendly geometric pattern in dark green and neon green" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBh0wNUBTiM_TX7OcaWms93nDB8U-1KldippwbDPEGMXb29qIiz4Kb3cQgJwGhPcZzBjdQ_e90fTkC9ZZ7GRvTB7OOU-kIhSW-fSiVOQ3QD9UoGbUPamvWbnLKJsEQ1vU3Y7juhZxOA2WePpzQEbCngUZZ0Ym8ik-e60-iX5ocVIq3dav9-XvdUxbn4hknVZoI41VZDo6eYx3Hc1ARl_a5jZby5E3ayQb9m1dhX2-f4-Q-Fs3Whp7ilGbfpP5X2mbMTrIqULMDBsg2Y');">
+</div>
+<div class="absolute bottom-4 left-4 z-20">
+<h1 class="text-3xl font-bold text-white tracking-tight">Welcome Back</h1>
+<p class="text-slate-300 text-sm mt-1">Sign in to continue your journey</p>
+</div>
+</div>
+</div>
+<!-- Login Form -->
+<form class="flex flex-col gap-5" onsubmit="event.preventDefault()">
+<!-- Email Input -->
+<div class="flex flex-col gap-2">
+<label class="text-slate-900 dark:text-white text-sm font-semibold ml-1" for="email">Email</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</div>
+<input class="form-input w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#183422] border border-slate-200 dark:border-[#316843] rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#90cba4] focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none" id="email" placeholder="Enter your email" required="" type="email"/>
+</div>
+</div>
+<!-- Password Input -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center ml-1">
+<label class="text-slate-900 dark:text-white text-sm font-semibold" for="password">Password</label>
+<a class="text-xs font-medium text-primary hover:text-primary/80 transition-colors" href="#">Forgot Password?</a>
+</div>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">lock</span>
+</div>
+<input class="form-input w-full pl-11 pr-12 py-3.5 bg-white dark:bg-[#183422] border border-slate-200 dark:border-[#316843] rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#90cba4] focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none" id="password" placeholder="Enter your password" required="" type="password"/>
+<button class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-700 dark:text-[#90cba4] dark:hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">visibility_off</span>
+</button>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-4 mt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-background-dark font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all transform hover:-translate-y-0.5 active:translate-y-0" type="submit">
+                    Log In
+                </button>
+<div class="relative py-2">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-slate-200 dark:border-slate-700"></div>
+</div>
+<div class="relative flex justify-center text-sm">
+<span class="px-2 bg-background-light dark:bg-background-dark text-slate-500 dark:text-slate-400">or</span>
+</div>
+</div>
+<button class="w-full bg-transparent border-2 border-slate-200 dark:border-[#316843] text-slate-700 dark:text-white font-semibold py-3.5 rounded-xl hover:bg-slate-50 dark:hover:bg-[#183422] transition-colors flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+                    Create Account
+                </button>
+</div>
+</form>
+<!-- Social Login Option (Clean Addition) -->
+<div class="flex justify-center gap-6 mt-4">
+<button class="p-3 rounded-full bg-white dark:bg-[#183422] border border-slate-200 dark:border-[#316843] hover:border-primary dark:hover:border-primary text-slate-600 dark:text-white transition-all shadow-sm">
+<svg class="w-6 h-6" fill="currentColor" viewbox="0 0 24 24">
+<path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"></path>
+</svg>
+</button>
+<button class="p-3 rounded-full bg-white dark:bg-[#183422] border border-slate-200 dark:border-[#316843] hover:border-primary dark:hover:border-primary text-slate-600 dark:text-white transition-all shadow-sm">
+<svg class="w-6 h-6" fill="currentColor" viewbox="0 0 24 24">
+<path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-.54-.25-1.07-.49-1.99-.49-.93 0-1.46.24-2.01.5-.95.44-1.92.54-2.87-.27C4.19 17.53 2.5 12.39 4.97 8.24c1.17-1.98 3.19-3.23 5.37-3.25 1.54 0 2.68.64 3.55.65.86 0 2.27-.67 3.86-.56 1.48.1 2.87.69 3.8 1.84-3.3 1.98-2.75 6.01.55 7.42-.71 1.95-1.74 3.96-3.76 5.92l-1.29.02zM12.03 5c.08-1.9 1.6-3.56 3.48-3.79.25 2.05-1.78 3.73-3.48 3.79z"></path>
+</svg>
+</button>
+</div>
+</div>
+</body></html>

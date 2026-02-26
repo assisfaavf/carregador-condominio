@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cadastrar - Carregador</title>
+  <script src="/theme.js"></script>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -11,6 +12,9 @@
     <header class="topbar">
       <div class="topbar-inner">
         <img alt="Logo" class="logo" src="/assets/Logo-rem.png" />
+        <div class="topbar-actions">
+          <button id="themeToggle" class="btn btn-secondary btn-inline" type="button">Modo escuro</button>
+        </div>
       </div>
     </header>
 
@@ -171,6 +175,8 @@
       msg.textContent = text;
       msg.className = "message ok";
     }
+
+    ThemeController.bindToggle(document.getElementById("themeToggle"));
   </script>
 </body>
 </html>

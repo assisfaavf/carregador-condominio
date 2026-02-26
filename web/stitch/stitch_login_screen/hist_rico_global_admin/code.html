@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Histórico Global Admin</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0df259",
+                        "primary-content": "#003812",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#183422",
+                        "surface-light": "#ffffff",
+                        "text-secondary": "#90cba4",
+                    },
+                    fontFamily: {
+                        display: ["Space Grotesk", "sans-serif"],
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for horizontal scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col antialiased">
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col overflow-hidden relative pb-[80px]"> <!-- Added padding-bottom to account for fixed navbar -->
+<!-- Header -->
+<header class="flex items-center justify-between p-4 pb-2 bg-background-light dark:bg-background-dark sticky top-0 z-10">
+<button class="flex items-center justify-center w-10 h-10 rounded-full text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<h2 class="text-lg font-bold leading-tight flex-1 text-center pr-10">Histórico Global</h2>
+</header>
+<!-- Search Bar -->
+<div class="px-4 py-3 sticky top-[60px] z-10 bg-background-light dark:bg-background-dark">
+<div class="flex w-full items-center rounded-xl bg-slate-200 dark:bg-surface-dark h-12 px-4 transition-all focus-within:ring-2 focus-within:ring-primary/50">
+<span class="material-symbols-outlined text-slate-500 dark:text-text-secondary">search</span>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-text-secondary text-base font-medium px-3" placeholder="Buscar por usuário, carregador..." type="text"/>
+</div>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-2 px-4 py-2 overflow-x-auto no-scrollbar sticky top-[120px] z-10 bg-background-light dark:bg-background-dark pb-4 border-b border-slate-200 dark:border-surface-dark/50">
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-200 dark:bg-surface-dark px-4 active:scale-95 transition-transform">
+<p class="text-slate-700 dark:text-white text-sm font-medium">Data</p>
+<span class="material-symbols-outlined text-slate-700 dark:text-white text-sm">expand_more</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-200 dark:bg-surface-dark px-4 active:scale-95 transition-transform">
+<p class="text-slate-700 dark:text-white text-sm font-medium">Usuário</p>
+<span class="material-symbols-outlined text-slate-700 dark:text-white text-sm">expand_more</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-200 dark:bg-surface-dark px-4 active:scale-95 transition-transform">
+<p class="text-slate-700 dark:text-white text-sm font-medium">Carregador</p>
+<span class="material-symbols-outlined text-slate-700 dark:text-white text-sm">expand_more</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-200 dark:bg-surface-dark px-4 active:scale-95 transition-transform">
+<p class="text-slate-700 dark:text-white text-sm font-medium">Unidade</p>
+<span class="material-symbols-outlined text-slate-700 dark:text-white text-sm">expand_more</span>
+</button>
+</div>
+<!-- Section Title -->
+<div class="px-4 py-4 flex justify-between items-end">
+<h4 class="text-primary text-sm font-bold tracking-wide uppercase">Sessões Recentes</h4>
+<span class="text-xs text-slate-500 dark:text-text-secondary">Total: 1,245</span>
+</div>
+<!-- History List -->
+<div class="flex flex-col px-4 gap-4 overflow-y-auto">
+<!-- History Item 1 -->
+<div class="group flex flex-col gap-3 p-4 rounded-2xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 shadow-sm">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">ev_station</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-sm">Estação Central 01</h3>
+<p class="text-xs text-slate-500 dark:text-text-secondary">ID: #CHG-8821</p>
+</div>
+</div>
+<span class="px-2 py-1 rounded-md bg-green-500/10 text-green-500 text-xs font-bold uppercase">Concluído</span>
+</div>
+<div class="h-px w-full bg-slate-100 dark:bg-white/5"></div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-slate-400 dark:text-text-secondary font-medium tracking-wider">Usuário</span>
+<div class="flex items-center gap-2 mt-1">
+<div class="w-5 h-5 rounded-full bg-slate-300 overflow-hidden relative">
+<img alt="Avatar user" class="w-full h-full object-cover" data-alt="Portrait of a user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAW3FtrqVtICxHd_fEXm3bUuFSr_th8HrtPz-1ltydAQIY4zHQkrxrtzanMx-dTf_N0HdKRRrOV8PnVra3hyrwbPnajbFPEHM8iIWIcKw9A2bWMXOsbiDHEMpaRg-yajvoJwB-2wv6Hxa182FjM52RpEf920111joA6CsUg6OS5Hx1Ibs1mwg1fV2h9SJQUpPw9UzHmyFTFDeINOwDHTu8RBeuz9VUC433NMSPbqKIIxlelSrAocfCN5L9NnecyqpsVeiuVf6xjQq_B"/>
+</div>
+<span class="text-sm font-medium text-slate-800 dark:text-slate-200">João Silva</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] uppercase text-slate-400 dark:text-text-secondary font-medium tracking-wider">Consumo</span>
+<span class="text-sm font-bold text-slate-800 dark:text-slate-200 mt-1">24.5 kWh</span>
+</div>
+</div>
+<div class="flex justify-between items-center mt-1">
+<div class="flex items-center gap-1 text-slate-400 dark:text-text-secondary">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+<span class="text-xs">12 Ago, 14:30</span>
+</div>
+<div class="flex items-center gap-1 text-slate-400 dark:text-text-secondary">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="text-xs">45 min</span>
+</div>
+</div>
+</div>
+<!-- History Item 2 -->
+<div class="group flex flex-col gap-3 p-4 rounded-2xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 shadow-sm">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500">
+<span class="material-symbols-outlined">error</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-sm">Torre Norte 04</h3>
+<p class="text-xs text-slate-500 dark:text-text-secondary">ID: #CHG-9932</p>
+</div>
+</div>
+<span class="px-2 py-1 rounded-md bg-red-500/10 text-red-500 text-xs font-bold uppercase">Falha</span>
+</div>
+<div class="h-px w-full bg-slate-100 dark:bg-white/5"></div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-slate-400 dark:text-text-secondary font-medium tracking-wider">Usuário</span>
+<div class="flex items-center gap-2 mt-1">
+<div class="w-5 h-5 rounded-full bg-slate-300 overflow-hidden">
+<img alt="Avatar user" class="w-full h-full object-cover" data-alt="Portrait of a female user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwrzWUsv0DTvnKf3WST_Sr2nQZjFdoz7kCskVGXYWVxLIKYnyM2eBj6Wjuuot7vzX0Nw31GGqvj952SA80k-riNzLR0ZDxH2DwgvmIsTQ-KnlcHONKqfXezMbNdfT5qJDPrr1egdbU_P-5B4PS-0FmpJFLjNROiFqjJznASmE8dHnEwDkgOcSAGnRWYmOHE0tIbPbIbLccvhMz5h21DAR8iF7O1RJT7fVKmTAmXiwwvAvpEXhosPLSk6A0D8zJfwFLEmxFWStlL2WO"/>
+</div>
+<span class="text-sm font-medium text-slate-800 dark:text-slate-200">Maria Costa</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] uppercase text-slate-400 dark:text-text-secondary font-medium tracking-wider">Consumo</span>
+<span class="text-sm font-bold text-slate-800 dark:text-slate-200 mt-1">0.2 kWh</span>
+</div>
+</div>
+<div class="flex justify-between items-center mt-1">
+<div class="flex items-center gap-1 text-slate-400 dark:text-text-secondary">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+<span class="text-xs">12 Ago, 11:15</span>
+</div>
+<div class="flex items-center gap-1 text-slate-400 dark:text-text-secondary">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="text-xs">2 min</span>
+</div>
+</div>
+</div>
+<!-- History Item 3 -->
+<div class="group flex flex-col gap-3 p-4 rounded-2xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 shadow-sm">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-sm">Shopping Plaza 02</h3>
+<p class="text-xs text-slate-500 dark:text-text-secondary">ID: #CHG-1029</p>
+</div>
+</div>
+<span class="px-2 py-1 rounded-md bg-blue-500/10 text-blue-500 text-xs font-bold uppercase">Em Andamento</span>
+</div>
+<div class="h-px w-full bg-slate-100 dark:bg-white/5"></div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-slate-400 dark:text-text-secondary font-medium tracking-wider">Usuário</span>
+<div class="flex items-center gap-2 mt-1">
+<div class="w-5 h-5 rounded-full bg-slate-300 overflow-hidden">
+<div class="w-full h-full bg-primary flex items-center justify-center text-[10px] font-bold text-primary-content">RC</div>
+</div>
+<span class="text-sm font-medium text-slate-800 dark:text-slate-200">Roberto C.</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] uppercase text-slate-400 dark:text-text-secondary font-medium tracking-wider">Consumo (Atual)</span>
+<span class="text-sm font-bold text-slate-800 dark:text-slate-200 mt-1 animate-pulse">12.8 kWh</span>
+</div>
+</div>
+<div class="flex justify-between items-center mt-1">
+<div class="flex items-center gap-1 text-slate-400 dark:text-text-secondary">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+<span class="text-xs">Hoje, 10:00</span>
+</div>
+<div class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[16px]">timelapse</span>
+<span class="text-xs">Carregando...</span>
+</div>
+</div>
+</div>
+<!-- History Item 4 -->
+<div class="group flex flex-col gap-3 p-4 rounded-2xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 shadow-sm mb-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">ev_station</span>
+</div>
+<div>
+<h3 class="text-slate-900 dark:text-white font-bold text-sm">Garagem Executiva</h3>
+<p class="text-xs text-slate-500 dark:text-text-secondary">ID: #CHG-4402</p>
+</div>
+</div>
+<span class="px-2 py-1 rounded-md bg-green-500/10 text-green-500 text-xs font-bold uppercase">Concluído</span>
+</div>
+<div class="h-px w-full bg-slate-100 dark:bg-white/5"></div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-slate-400 dark:text-text-secondary font-medium tracking-wider">Usuário</span>
+<div class="flex items-center gap-2 mt-1">
+<div class="w-5 h-5 rounded-full bg-slate-300 overflow-hidden">
+<img alt="Avatar user" class="w-full h-full object-cover" data-alt="Portrait of a smiling user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGkOfJWF0EdVxA5L6NMqbotWPPRbpSnFhsIXkm-KT91Eh1kjIb6zG9X276ayBGxMYmkD6k_P7h-aSRiklJZPKRq4Tlqi7YtOMXHz_Z6Juj8qKcZwV4gYDvkQ2_jw9DOyJ11FCVqP2pj4tX0ejqmOv1qN0nDPLlczoFynAqYg4aRzi4JE9u_hNrsnk8MyltXq4AFNISS3uN62X1sI6_mug9wO8GwPKaqsARMpDlnH7sbLLStACAjQqoYF5oerf56Lgq93IQ5tpplTmC"/>
+</div>
+<span class="text-sm font-medium text-slate-800 dark:text-slate-200">Ana Paula</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] uppercase text-slate-400 dark:text-text-secondary font-medium tracking-wider">Consumo</span>
+<span class="text-sm font-bold text-slate-800 dark:text-slate-200 mt-1">55.1 kWh</span>
+</div>
+</div>
+<div class="flex justify-between items-center mt-1">
+<div class="flex items-center gap-1 text-slate-400 dark:text-text-secondary">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+<span class="text-xs">11 Ago, 18:00</span>
+</div>
+<div class="flex items-center gap-1 text-slate-400 dark:text-text-secondary">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="text-xs">1h 20m</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 border-t border-slate-200 dark:border-surface-dark/50 bg-white/90 dark:bg-background-dark/90 backdrop-blur-lg px-4 pb-6 pt-2 z-50">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors">pie_chart</span>
+<span class="text-xs font-medium text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors">Dashboard</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 group" href="#">
+<div class="bg-primary/20 px-4 py-1 rounded-2xl flex flex-col items-center">
+<span class="material-symbols-outlined text-primary fill-current">history</span>
+</div>
+<span class="text-xs font-bold text-primary">Histórico</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors">group</span>
+<span class="text-xs font-medium text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors">Usuários</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors">settings</span>
+<span class="text-xs font-medium text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors">Configurações</span>
+</a>
+</div>
+</nav>
+</body></html>

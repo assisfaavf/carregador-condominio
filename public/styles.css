@@ -72,6 +72,12 @@ a {
   gap: 1rem;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 .logo {
   height: 46px;
   width: auto;
@@ -406,8 +412,26 @@ a {
   color: var(--metrics-text);
 }
 
+:root[data-theme="dark"] {
+  --bg: #0b1522;
+  --surface: #111c2b;
+  --surface-soft: #172235;
+  --text: #e6edf7;
+  --muted: #9eb0ca;
+  --border: #2a3a52;
+  --border-strong: #3f5577;
+  --topbar-bg: rgba(11, 21, 34, 0.9);
+  --panel-bg: rgba(17, 28, 43, 0.86);
+  --hero-border: rgba(125, 165, 255, 0.34);
+  --hero-overlay: rgba(37, 89, 244, 0.18);
+  --metrics-text: #c5d3e8;
+  --output-bg: #0d1726;
+  --bg-gradient: linear-gradient(180deg, #0a1320 0%, #0f1b2d 45%, #132239 100%);
+  --shadow: 0 12px 30px rgba(7, 11, 20, 0.45);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0b1522;
     --surface: #111c2b;
     --surface-soft: #172235;

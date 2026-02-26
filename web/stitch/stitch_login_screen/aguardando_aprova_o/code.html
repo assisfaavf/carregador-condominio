@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<header class="flex items-center gap-4 p-4 border-b border-slate-200 dark:border-primary/10 relative">
+<button class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-primary/10 transition-colors absolute left-4">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-100">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold text-center w-full">Cadastro</h1>
+</header>
+<main class="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-lg mx-auto w-full">
+<div class="relative mb-8">
+<div class="absolute inset-0 bg-primary/20 blur-3xl rounded-full"></div>
+<div class="relative bg-white dark:bg-slate-800/50 p-6 rounded-full border-4 border-primary/30 shadow-2xl">
+<span class="material-symbols-outlined text-primary !text-6xl animate-pulse">
+                    verified_user
+                </span>
+</div>
+</div>
+<h1 class="text-3xl font-display font-bold text-center mb-4 tracking-tight">
+            Cadastro em <span class="text-primary">Análise</span>
+</h1>
+<p class="text-slate-600 dark:text-slate-400 text-center text-lg leading-relaxed mb-10">
+            Olá! Recebemos seus dados com sucesso. Agora, nossa equipe administrativa está revisando suas informações para liberar seu acesso total à plataforma SPATE Engenharia.
+        </p>
+<div class="w-full bg-slate-200 dark:bg-slate-800 rounded-xl p-6 mb-8 border border-slate-300 dark:border-primary/10">
+<div class="flex justify-between items-center mb-3">
+<span class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-primary/70">Progresso da Aprovação</span>
+<span class="text-sm font-bold text-primary">75%</span>
+</div>
+<div class="h-3 w-full bg-slate-300 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_15px_rgba(13,242,89,0.5)]" style="width: 75%;"></div>
+</div>
+<p class="mt-4 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+<span class="material-symbols-outlined !text-sm text-primary">info</span>
+                Fase final: Verificação de documentos técnicos.
+            </p>
+</div>
+<div class="grid grid-cols-1 gap-4 w-full">
+<div class="flex items-start gap-4 p-4 rounded-lg bg-white dark:bg-slate-800/30 border border-slate-200 dark:border-primary/5">
+<span class="material-symbols-outlined text-primary">mark_email_unread</span>
+<div>
+<h3 class="font-bold text-sm">Notificação por E-mail</h3>
+<p class="text-xs text-slate-500">Você será avisado assim que sua conta for ativada.</p>
+</div>
+</div>
+<div class="flex items-start gap-4 p-4 rounded-lg bg-white dark:bg-slate-800/30 border border-slate-200 dark:border-primary/5">
+<span class="material-symbols-outlined text-primary">support_agent</span>
+<div>
+<h3 class="font-bold text-sm">Precisa de ajuda?</h3>
+<p class="text-xs text-slate-500">Fale com nosso suporte técnico em caso de dúvidas.</p>
+</div>
+</div>
+</div>
+<button class="mt-10 w-full py-4 bg-primary text-background-dark font-bold rounded-xl hover:opacity-90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+            Entender o Processo
+            <span class="material-symbols-outlined !text-lg">arrow_forward</span>
+</button>
+</main>
+</body></html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "danger": "#ef4444",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }.no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }.no-scrollbar {
+          -ms-overflow-style: none;scrollbar-width: none;}input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) opacity(0.5);
+            cursor: pointer;
+        }
+        .dark input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<header class="flex items-center bg-background-light dark:bg-background-dark p-4 border-b border-slate-200 dark:border-primary/20 sticky top-0 z-50">
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-primary/10 text-slate-900 dark:text-slate-100 transition-colors mr-2">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight flex-1">Histórico de Carregamentos</h1>
+<div class="flex w-10 items-center justify-end">
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-primary/10 text-slate-900 dark:text-slate-100 transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto px-4 py-6 space-y-6 max-w-md mx-auto w-full">
+<section class="bg-primary/10 dark:bg-slate-800/50 rounded-2xl p-5 border border-primary/20 dark:border-primary/10">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Resumo do Mês</h2>
+<span class="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded-lg">Outubro 2023</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Total de Energia</p>
+<p class="text-2xl font-bold text-slate-900 dark:text-slate-100">145 <span class="text-sm font-medium text-slate-500">kWh</span></p>
+</div>
+<div>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Total Gasto</p>
+<p class="text-2xl font-bold text-primary">R$ 180,00</p>
+</div>
+</div>
+</section>
+<section class="space-y-4">
+<div class="flex items-center justify-between px-1">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Filtrar por Período</h3>
+</div>
+<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+<button class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold bg-primary text-slate-900 shadow-sm shadow-primary/20">
+            Últimos 7 dias
+        </button>
+<button class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-primary/50 transition-colors">
+            Este mês
+        </button>
+<button class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-primary/50 transition-colors">
+            Últimos 3 meses
+        </button>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="relative">
+<label class="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1 ml-1" for="date-from">De</label>
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-primary focus:border-primary outline-none appearance-none pr-8" id="date-from" type="date"/>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">calendar_today</span>
+</div>
+</div>
+<div class="relative">
+<label class="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1 ml-1" for="date-to">Até</label>
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-primary focus:border-primary outline-none appearance-none pr-8" id="date-to" type="date"/>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">calendar_today</span>
+</div>
+</div>
+</div>
+</section>
+<section class="space-y-4">
+<h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 px-1 mt-6">Atividades Recentes</h3>
+<div class="space-y-3">
+<a class="block bg-white dark:bg-slate-800/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-primary/50 transition-colors group" href="#">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[20px]">ev_station</span>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100">25/10/2023</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Apto 101-A</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-sm font-bold text-primary">R$ 25,50</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">22.4 kWh</p>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+</a>
+<a class="block bg-white dark:bg-slate-800/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-primary/50 transition-colors group" href="#">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[20px]">ev_station</span>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100">21/10/2023</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Apto 101-A</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-sm font-bold text-primary">R$ 18,30</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">15.2 kWh</p>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+</a>
+<a class="block bg-white dark:bg-slate-800/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-primary/50 transition-colors group" href="#">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[20px]">ev_station</span>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100">15/10/2023</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Estação 02 - G1</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-sm font-bold text-primary">R$ 42,00</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">35.0 kWh</p>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+</a>
+<a class="block bg-white dark:bg-slate-800/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-primary/50 transition-colors group" href="#">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[20px]">ev_station</span>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100">08/10/2023</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Apto 101-A</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-sm font-bold text-primary">R$ 31,50</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">26.3 kWh</p>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+</a>
+<a class="block bg-white dark:bg-slate-800/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-primary/50 transition-colors group" href="#">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 p-2 rounded-lg text-primary">
+<span class="material-symbols-outlined text-[20px]">ev_station</span>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-slate-100">02/10/2023</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Apto 101-A</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-sm font-bold text-primary">R$ 62,70</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">46.1 kWh</p>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+</a>
+</div>
+</section>
+</main>
+<nav class="border-t border-slate-200 dark:border-primary/20 bg-white dark:bg-slate-900 px-4 pb-6 pt-2 safe-area-bottom sticky bottom-0 z-50">
+<div class="flex justify-around items-center">
+<a class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Início</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-primary" href="#">
+<span class="material-symbols-outlined active-icon">history</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Histórico</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Perfil</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">support_agent</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Suporte</span>
+</a>
+</div>
+</nav>
+</body></html>

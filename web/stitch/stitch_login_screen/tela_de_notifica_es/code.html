@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tela de Notificações</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#162e1e", // Slightly lighter than background-dark for cards
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-hidden">
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col h-full overflow-hidden relative">
+<!-- Header -->
+<div class="flex items-center justify-between p-4 pb-2 pt-6 bg-background-light dark:bg-background-dark z-10 sticky top-0">
+<button aria-label="Voltar" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-200 dark:hover:bg-surface-dark transition-colors text-slate-900 dark:text-white">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<h2 class="text-xl font-bold leading-tight tracking-tight text-center flex-1 pr-10">Notificações</h2>
+</div>
+<!-- Scrollable List -->
+<div class="flex-1 overflow-y-auto px-4 pb-20">
+<!-- Section: Hoje -->
+<div class="mt-4">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 px-1">Hoje</h3>
+<!-- Notification Item: Charging Complete (Unread) -->
+<div class="group flex items-start gap-4 p-4 mb-3 rounded-xl bg-white dark:bg-surface-dark shadow-sm border border-slate-100 dark:border-slate-800 transition-all active:scale-[0.98]">
+<div class="flex items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20 shrink-0 w-12 h-12 text-primary">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<div class="flex flex-1 flex-col justify-center gap-1">
+<div class="flex justify-between items-start w-full">
+<p class="text-base font-bold leading-tight text-slate-900 dark:text-white">Carregamento Concluído</p>
+<p class="text-xs font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap ml-2">14:30</p>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-300 leading-snug">Sua recarga na Estação 01 foi finalizada com sucesso.</p>
+</div>
+<div class="shrink-0 flex items-center justify-center h-full pt-1">
+<div class="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(13,242,89,0.5)]"></div>
+</div>
+</div>
+<!-- Notification Item: Profile Approved (Unread) -->
+<div class="group flex items-start gap-4 p-4 mb-3 rounded-xl bg-white dark:bg-surface-dark shadow-sm border border-slate-100 dark:border-slate-800 transition-all active:scale-[0.98]">
+<div class="flex items-center justify-center rounded-lg bg-blue-500/10 dark:bg-blue-500/20 shrink-0 w-12 h-12 text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined">verified_user</span>
+</div>
+<div class="flex flex-1 flex-col justify-center gap-1">
+<div class="flex justify-between items-start w-full">
+<p class="text-base font-bold leading-tight text-slate-900 dark:text-white">Cadastro Aprovado</p>
+<p class="text-xs font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap ml-2">09:15</p>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-300 leading-snug">Bem-vindo! Seu perfil foi verificado pela nossa equipe.</p>
+</div>
+<div class="shrink-0 flex items-center justify-center h-full pt-1">
+<div class="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(13,242,89,0.5)]"></div>
+</div>
+</div>
+</div>
+<!-- Section: Ontem -->
+<div class="mt-6">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 px-1">Ontem</h3>
+<!-- Notification Item: Payment Method (Read) -->
+<div class="group flex items-start gap-4 p-4 mb-3 rounded-xl bg-white dark:bg-surface-dark shadow-sm border border-slate-100 dark:border-slate-800 opacity-80 dark:opacity-90 transition-all active:scale-[0.98]">
+<div class="flex items-center justify-center rounded-lg bg-orange-500/10 dark:bg-orange-500/20 shrink-0 w-12 h-12 text-orange-600 dark:text-orange-400">
+<span class="material-symbols-outlined">credit_card</span>
+</div>
+<div class="flex flex-1 flex-col justify-center gap-1">
+<div class="flex justify-between items-start w-full">
+<p class="text-base font-semibold leading-tight text-slate-800 dark:text-slate-200">Novo método de pagamento</p>
+<p class="text-xs font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap ml-2">18:45</p>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 leading-snug">O cartão final 4242 foi adicionado à sua carteira.</p>
+</div>
+</div>
+<!-- Notification Item: System Update (Read) -->
+<div class="group flex items-start gap-4 p-4 mb-3 rounded-xl bg-white dark:bg-surface-dark shadow-sm border border-slate-100 dark:border-slate-800 opacity-80 dark:opacity-90 transition-all active:scale-[0.98]">
+<div class="flex items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-700 shrink-0 w-12 h-12 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">system_update</span>
+</div>
+<div class="flex flex-1 flex-col justify-center gap-1">
+<div class="flex justify-between items-start w-full">
+<p class="text-base font-semibold leading-tight text-slate-800 dark:text-slate-200">Manutenção Programada</p>
+<p class="text-xs font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap ml-2">10:00</p>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 leading-snug">O sistema passará por manutenção na próxima terça-feira.</p>
+</div>
+</div>
+</div>
+<!-- Empty State for older notifications just to fill space visually -->
+<div class="mt-8 flex flex-col items-center justify-center py-8 opacity-50">
+<span class="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 mb-2">inbox</span>
+<p class="text-sm text-slate-400 dark:text-slate-500">Fim das notificações</p>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation Bar -->
+<div class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark px-4 pb-6 pt-2 w-full z-20">
+<div class="flex justify-between items-end gap-2">
+<!-- Início -->
+<a class="flex flex-1 flex-col items-center justify-end gap-1 group" href="#">
+<div class="flex h-8 items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]">home</span>
+</div>
+<p class="text-xs font-medium leading-normal tracking-[0.015em] text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors">Início</p>
+</a>
+<!-- Histórico -->
+<a class="flex flex-1 flex-col items-center justify-end gap-1 group" href="#">
+<div class="flex h-8 items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]">history</span>
+</div>
+<p class="text-xs font-medium leading-normal tracking-[0.015em] text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors">Histórico</p>
+</a>
+<!-- Perfil -->
+<a class="flex flex-1 flex-col items-center justify-end gap-1 group" href="#">
+<div class="flex h-8 items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]">person</span>
+</div>
+<p class="text-xs font-medium leading-normal tracking-[0.015em] text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors">Perfil</p>
+</a>
+<!-- Suporte -->
+<a class="flex flex-1 flex-col items-center justify-end gap-1 group" href="#">
+<div class="flex h-8 items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]">help</span>
+</div>
+<p class="text-xs font-medium leading-normal tracking-[0.015em] text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors">Suporte</p>
+</a>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Registration Form V1</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#183422",
+                        "surface-border": "#316843",
+                        "text-secondary": "#90cba4",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for clean mobile look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex justify-center">
+<div class="w-full max-w-md bg-background-light dark:bg-background-dark min-h-screen flex flex-col relative overflow-hidden">
+<!-- Header -->
+<div class="flex items-center p-4 pt-12 pb-2 justify-between sticky top-0 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md z-10">
+<button class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em] text-center">Registration</h2>
+<div class="size-10"></div> <!-- Spacer for centering -->
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto no-scrollbar px-4 py-2 pb-24">
+<!-- Type Selector -->
+<div class="flex py-4">
+<div class="flex h-12 flex-1 items-center justify-center rounded-xl bg-surface-dark/50 dark:bg-[#1a3826] p-1 border border-surface-border/30 dark:border-surface-border">
+<label class="relative flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 text-sm font-semibold transition-all">
+<input checked="" class="peer invisible w-0 absolute" name="user_type" type="radio" value="Morador"/>
+<div class="absolute inset-0 bg-transparent peer-checked:bg-background-dark peer-checked:shadow-sm transition-all rounded-lg"></div>
+<span class="relative z-10 text-text-secondary peer-checked:text-primary transition-colors">Morador</span>
+</label>
+<label class="relative flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 text-sm font-semibold transition-all">
+<input class="peer invisible w-0 absolute" name="user_type" type="radio" value="Visitante"/>
+<div class="absolute inset-0 bg-transparent peer-checked:bg-background-dark peer-checked:shadow-sm transition-all rounded-lg"></div>
+<span class="relative z-10 text-text-secondary peer-checked:text-primary transition-colors">Visitante</span>
+</label>
+</div>
+</div>
+<!-- Personal Info Section -->
+<div class="space-y-5">
+<div class="space-y-4">
+<h3 class="text-sm font-semibold text-text-secondary uppercase tracking-wider pl-1">Personal Info</h3>
+<label class="flex flex-col w-full group">
+<span class="text-slate-700 dark:text-slate-200 text-sm font-medium pb-2 group-focus-within:text-primary transition-colors">Full Name</span>
+<div class="relative">
+<input class="form-input w-full rounded-xl border-slate-300 dark:border-surface-border bg-white dark:bg-surface-dark focus:border-primary focus:ring-1 focus:ring-primary h-12 px-4 text-base placeholder:text-slate-400 dark:placeholder:text-text-secondary/50 dark:text-white transition-all" placeholder="Enter your full name" type="text"/>
+<span class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">person</span>
+</div>
+</label>
+<label class="flex flex-col w-full group">
+<span class="text-slate-700 dark:text-slate-200 text-sm font-medium pb-2 group-focus-within:text-primary transition-colors">CPF</span>
+<div class="relative">
+<input class="form-input w-full rounded-xl border-slate-300 dark:border-surface-border bg-white dark:bg-surface-dark focus:border-primary focus:ring-1 focus:ring-primary h-12 px-4 text-base placeholder:text-slate-400 dark:placeholder:text-text-secondary/50 dark:text-white transition-all" placeholder="000.000.000-00" type="text"/>
+<span class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">badge</span>
+</div>
+</label>
+<label class="flex flex-col w-full group">
+<span class="text-slate-700 dark:text-slate-200 text-sm font-medium pb-2 group-focus-within:text-primary transition-colors">Email</span>
+<div class="relative">
+<input class="form-input w-full rounded-xl border-slate-300 dark:border-surface-border bg-white dark:bg-surface-dark focus:border-primary focus:ring-1 focus:ring-primary h-12 px-4 text-base placeholder:text-slate-400 dark:placeholder:text-text-secondary/50 dark:text-white transition-all" placeholder="name@example.com" type="email"/>
+<span class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">mail</span>
+</div>
+</label>
+<label class="flex flex-col w-full group">
+<span class="text-slate-700 dark:text-slate-200 text-sm font-medium pb-2 group-focus-within:text-primary transition-colors">Phone</span>
+<div class="relative">
+<input class="form-input w-full rounded-xl border-slate-300 dark:border-surface-border bg-white dark:bg-surface-dark focus:border-primary focus:ring-1 focus:ring-primary h-12 px-4 text-base placeholder:text-slate-400 dark:placeholder:text-text-secondary/50 dark:text-white transition-all" placeholder="(00) 00000-0000" type="tel"/>
+<span class="material-symbols-outlined absolute right-4 top-3 text-text-secondary pointer-events-none">call</span>
+</div>
+</label>
+</div>
+<!-- Residence Info Section (Conditional Logic Simulated via Visuals) -->
+<div class="space-y-4 pt-4 border-t border-slate-200 dark:border-surface-border/50">
+<div class="flex items-center justify-between">
+<h3 class="text-sm font-semibold text-text-secondary uppercase tracking-wider pl-1">Residence</h3>
+</div>
+<!-- Address Card 1 -->
+<div class="p-4 rounded-xl bg-slate-100 dark:bg-surface-dark border border-slate-200 dark:border-surface-border relative group">
+<div class="absolute top-4 right-4">
+<button class="text-text-secondary hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined text-lg">delete</span>
+</button>
+</div>
+<p class="text-slate-900 dark:text-white font-medium mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">apartment</span>
+                            Primary Unit
+                        </p>
+<div class="grid grid-cols-2 gap-3">
+<label class="flex flex-col">
+<span class="text-xs text-text-secondary mb-1">Tower (Torre)</span>
+<select class="form-select w-full rounded-lg border-slate-300 dark:border-surface-border bg-white dark:bg-[#102216] text-slate-900 dark:text-white text-sm h-10 py-1 pl-3 pr-8 focus:border-primary focus:ring-primary">
+<option>Tower A</option>
+<option>Tower B</option>
+<option>Tower C</option>
+</select>
+</label>
+<label class="flex flex-col">
+<span class="text-xs text-text-secondary mb-1">Unit (Unidade)</span>
+<select class="form-select w-full rounded-lg border-slate-300 dark:border-surface-border bg-white dark:bg-[#102216] text-slate-900 dark:text-white text-sm h-10 py-1 pl-3 pr-8 focus:border-primary focus:ring-primary">
+<option>101</option>
+<option>102</option>
+<option>201</option>
+<option>202</option>
+</select>
+</label>
+</div>
+</div>
+<!-- Address Card 2 (Example of added unit) -->
+<div class="p-4 rounded-xl bg-slate-100 dark:bg-surface-dark border border-slate-200 dark:border-surface-border relative opacity-60 hover:opacity-100 transition-opacity">
+<div class="absolute top-4 right-4">
+<button class="text-text-secondary hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined text-lg">delete</span>
+</button>
+</div>
+<p class="text-slate-900 dark:text-white font-medium mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">garage_home</span>
+                            Secondary Unit
+                        </p>
+<div class="grid grid-cols-2 gap-3">
+<label class="flex flex-col">
+<span class="text-xs text-text-secondary mb-1">Tower (Torre)</span>
+<select class="form-select w-full rounded-lg border-slate-300 dark:border-surface-border bg-white dark:bg-[#102216] text-slate-900 dark:text-white text-sm h-10 py-1 pl-3 pr-8 focus:border-primary focus:ring-primary">
+<option>Tower B</option>
+</select>
+</label>
+<label class="flex flex-col">
+<span class="text-xs text-text-secondary mb-1">Unit (Unidade)</span>
+<select class="form-select w-full rounded-lg border-slate-300 dark:border-surface-border bg-white dark:bg-[#102216] text-slate-900 dark:text-white text-sm h-10 py-1 pl-3 pr-8 focus:border-primary focus:ring-primary">
+<option>405</option>
+</select>
+</label>
+</div>
+</div>
+<!-- Add Button -->
+<button class="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-primary/50 rounded-xl text-primary font-medium hover:bg-primary/5 hover:border-primary transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-xl">add_circle</span>
+                        Add Another Address
+                    </button>
+</div>
+</div>
+</div>
+<!-- Sticky Bottom Action -->
+<div class="fixed bottom-0 w-full max-w-md bg-background-light dark:bg-background-dark p-4 border-t border-slate-200 dark:border-surface-border/30 backdrop-blur-lg bg-opacity-95 dark:bg-opacity-95">
+<button class="w-full bg-primary hover:bg-[#0be050] text-background-dark text-lg font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(13,242,89,0.3)] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                Register Account
+                <span class="material-symbols-outlined text-xl font-bold">arrow_forward</span>
+</button>
+</div>
+</div>
+</body></html>

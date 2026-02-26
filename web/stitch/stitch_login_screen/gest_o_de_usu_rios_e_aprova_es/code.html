@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gestão de Usuários</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0df259",
+                        "primary-hover": "#0be052",
+                        "primary-dim": "#0df25920",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#183422",
+                        "surface-light": "#ffffff",
+                        "text-primary-dark": "#ffffff",
+                        "text-secondary-dark": "#90cba4",
+                        "danger": "#ef4444",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Space Grotesk", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px",
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #316843;
+            border-radius: 4px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased min-h-screen flex flex-col overflow-hidden">
+<!-- Main Content Wrapper -->
+<div class="flex-1 overflow-y-auto pb-24">
+<!-- Header -->
+<header class="sticky top-0 z-20 bg-background-dark/95 backdrop-blur-md border-b border-surface-dark px-4 pt-12 pb-4">
+<div class="flex items-center justify-between">
+<button class="text-white p-2 -ml-2 rounded-full hover:bg-surface-dark transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-white text-lg font-bold tracking-tight">Gestão de Usuários</h1>
+<button class="text-white p-2 -mr-2 rounded-full hover:bg-surface-dark transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+<!-- Tabs -->
+<div class="mt-6 flex border-b border-surface-dark">
+<button class="flex-1 pb-3 px-4 text-center border-b-2 border-primary text-white font-semibold text-sm transition-colors">
+                    Solicitações
+                    <span class="ml-1.5 bg-primary text-background-dark text-[10px] px-1.5 py-0.5 rounded-full font-bold align-middle">3</span>
+</button>
+<button class="flex-1 pb-3 px-4 text-center border-b-2 border-transparent text-text-secondary-dark font-medium text-sm hover:text-white transition-colors">
+                    Lista de Usuários
+                </button>
+</div>
+</header>
+<!-- Content Area -->
+<main class="p-4 space-y-6">
+<div class="flex items-center justify-between">
+<h2 class="text-white text-lg font-bold">Aprovações Pendentes</h2>
+<button class="text-primary text-xs font-semibold uppercase tracking-wider hover:text-primary-hover">Ver Todos</button>
+</div>
+<!-- User Card 1 -->
+<div class="bg-surface-dark rounded-2xl overflow-hidden shadow-lg border border-surface-dark/50 group">
+<div class="relative h-32 bg-cover bg-center" data-alt="Abstract geometric dark green pattern" style='background-image: linear-gradient(to bottom, rgba(16, 34, 22, 0.3), #183422), url("https://lh3.googleusercontent.com/aida-public/AB6AXuBpHpc_wXLpPYVRXDfTcTGWHJoK_SbZZkLl9A2CyaL43eDN3QACVfbDk88HcL7dkL6yn_aauzobwxCXle7r6TQX4C_8hKNJQHd1LD7befMdvnBVWb0BmH_S_ynHYpKoyT_eRhAah5Et2-0MGkw9w_22ch8Bvy5PJ-MxoqYSuKF_ax50aCRQFNC7Ty2HH32eZuCANuaNTh9CMIGwI3fTuyX6VOGYcVAEETj7g02TVSfb_kMHfPGza9zjfthezGdMSyoqV_c9ZGCsEfZ2");'>
+<div class="absolute top-4 right-4 bg-background-dark/80 backdrop-blur px-2 py-1 rounded text-xs text-primary font-medium border border-primary/20">
+                        Pendente
+                    </div>
+</div>
+<div class="px-5 pb-5 -mt-12 relative z-10">
+<div class="flex justify-between items-end">
+<img alt="Profile of Carlos Silva" class="w-20 h-20 rounded-xl object-cover border-4 border-surface-dark shadow-md" data-alt="Portrait of a smiling man with glasses" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4g0gqErXeuZKoXc7R6avd4OFE-3CHXS8o1Tb66oJMSRI5WayrqvfKjhQGBVhA-w5Hm9QyWbBpkfqbJPRWP433sZqjH29_IdT_09iUhpg4wXEH7NvBLJEfnC2kNXXev-_ewQ_7kdf3eAUZqsn5ZHN-WxCQRQ1NJAJC2PGnke7XqNY0pFQe0ATlkF4zyhGhaRWNZtzYXm3yYM_qJ21I8rW_RsDT3moG5h752z2yma9RsSUhJRSqgyjARDNDLqbdl9B8qnNuruthFQpE"/>
+<div class="flex gap-2 mb-1">
+<span class="bg-primary/10 text-primary p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">engineering</span>
+</span>
+</div>
+</div>
+<div class="mt-3">
+<h3 class="text-white text-xl font-bold">Carlos Silva</h3>
+<p class="text-text-secondary-dark text-sm mt-0.5">Engenheiro Civil • CREA 12345/SP</p>
+<div class="mt-4 grid grid-cols-2 gap-y-2 text-sm text-text-secondary-dark/80">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span>12 Out 2023</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-base">location_on</span>
+<span>São Paulo, SP</span>
+</div>
+</div>
+<div class="mt-6 flex gap-3">
+<button class="flex-1 bg-surface-dark border border-danger/30 text-danger hover:bg-danger/10 py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">close</span>
+                                Rejeitar
+                            </button>
+<button class="flex-1 bg-primary hover:bg-primary-hover text-background-dark py-2.5 px-4 rounded-lg text-sm font-bold shadow-[0_0_15px_rgba(13,242,89,0.3)] transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">check</span>
+                                Aprovar
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- User Card 2 -->
+<div class="bg-surface-dark rounded-2xl overflow-hidden shadow-lg border border-surface-dark/50 group">
+<div class="relative h-32 bg-cover bg-center" data-alt="Blueish dark abstract architectural background" style='background-image: linear-gradient(to bottom, rgba(16, 34, 22, 0.3), #183422), url("https://lh3.googleusercontent.com/aida-public/AB6AXuA2anYuGyIB6ztraXAQlmaxiPyKxzK3pqSRj96MNridH2m-9WW2aEw79Mkw4XAoq_dUvxKx7600drfj9t-a-QePSGtwPM8HlQQVvK43LIi7JJZwiCsDOm70Bjd5m9dA3LSTwxVqZMdMiGRwZk_ycJ8OZrBX9E9HxbWo0K7rHutUlreIZinJlmYCv5CWHZ0uq3dXjjDcm_xEqVzNDKy3G4KO37dmz98GWckWXPLza90aRcSf-k2rYoZivPuGWf1eyBtdTI1Hk__y3uRi");'>
+<div class="absolute top-4 right-4 bg-background-dark/80 backdrop-blur px-2 py-1 rounded text-xs text-primary font-medium border border-primary/20">
+                        Pendente
+                    </div>
+</div>
+<div class="px-5 pb-5 -mt-12 relative z-10">
+<div class="flex justify-between items-end">
+<img alt="Profile of Amanda Costa" class="w-20 h-20 rounded-xl object-cover border-4 border-surface-dark shadow-md" data-alt="Portrait of a smiling woman outdoors" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0Cb6x_me0qFxYrxie3oz9moB_OZrgkEoI46v1So4FnOhen0bM4avsgdAZl0aZJdW0LS6RitZTdcevuQ7FswybuK3-pMwONivYfX7mBuksmzMtyH8y1l-KVEYxzjybsd4VPglqxMm8bItwWhyabAznrfWaRmDJqyAw_oRk3Tj1AAgUZKUy3wkkLBRXZhuA6r5H-ta_UTG7LWqKObD-c20Xtt9RDRzXT-wppJdK1xzmxgjzjx976cNN4MvF2Bnp2y97KGghGhIxBKJJ"/>
+<div class="flex gap-2 mb-1">
+<span class="bg-primary/10 text-primary p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">architecture</span>
+</span>
+</div>
+</div>
+<div class="mt-3">
+<h3 class="text-white text-xl font-bold">Amanda Costa</h3>
+<p class="text-text-secondary-dark text-sm mt-0.5">Arquiteta • CAU A1234-5</p>
+<div class="mt-4 grid grid-cols-2 gap-y-2 text-sm text-text-secondary-dark/80">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span>14 Out 2023</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-base">location_on</span>
+<span>Rio de Janeiro, RJ</span>
+</div>
+</div>
+<div class="mt-6 flex gap-3">
+<button class="flex-1 bg-surface-dark border border-danger/30 text-danger hover:bg-danger/10 py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">close</span>
+                                Rejeitar
+                            </button>
+<button class="flex-1 bg-primary hover:bg-primary-hover text-background-dark py-2.5 px-4 rounded-lg text-sm font-bold shadow-[0_0_15px_rgba(13,242,89,0.3)] transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">check</span>
+                                Aprovar
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- User Card 3 (Compact) -->
+<div class="bg-surface-dark p-4 rounded-2xl border border-surface-dark/50 flex items-center gap-4">
+<img alt="Profile of Roberto Alves" class="w-14 h-14 rounded-full object-cover border-2 border-primary/30" data-alt="Portrait of a man in a suit" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjPJ9nroAI1Nsmc-dFpwwTlkwdUIKmG6wE3nuOtz1zIfLhAnId3B2roDYOztWCbQ0N8AWJrZW8TKl9wT-GGcASTo07_rdGJIATuXs1K7uRXbZKsM95dNTyeQddQ33nuhEhqXPAYHVSkkxBrydM1zDHMUpP-eGUztKIo149pqfTKiaeCmjYCxGT-R7UKQfWz0Lr2NwlkAkB1jWkt3rrRtusw_iLtDELqxgMcd-xpyo7vjPQzNkW-gdSGQv5V5DymggDsIZQp__OH6gk"/>
+<div class="flex-1 min-w-0">
+<h3 class="text-white font-bold truncate">Roberto Alves</h3>
+<p class="text-text-secondary-dark text-xs truncate">Técnico em Segurança • TST 987</p>
+</div>
+<button class="text-primary hover:bg-primary/10 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<div class="h-6"></div> <!-- Spacer for bottom nav -->
+</main>
+</div>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 w-full z-30 bg-surface-dark border-t border-surface-dark/50 px-6 pb-6 pt-3 shadow-[0_-5px_20px_rgba(0,0,0,0.3)]">
+<div class="flex justify-between items-center">
+<a class="group flex flex-col items-center justify-center gap-1 w-16" href="#">
+<div class="text-text-secondary-dark group-hover:text-primary transition-colors flex items-center justify-center h-7 w-7 rounded-full group-hover:bg-primary/10">
+<span class="material-symbols-outlined text-[24px]">home</span>
+</div>
+<span class="text-text-secondary-dark group-hover:text-primary text-[10px] font-medium tracking-wide">Dashboard</span>
+</a>
+<a class="group flex flex-col items-center justify-center gap-1 w-16" href="#">
+<div class="text-text-secondary-dark group-hover:text-primary transition-colors flex items-center justify-center h-7 w-7 rounded-full group-hover:bg-primary/10">
+<span class="material-symbols-outlined text-[24px]">history</span>
+</div>
+<span class="text-text-secondary-dark group-hover:text-primary text-[10px] font-medium tracking-wide">Histórico</span>
+</a>
+<!-- Active Item -->
+<a class="group flex flex-col items-center justify-center gap-1 w-16 relative" href="#">
+<div class="absolute -top-10 bg-primary rounded-full p-3 shadow-[0_0_15px_rgba(13,242,89,0.4)] border-4 border-background-dark">
+<span class="material-symbols-outlined text-background-dark text-[28px] filled">group</span>
+</div>
+<div class="h-7 w-7 mb-0.5"></div> <!-- Spacer for absolute icon -->
+<span class="text-white text-[10px] font-bold tracking-wide mt-1">Usuários</span>
+</a>
+<a class="group flex flex-col items-center justify-center gap-1 w-16" href="#">
+<div class="text-text-secondary-dark group-hover:text-primary transition-colors flex items-center justify-center h-7 w-7 rounded-full group-hover:bg-primary/10">
+<span class="material-symbols-outlined text-[24px]">settings</span>
+</div>
+<span class="text-text-secondary-dark group-hover:text-primary text-[10px] font-medium tracking-wide">Config</span>
+</a>
+</div>
+</nav>
+</body></html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard Administrativo - SPATE Engenharia</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "secondary": "#22492f",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#183422",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "sans": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased selection:bg-primary selection:text-background-dark pb-24">
+<!-- Header -->
+<header class="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-200 dark:border-secondary px-4 py-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">grid_view</span>
+</div>
+<div>
+<h1 class="text-lg font-bold leading-tight">Dashboard</h1>
+<p class="text-xs text-slate-500 dark:text-slate-400">Visão Geral</p>
+</div>
+</div>
+<button class="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-secondary/50 transition-colors">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-300">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="px-4 pt-6 space-y-8">
+<!-- Resumo em Tempo Real -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-xl font-bold">Resumo em Tempo Real</h2>
+<button class="text-xs font-medium text-primary hover:text-primary/80 transition-colors">Ver detalhes</button>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<!-- Card 1: Carregadores Ativos -->
+<div class="relative overflow-hidden rounded-xl bg-surface-dark p-5 border border-secondary shadow-lg">
+<div class="absolute right-0 top-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-6xl text-primary">ev_station</span>
+</div>
+<div class="relative z-10">
+<p class="text-sm font-medium text-slate-400">Carregadores Ativos</p>
+<div class="flex items-end gap-3 mt-2">
+<h3 class="text-3xl font-bold text-white">12 <span class="text-base font-normal text-slate-400">/ 20</span></h3>
+<span class="flex items-center text-sm font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full mb-1">
+<span class="material-symbols-outlined text-[16px] mr-1">trending_up</span>
+                                +2%
+                            </span>
+</div>
+<div class="w-full bg-secondary/50 h-1.5 mt-4 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 60%"></div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Card 2: Consumo Atual -->
+<div class="rounded-xl bg-surface-dark p-4 border border-secondary shadow-lg flex flex-col justify-between">
+<div class="flex items-start justify-between mb-2">
+<div class="p-2 rounded-lg bg-blue-500/20 text-blue-400">
+<span class="material-symbols-outlined text-xl">bolt</span>
+</div>
+<span class="text-xs font-medium text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">-5%</span>
+</div>
+<div>
+<p class="text-xs font-medium text-slate-400">Consumo Atual</p>
+<h3 class="text-xl font-bold text-white mt-1">450 kW</h3>
+</div>
+</div>
+<!-- Card 3: Valor Total Hoje -->
+<div class="rounded-xl bg-surface-dark p-4 border border-secondary shadow-lg flex flex-col justify-between">
+<div class="flex items-start justify-between mb-2">
+<div class="p-2 rounded-lg bg-primary/20 text-primary">
+<span class="material-symbols-outlined text-xl">payments</span>
+</div>
+<span class="text-xs font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">+12%</span>
+</div>
+<div>
+<p class="text-xs font-medium text-slate-400">Faturamento Hoje</p>
+<h3 class="text-xl font-bold text-white mt-1">R$ 1.250</h3>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Sessões Ativas -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-xl font-bold">Sessões Ativas</h2>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="text-xs text-slate-400">Atualizando</span>
+</div>
+</div>
+<div class="space-y-3">
+<!-- Session Item 1 -->
+<div class="group relative rounded-xl bg-surface-dark border border-secondary p-4 transition-all hover:border-primary/50">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-slate-700 overflow-hidden flex-shrink-0 border border-secondary">
+<img alt="Avatar User 1" class="h-full w-full object-cover" data-alt="Portrait of a user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlv_WjioYl0tFjTTtYuO91VYsmh89HMcw2ueP65UUZ8vzxXyUinEkfWOrTnMqlgeSdYhS0qzXVH9gyuuFh3giNpBLQONPn_7i8qzBPDDYsQgmHX6fgSyJTC2fugxm1leotu4SADx5tRCc1EvL0ytQdgJQvf4xtIXoukurFf3cybKCHTUxjVGyC4mjEytbmMQBflPxkJXBQdl9gjGb6MiFIaCfQdiaL6tVkDARL6mPJAxaYBAdHODVtp0xB4ikaxFuWrFjD1J3Bcnuk"/>
+</div>
+<div>
+<h4 class="font-bold text-sm text-slate-100">Carlos Mendes</h4>
+<p class="text-xs text-slate-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">electric_car</span>
+                                    Volvo XC40
+                                </p>
+</div>
+</div>
+<div class="text-right">
+<span class="inline-flex items-center rounded-md bg-green-400/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-400/20">Carregando</span>
+</div>
+</div>
+<div class="mt-4 grid grid-cols-3 gap-2 border-t border-secondary/50 pt-3">
+<div class="text-center">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Tempo</p>
+<p class="font-medium text-sm text-slate-200">45m</p>
+</div>
+<div class="text-center border-l border-secondary/50">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Energia</p>
+<p class="font-medium text-sm text-slate-200">22.5 kWh</p>
+</div>
+<div class="text-center border-l border-secondary/50">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Estação</p>
+<p class="font-medium text-sm text-primary">#A04</p>
+</div>
+</div>
+</div>
+<!-- Session Item 2 -->
+<div class="group relative rounded-xl bg-surface-dark border border-secondary p-4 transition-all hover:border-primary/50">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-slate-700 overflow-hidden flex-shrink-0 border border-secondary">
+<div class="w-full h-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs" data-alt="User Avatar Gradient">AM</div>
+</div>
+<div>
+<h4 class="font-bold text-sm text-slate-100">Ana Martins</h4>
+<p class="text-xs text-slate-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">electric_car</span>
+                                    BYD Dolphin
+                                </p>
+</div>
+</div>
+<div class="text-right">
+<span class="inline-flex items-center rounded-md bg-green-400/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-400/20">Carregando</span>
+</div>
+</div>
+<div class="mt-4 grid grid-cols-3 gap-2 border-t border-secondary/50 pt-3">
+<div class="text-center">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Tempo</p>
+<p class="font-medium text-sm text-slate-200">12m</p>
+</div>
+<div class="text-center border-l border-secondary/50">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Energia</p>
+<p class="font-medium text-sm text-slate-200">4.2 kWh</p>
+</div>
+<div class="text-center border-l border-secondary/50">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Estação</p>
+<p class="font-medium text-sm text-primary">#B02</p>
+</div>
+</div>
+</div>
+<!-- Session Item 3 -->
+<div class="group relative rounded-xl bg-surface-dark border border-secondary p-4 transition-all hover:border-primary/50 opacity-75">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-slate-700 overflow-hidden flex-shrink-0 border border-secondary">
+<img alt="Avatar User 3" class="h-full w-full object-cover" data-alt="Portrait of a user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6edD2TxysiAn6EsrgIV2Lrr5c0PxF-ffIEoz9s_nZdctURFyQx_yLpa3Ve0lJ23hBZv-W8MGlWTkMLSqWft1PfnCcqMpvCgVe0PRsH5OhwjqtnaiWNB4eC2nMHfYsrx8dlQOpsG0uYTN2VR7uNcEFdrunqsRzgM3avO1NfmDnIwI_SwYCv-N1N-IOReMOFzU6lrXfYWY9ws4r6TfMoncEWCTdObXtG5pFfvZv6CTBNTMdQlh39WrG5FHqu98QgjEsRMfUEiuFm_D1"/>
+</div>
+<div>
+<h4 class="font-bold text-sm text-slate-100">Roberto Silva</h4>
+<p class="text-xs text-slate-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">electric_car</span>
+                                    Tesla Model 3
+                                </p>
+</div>
+</div>
+<div class="text-right">
+<span class="inline-flex items-center rounded-md bg-yellow-400/10 px-2 py-1 text-xs font-medium text-yellow-400 ring-1 ring-inset ring-yellow-400/20">Finalizando</span>
+</div>
+</div>
+<div class="mt-4 grid grid-cols-3 gap-2 border-t border-secondary/50 pt-3">
+<div class="text-center">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Tempo</p>
+<p class="font-medium text-sm text-slate-200">1h 20m</p>
+</div>
+<div class="text-center border-l border-secondary/50">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Energia</p>
+<p class="font-medium text-sm text-slate-200">55.0 kWh</p>
+</div>
+<div class="text-center border-l border-secondary/50">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Estação</p>
+<p class="font-medium text-sm text-primary">#A01</p>
+</div>
+</div>
+</div>
+<!-- Session Item 4 -->
+<div class="group relative rounded-xl bg-surface-dark border border-secondary p-4 transition-all hover:border-primary/50">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-slate-700 overflow-hidden flex-shrink-0 border border-secondary">
+<div class="w-full h-full bg-slate-600 flex items-center justify-center text-white font-bold text-xs" data-alt="User Initials">JP</div>
+</div>
+<div>
+<h4 class="font-bold text-sm text-slate-100">João Pereira</h4>
+<p class="text-xs text-slate-400 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">electric_car</span>
+                                    Nissan Leaf
+                                </p>
+</div>
+</div>
+<div class="text-right">
+<span class="inline-flex items-center rounded-md bg-green-400/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-400/20">Carregando</span>
+</div>
+</div>
+<div class="mt-4 grid grid-cols-3 gap-2 border-t border-secondary/50 pt-3">
+<div class="text-center">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Tempo</p>
+<p class="font-medium text-sm text-slate-200">5m</p>
+</div>
+<div class="text-center border-l border-secondary/50">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Energia</p>
+<p class="font-medium text-sm text-slate-200">1.5 kWh</p>
+</div>
+<div class="text-center border-l border-secondary/50">
+<p class="text-[10px] uppercase tracking-wider text-slate-500">Estação</p>
+<p class="font-medium text-sm text-primary">#C05</p>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full mt-4 py-3 rounded-lg border border-secondary text-sm font-medium text-slate-300 hover:bg-surface-dark hover:text-white transition-colors flex items-center justify-center gap-2">
+                Ver todas as sessões
+                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</section>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 w-full z-40 bg-surface-dark border-t border-secondary px-4 pb-6 pt-3">
+<div class="flex justify-between items-end">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary group" href="#">
+<div class="flex h-7 items-center justify-center transition-transform group-active:scale-95">
+<span class="material-symbols-outlined text-[26px] font-variation-settings-fill">monitoring</span>
+</div>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Dashboard</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 hover:text-slate-200 transition-colors group" href="#">
+<div class="flex h-7 items-center justify-center transition-transform group-active:scale-95">
+<span class="material-symbols-outlined text-[26px]">history</span>
+</div>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Histórico</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 hover:text-slate-200 transition-colors group" href="#">
+<div class="flex h-7 items-center justify-center transition-transform group-active:scale-95">
+<span class="material-symbols-outlined text-[26px]">group</span>
+</div>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Usuários</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 hover:text-slate-200 transition-colors group" href="#">
+<div class="flex h-7 items-center justify-center transition-transform group-active:scale-95">
+<span class="material-symbols-outlined text-[26px]">settings</span>
+</div>
+<p class="text-[10px] font-medium leading-normal tracking-[0.015em]">Configurações</p>
+</a>
+</div>
+</nav>
+<style>
+        .font-variation-settings-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</body></html>

@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Carregador - Usuario</title>
+  <script src="/theme.js"></script>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -11,7 +12,10 @@
     <header class="topbar">
       <div class="topbar-inner">
         <img src="/assets/Logo-rem.png" alt="Logo" class="logo" />
-        <button class="btn btn-secondary btn-inline" onclick="logout()" aria-label="Sair">Sair</button>
+        <div class="topbar-actions">
+          <button id="themeToggle" class="btn btn-secondary btn-inline" type="button">Modo escuro</button>
+          <button class="btn btn-secondary btn-inline" onclick="logout()" aria-label="Sair">Sair</button>
+        </div>
       </div>
     </header>
 
@@ -625,6 +629,7 @@
     (async () => {
       state.user = await requireLogin();
       if (!state.user) return;
+      ThemeController.bindToggle(document.getElementById("themeToggle"));
       setupEvents();
       await Promise.all([loadAddresses(), loadStations()]);
       await refreshState();

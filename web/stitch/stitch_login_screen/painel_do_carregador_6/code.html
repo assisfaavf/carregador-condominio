@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<header class="flex items-center bg-background-light dark:bg-background-dark p-4 border-b border-slate-200 dark:border-primary/20 sticky top-0 z-50">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+<img class="size-8 object-contain" data-alt="SPATE Engenharia Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDc4eLokxGtqQlJhH7af-ueOnFji9OGoLt2h1xEr69_JefxWit46GuaE9zOlh5hkLXMq2W_Lzg4U9WTrQ_LkJ_oZFip5UcCnbj_bSU933f_Yj-YKjSTCMw84qCuri6ax8gnFA_n_XNckGyHzd25HJDd9Yf60BI_UEh7Ei0Ftsp-GDzaft-JMa0j3zmRKpR3CYqjpsL1zKxUBMn3cH9CjtMDjem9GOdNEiJGJsoKnoZ2etsZt3SadM-Geiz8BqUq_GBiYpSJ8XI0WgiD"/>
+</div>
+<h1 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight flex-1 text-center">SPATE Engenharia</h1>
+<div class="flex w-10 items-center justify-end">
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-primary/10 text-slate-900 dark:text-slate-100 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto px-4 py-6 space-y-6 max-w-md mx-auto w-full">
+<section class="space-y-4">
+<h2 class="text-2xl font-bold tracking-tight">Painel do Carregador</h2>
+<div class="grid grid-cols-3 gap-3">
+<div class="bg-white dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-primary/10 shadow-sm flex flex-col justify-center">
+<p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Potência</p>
+<p class="text-lg font-bold text-primary truncate">7.4 kW</p>
+</div>
+<div class="bg-white dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-primary/10 shadow-sm flex flex-col justify-center">
+<p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Energia</p>
+<p class="text-lg font-bold text-primary truncate">12.5 kWh</p>
+</div>
+<div class="bg-white dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-primary/10 shadow-sm flex flex-col justify-center">
+<p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Valor</p>
+<p class="text-lg font-bold text-primary truncate">R$ 15,00</p>
+</div>
+</div>
+</section>
+<section class="bg-white dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-200 dark:border-primary/10 space-y-5">
+<div class="space-y-4">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Selecionar Unidade</label>
+<div class="relative">
+<select class="w-full h-14 pl-4 pr-10 rounded-xl bg-slate-100 dark:bg-background-dark border-slate-200 dark:border-primary/20 text-slate-900 dark:text-slate-100 focus:ring-primary focus:border-primary appearance-none font-medium">
+<option>Apartamento 101-A</option>
+<option>Apartamento 202-B</option>
+<option>Apartamento 305-C</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-4 pointer-events-none text-slate-400">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Estação de Recarga</label>
+<div class="relative">
+<select class="w-full h-14 pl-4 pr-10 rounded-xl bg-slate-100 dark:bg-background-dark border-slate-200 dark:border-primary/20 text-slate-900 dark:text-slate-100 focus:ring-primary focus:border-primary appearance-none font-medium">
+<option>Estação 01 - Térreo</option>
+<option>Estação 02 - G1</option>
+<option>Estação 03 - G2</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-4 pointer-events-none text-slate-400">expand_more</span>
+</div>
+</div>
+</div>
+<div class="space-y-3">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Modo de Carregamento</label>
+<div class="flex p-1 bg-slate-100 dark:bg-background-dark rounded-xl border border-slate-200 dark:border-primary/20">
+<button class="flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all bg-primary text-slate-900 shadow-sm">
+                        Até completar
+                    </button>
+<button class="flex-1 py-3 px-4 rounded-lg text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all">
+                        Valor em R$
+                    </button>
+</div>
+</div>
+</section>
+<div class="pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-background-dark font-bold text-lg h-16 rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95">
+<span class="material-symbols-outlined active-icon">ev_charger</span>
+                Iniciar Carregamento
+            </button>
+<p class="text-center text-xs text-slate-500 dark:text-slate-400 mt-4 px-6 leading-relaxed">
+                Ao iniciar, certifique-se que o cabo está conectado firmemente ao veículo.
+            </p>
+</div>
+</main>
+<nav class="border-t border-slate-200 dark:border-primary/20 bg-white dark:bg-slate-900 px-4 pb-6 pt-2 safe-area-bottom">
+<div class="flex justify-around items-center">
+<a class="flex flex-col items-center gap-1 p-2 text-primary" href="#">
+<span class="material-symbols-outlined active-icon">home</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Início</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Histórico</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Perfil</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">support_agent</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Suporte</span>
+</a>
+</div>
+</nav>
+</body></html>

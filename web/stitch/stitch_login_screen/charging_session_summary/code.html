@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Resumo da Recarga</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#0df259",
+              "background-light": "#f5f8f6",
+              "background-dark": "#102216",
+              "card-dark": "#1a3523", // Derived darker green for cards
+              "text-muted": "#90cba4", // Muted green text
+            },
+            fontFamily: {
+              "display": ["Space Grotesk", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col font-display selection:bg-primary/30">
+<header class="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-4 border-b border-primary/10">
+<div class="flex items-center justify-between">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h1 class="text-lg font-bold text-slate-900 dark:text-slate-100 flex-1 text-center pr-10">
+                Resumo da Recarga
+            </h1>
+</div>
+</header>
+<main class="flex-1 flex flex-col p-4 gap-6 pb-24 overflow-y-auto no-scrollbar">
+<div class="flex flex-col items-center justify-center py-6">
+<div class="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-primary text-5xl">check_circle</span>
+</div>
+<p class="text-slate-900 dark:text-slate-100 text-xl font-bold">Recarga Finalizada</p>
+<p class="text-slate-500 dark:text-text-muted text-sm">Sua sessão foi concluída com sucesso</p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="col-span-2 bg-white dark:bg-card-dark rounded-xl p-5 shadow-sm border border-slate-200 dark:border-primary/10 flex flex-col items-center text-center gap-1">
+<span class="material-symbols-outlined text-primary mb-1 text-3xl">payments</span>
+<p class="text-slate-500 dark:text-text-muted text-sm font-medium">Valor Total</p>
+<p class="text-slate-900 dark:text-slate-100 text-4xl font-bold tracking-tight">R$ 14,25</p>
+</div>
+<div class="bg-white dark:bg-card-dark rounded-xl p-5 shadow-sm border border-slate-200 dark:border-primary/10 flex flex-col gap-2">
+<div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">bolt</span>
+</div>
+<div>
+<p class="text-slate-500 dark:text-text-muted text-xs font-medium uppercase tracking-wider">Energia Total</p>
+<p class="text-slate-900 dark:text-slate-100 text-2xl font-bold">28.5 <span class="text-sm font-normal text-slate-500 dark:text-text-muted">kWh</span></p>
+</div>
+</div>
+<div class="bg-white dark:bg-card-dark rounded-xl p-5 shadow-sm border border-slate-200 dark:border-primary/10 flex flex-col gap-2">
+<div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">electric_meter</span>
+</div>
+<div>
+<p class="text-slate-500 dark:text-text-muted text-xs font-medium uppercase tracking-wider">Potência Média</p>
+<p class="text-slate-900 dark:text-slate-100 text-2xl font-bold">7.4 <span class="text-sm font-normal text-slate-500 dark:text-text-muted">kW</span></p>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-primary/10 overflow-hidden">
+<div class="px-5 py-4 border-b border-slate-100 dark:border-white/5">
+<h3 class="text-slate-900 dark:text-slate-100 font-bold text-base">Detalhes da Sessão</h3>
+</div>
+<div class="p-5 flex flex-col gap-5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-muted text-xl">schedule</span>
+<p class="text-slate-500 dark:text-text-muted text-sm font-medium">Início</p>
+</div>
+<p class="text-slate-900 dark:text-slate-100 text-sm font-semibold">18/10/2023 14:30</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-muted text-xl">timer_off</span>
+<p class="text-slate-500 dark:text-text-muted text-sm font-medium">Fim</p>
+</div>
+<p class="text-slate-900 dark:text-slate-100 text-sm font-semibold">18/10/2023 18:30</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-muted text-xl">timelapse</span>
+<p class="text-slate-500 dark:text-text-muted text-sm font-medium">Duração</p>
+</div>
+<p class="text-slate-900 dark:text-slate-100 text-sm font-semibold">04:00:00</p>
+</div>
+<div class="w-full h-px bg-slate-100 dark:bg-white/5 my-1"></div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-muted text-xl">ev_station</span>
+<p class="text-slate-500 dark:text-text-muted text-sm font-medium">Estação</p>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<p class="text-slate-900 dark:text-slate-100 text-sm font-semibold">Station A-102</p>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-muted text-xl">apartment</span>
+<p class="text-slate-500 dark:text-text-muted text-sm font-medium">Unidade</p>
+</div>
+<p class="text-slate-900 dark:text-slate-100 text-sm font-semibold">Torre A - 102</p>
+</div>
+</div>
+</div>
+<div class="flex justify-center gap-4 text-sm">
+<button class="text-primary hover:text-primary/80 font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-lg">receipt_long</span> Ver Recibo
+            </button>
+<span class="text-slate-600 dark:text-slate-600">|</span>
+<button class="text-slate-500 dark:text-slate-400 hover:text-slate-300 font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-lg">help</span> Ajuda
+            </button>
+</div>
+</main>
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-background-light dark:bg-background-dark border-t border-slate-200 dark:border-primary/10 pb-8"> 
+<button class="w-full h-14 flex items-center justify-center bg-primary hover:bg-primary/90 active:scale-[0.98] transition-all rounded-xl shadow-lg shadow-primary/20 cursor-pointer">
+<span class="text-background-dark text-lg font-bold tracking-wide">Voltar ao Início</span>
+</button>
+</div>
+</body></html>

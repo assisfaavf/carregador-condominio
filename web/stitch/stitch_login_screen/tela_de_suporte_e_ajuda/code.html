@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tela de Suporte - SPATE Engenharia</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#183422",
+                        "border-dark": "#22492f",
+                        "text-secondary": "#90cba4"
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for better look in dark mode */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #102216; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #22492f; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0df259; 
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+<!-- Header -->
+<header class="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-background-light dark:bg-background-dark border-b border-gray-200 dark:border-border-dark">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors text-slate-900 dark:text-white">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-lg font-bold flex-1 text-center pr-10">Suporte</h1>
+</header>
+<!-- Main Content -->
+<main class="flex-1 px-4 py-6 w-full max-w-md mx-auto">
+<!-- Search Bar -->
+<div class="mb-8">
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+<span class="material-symbols-outlined text-text-secondary group-focus-within:text-primary transition-colors">search</span>
+</div>
+<input class="block w-full p-3 pl-10 text-sm rounded-lg bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark placeholder-gray-400 dark:placeholder-text-secondary text-slate-900 dark:text-white focus:ring-primary focus:border-primary dark:focus:ring-primary dark:focus:border-primary transition-all shadow-sm" placeholder="Buscar ajuda, dúvidas..." type="text"/>
+</div>
+</div>
+<!-- Quick Contact Section -->
+<section class="mb-8">
+<h2 class="text-xl font-bold mb-4 text-slate-900 dark:text-white">Contato Rápido</h2>
+<div class="grid grid-cols-3 gap-3">
+<!-- WhatsApp Card -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-primary dark:hover:border-primary hover:shadow-md transition-all group">
+<div class="w-10 h-10 rounded-full bg-green-100 dark:bg-[#22492f] flex items-center justify-center mb-2 group-hover:bg-primary group-hover:text-black transition-colors text-primary">
+<span class="material-symbols-outlined text-2xl">chat</span>
+</div>
+<span class="text-xs font-medium text-slate-700 dark:text-white">WhatsApp</span>
+</button>
+<!-- Email Card -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-primary dark:hover:border-primary hover:shadow-md transition-all group">
+<div class="w-10 h-10 rounded-full bg-green-100 dark:bg-[#22492f] flex items-center justify-center mb-2 group-hover:bg-primary group-hover:text-black transition-colors text-primary">
+<span class="material-symbols-outlined text-2xl">mail</span>
+</div>
+<span class="text-xs font-medium text-slate-700 dark:text-white">E-mail</span>
+</button>
+<!-- Phone Card -->
+<button class="flex flex-col items-center justify-center p-4 rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-primary dark:hover:border-primary hover:shadow-md transition-all group">
+<div class="w-10 h-10 rounded-full bg-green-100 dark:bg-[#22492f] flex items-center justify-center mb-2 group-hover:bg-primary group-hover:text-black transition-colors text-primary">
+<span class="material-symbols-outlined text-2xl">call</span>
+</div>
+<span class="text-xs font-medium text-slate-700 dark:text-white">Telefone</span>
+</button>
+</div>
+</section>
+<!-- FAQ Section -->
+<section class="mb-8">
+<h2 class="text-xl font-bold mb-4 text-slate-900 dark:text-white">Perguntas Frequentes</h2>
+<div class="space-y-3">
+<!-- FAQ Item 1 -->
+<details class="group bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-border-dark overflow-hidden transition-all duration-300">
+<summary class="flex items-center justify-between p-4 cursor-pointer list-none">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">help</span>
+<span class="text-sm font-medium text-slate-900 dark:text-white">Como cadastrar unidade?</span>
+</div>
+<span class="material-symbols-outlined text-text-secondary transition-transform duration-300 group-open:rotate-180">expand_more</span>
+</summary>
+<div class="px-4 pb-4 text-sm text-slate-600 dark:text-text-secondary border-t border-gray-100 dark:border-border-dark pt-3">
+                        Para cadastrar uma nova unidade, vá até a aba "Perfil", selecione "Gerenciar Unidades" e clique no botão "+" no canto superior direito.
+                    </div>
+</details>
+<!-- FAQ Item 2 -->
+<details class="group bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-border-dark overflow-hidden transition-all duration-300">
+<summary class="flex items-center justify-between p-4 cursor-pointer list-none">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">sync_problem</span>
+<span class="text-sm font-medium text-slate-900 dark:text-white">Problemas no carregamento</span>
+</div>
+<span class="material-symbols-outlined text-text-secondary transition-transform duration-300 group-open:rotate-180">expand_more</span>
+</summary>
+<div class="px-4 pb-4 text-sm text-slate-600 dark:text-text-secondary border-t border-gray-100 dark:border-border-dark pt-3">
+                        Verifique sua conexão com a internet. Se o problema persistir, tente limpar o cache do aplicativo nas configurações do seu dispositivo ou reinstale o app.
+                    </div>
+</details>
+<!-- FAQ Item 3 -->
+<details class="group bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-border-dark overflow-hidden transition-all duration-300">
+<summary class="flex items-center justify-between p-4 cursor-pointer list-none">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">lock_reset</span>
+<span class="text-sm font-medium text-slate-900 dark:text-white">Esqueci minha senha</span>
+</div>
+<span class="material-symbols-outlined text-text-secondary transition-transform duration-300 group-open:rotate-180">expand_more</span>
+</summary>
+<div class="px-4 pb-4 text-sm text-slate-600 dark:text-text-secondary border-t border-gray-100 dark:border-border-dark pt-3">
+                        Na tela de login, clique em "Esqueci minha senha". Um link de redefinição será enviado para o seu e-mail cadastrado.
+                    </div>
+</details>
+</div>
+</section>
+<!-- Open Ticket Button -->
+<div class="mt-auto pt-4">
+<button class="w-full bg-primary hover:bg-[#0bd950] text-background-dark font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined">edit_square</span>
+                Abrir Chamado
+            </button>
+</div>
+<!-- Spacer for Bottom Nav -->
+<div class="h-24"></div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full bg-white dark:bg-surface-dark border-t border-gray-200 dark:border-border-dark pb-safe-area">
+<div class="flex items-center justify-around px-2 pt-2 pb-4">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center gap-1 w-16 group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors text-[24px]">home</span>
+<span class="text-[10px] font-medium text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors">Início</span>
+</a>
+<!-- History -->
+<a class="flex flex-col items-center justify-center gap-1 w-16 group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors text-[24px]">history</span>
+<span class="text-[10px] font-medium text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors">Histórico</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center gap-1 w-16 group" href="#">
+<span class="material-symbols-outlined text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors text-[24px]">person</span>
+<span class="text-[10px] font-medium text-slate-400 dark:text-text-secondary group-hover:text-primary transition-colors">Perfil</span>
+</a>
+<!-- Support (Active) -->
+<a class="flex flex-col items-center justify-center gap-1 w-16" href="#">
+<div class="relative">
+<span class="material-symbols-outlined text-primary text-[24px] fill-current">support_agent</span>
+<span class="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
+</div>
+<span class="text-[10px] font-bold text-primary">Suporte</span>
+</a>
+</div>
+</nav>
+</body></html>
