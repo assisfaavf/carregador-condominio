@@ -73,6 +73,33 @@ async function getByIdForUser(addressId, userId) {
   return mapAddress(rows[0]);
 }
 
+async function getById(addressId) {
+  const rows = await pgDb.query(
+    `
+      SELECT
+        id,
+        user_id,
+        label,
+        street,
+        number,
+        complement,
+        neighborhood,
+        city,
+        state,
+        zip,
+        is_default,
+        created_at,
+        updated_at
+      FROM addresses
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [addressId]
+  );
+
+  return mapAddress(rows[0]);
+}
+
 async function setDefault(addressId, userId) {
   return pgDb.withTransaction(async (tx) => {
     const targetRows = await tx.query(
@@ -342,11 +369,26 @@ async function deleteForUser(addressId, userId) {
   });
 }
 
+async function updateById(addressId, payload) {
+  const existing = await getById(addressId);
+  if (!existing) return null;
+  return updateForUser(addressId, existing.user_id, payload);
+}
+
+async function deleteById(addressId) {
+  const existing = await getById(addressId);
+  if (!existing) return null;
+  return deleteForUser(addressId, existing.user_id);
+}
+
 module.exports = {
   listByUser,
+  getById,
   getByIdForUser,
   createForUser,
   updateForUser,
+  updateById,
   deleteForUser,
+  deleteById,
   setDefault,
 };

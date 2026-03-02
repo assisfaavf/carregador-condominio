@@ -292,7 +292,7 @@ async function finishSession(sessionId, patch, tx) {
     `
       UPDATE sessions
       SET ${updates.join(", ")}
-      WHERE id = $${whereIdx}
+      WHERE id = $${whereIdx} AND status = 'running'
       RETURNING
         id,
         user_id,
@@ -360,6 +360,9 @@ async function listByUser(userId, limit = 50, offset = 0) {
 
   return rows.map((row) => ({
     ...mapSessionRow(row),
+    station_name: row.station_name ?? null,
+    station_location_label: row.station_location_label ?? null,
+    address_label: row.address_label ?? null,
     station: {
       name: row.station_name ?? null,
       location_label: row.station_location_label ?? null,
@@ -375,6 +378,11 @@ async function listAdmin(filters = {}) {
   const values = [];
   let idx = 1;
 
+  if (filters.id != null) {
+    clauses.push(`s.id = $${idx}`);
+    values.push(filters.id);
+    idx += 1;
+  }
   if (filters.user_id != null) {
     clauses.push(`s.user_id = $${idx}`);
     values.push(filters.user_id);
@@ -388,6 +396,11 @@ async function listAdmin(filters = {}) {
   if (filters.status) {
     clauses.push(`s.status = $${idx}`);
     values.push(String(filters.status));
+    idx += 1;
+  }
+  if (filters.payment_status) {
+    clauses.push(`s.payment_status = $${idx}`);
+    values.push(String(filters.payment_status));
     idx += 1;
   }
   if (filters.date_from) {
