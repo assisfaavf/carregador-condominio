@@ -362,7 +362,7 @@ export default function UserHomePage() {
       } catch (error) {
         if (cancelled) return
         setActionError(
-          getErrorMessage(error, 'Nao foi possivel carregar os enderecos e as estacoes.'),
+          getErrorMessage(error, 'Não foi possível carregar os endereços e as estações.'),
         )
       } finally {
         if (!cancelled) {
@@ -493,7 +493,7 @@ export default function UserHomePage() {
         setStopSummary(snapshot)
       }
       setActionError(null)
-      setSuccessMessage('Sessao finalizada automaticamente (carregamento concluido).')
+      setSuccessMessage('Sessão finalizada automaticamente (carregamento concluído).')
     }
 
     previousSessionActiveRef.current = isSessionActive
@@ -525,7 +525,7 @@ export default function UserHomePage() {
         await refreshSessionState()
       } catch (error) {
         setActionError(
-          getErrorMessage(error, 'Sessao iniciada, mas nao foi possivel atualizar o estado atual.'),
+          getErrorMessage(error, 'Sessão iniciada, mas não foi possível atualizar o estado atual.'),
         )
       }
 
@@ -534,7 +534,7 @@ export default function UserHomePage() {
         setLiveData(live)
         setLiveError(null)
       } catch (error) {
-        setLiveError(getErrorMessage(error, 'Sessao iniciada, mas sem telemetria no momento.'))
+        setLiveError(getErrorMessage(error, 'Sessão iniciada, mas sem telemetria no momento.'))
       }
     } catch (error) {
       setActionError(getErrorMessage(error, 'Nao foi possivel iniciar o carregamento.'))
@@ -560,7 +560,7 @@ export default function UserHomePage() {
         body: { station_id: selectedStationId },
       })
 
-      setSuccessMessage(response.message ?? 'Sessao encerrada com sucesso.')
+      setSuccessMessage(response.message ?? 'Sessão encerrada com sucesso.')
       setStopSummary({
         durationSeconds: response.duration_seconds ?? null,
         energyKwh: response.energy_kwh ?? null,
@@ -571,7 +571,7 @@ export default function UserHomePage() {
         await refreshSessionState()
       } catch (error) {
         setActionError(
-          getErrorMessage(error, 'Sessao encerrada, mas nao foi possivel atualizar o estado atual.'),
+          getErrorMessage(error, 'Sessão encerrada, mas não foi possível atualizar o estado atual.'),
         )
       }
 
@@ -580,7 +580,7 @@ export default function UserHomePage() {
         setLiveData(live)
         setLiveError(null)
       } catch (error) {
-        setLiveError(getErrorMessage(error, 'Sessao encerrada, mas sem telemetria no momento.'))
+        setLiveError(getErrorMessage(error, 'Sessão encerrada, mas sem telemetria no momento.'))
       }
     } catch (error) {
       setActionError(getErrorMessage(error, 'Nao foi possivel encerrar o carregamento.'))
@@ -697,7 +697,7 @@ export default function UserHomePage() {
             <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-primary/10 dark:bg-slate-800/50">
               {isBusy ? <div className="absolute inset-0 animate-pulse bg-primary/5" /> : null}
               <p className="relative z-10 mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Energia da Sessao
+                Energia da Sessão
               </p>
               <p className="relative z-10 text-lg font-bold text-primary">
                 {formatNumber(displayedSessionEnergyKwh, 'kWh', 2)}
@@ -728,10 +728,10 @@ export default function UserHomePage() {
         {isSessionActive && sessionState.session ? (
           <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 dark:border-primary/10 dark:bg-slate-800/30">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Sessao ativa
+              Sessão ativa
             </h3>
             <p className="text-sm">
-              Usuario:{' '}
+              Usuário:{' '}
               <span className="font-semibold">
                 {user?.name
                   ? `${user.name} (id ${sessionState.session.user_id})`
@@ -739,10 +739,10 @@ export default function UserHomePage() {
               </span>
             </p>
             <p className="text-sm">
-              Inicio: <span className="font-semibold">{formatDateTime(sessionState.session.start_time)}</span>
+              Início: <span className="font-semibold">{formatDateTime(sessionState.session.start_time)}</span>
             </p>
             <p className="text-sm">
-              Sessao: <span className="font-semibold">#{sessionState.session.session_id}</span>
+              Sessão: <span className="font-semibold">#{sessionState.session.session_id}</span>
             </p>
           </section>
         ) : null}
@@ -776,13 +776,13 @@ export default function UserHomePage() {
                 </span>
               </div>
               {!isLoadingOptions && addresses.length === 0 ? (
-                <p className="text-xs text-danger">Nenhum endereco cadastrado para este usuario.</p>
+                <p className="text-xs text-danger">Nenhum endereço cadastrado para este usuário.</p>
               ) : null}
             </div>
 
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Estacao de Recarga
+                Estação de Recarga
               </label>
               <div className="relative">
                 <select
@@ -791,7 +791,7 @@ export default function UserHomePage() {
                   onChange={(event) => handleStationChange(event.target.value)}
                   value={selectedStationId ?? ''}
                 >
-                  <option value="">Selecione uma estacao</option>
+                  <option value="">Selecione uma estação</option>
                   {stations.map((station) => (
                     <option key={station.id} value={station.id}>
                       {station.location_label
@@ -805,7 +805,7 @@ export default function UserHomePage() {
                 </span>
               </div>
               {!isLoadingOptions && stations.length === 0 ? (
-                <p className="text-xs text-danger">Nenhuma estacao ativa disponivel.</p>
+                <p className="text-xs text-danger">Nenhuma estação ativa disponível.</p>
               ) : null}
             </div>
           </div>
@@ -866,7 +866,7 @@ export default function UserHomePage() {
 
         {sessionState.occupied && !sessionState.active ? (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-700 dark:text-amber-200">
-            Esta estacao esta ocupada por outro usuario no momento.
+            Esta estação está ocupada por outro usuário no momento.
           </div>
         ) : null}
 
@@ -912,14 +912,14 @@ export default function UserHomePage() {
         <div className="mx-auto flex w-full max-w-md items-center justify-around">
           <Link className="flex flex-col items-center gap-1 p-2 text-primary" to="/app/home">
             <span className="material-symbols-outlined active-icon">home</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">Inicio</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Início</span>
           </Link>
           <Link
             className="flex flex-col items-center gap-1 p-2 text-slate-400 transition-colors hover:text-primary"
             to="/app/history"
           >
             <span className="material-symbols-outlined">history</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">Historico</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Histórico</span>
           </Link>
           <Link
             className="flex flex-col items-center gap-1 p-2 text-slate-400 transition-colors hover:text-primary"

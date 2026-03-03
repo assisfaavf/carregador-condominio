@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build:web",
+    "build:web": "npm --prefix web run build",
     "migrate": "node scripts/migrate.js",
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
     "web:dev": "npm --prefix web run dev",
     "web:build": "npm --prefix web run build"
   },

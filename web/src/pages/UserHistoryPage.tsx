@@ -166,13 +166,13 @@ export default function UserHistoryPage() {
     <div className="min-h-screen bg-background-dark font-display text-slate-100">
       <main className="mx-auto w-full max-w-md space-y-6 px-4 py-6 pb-28">
         <section className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">Historico de Carregamentos</h1>
-          <p className="text-sm text-slate-300">Acompanhe suas ultimas sessoes e pagamentos.</p>
+          <h1 className="text-2xl font-bold tracking-tight">Histórico de Carregamentos</h1>
+          <p className="text-sm text-slate-300">Acompanhe suas últimas sessões e pagamentos.</p>
         </section>
 
         <section className="grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-primary/20 bg-[#1a3523] p-3">
-            <p className="text-[10px] uppercase tracking-wider text-slate-300">Sessoes</p>
+            <p className="text-[10px] uppercase tracking-wider text-slate-300">Sessões</p>
             <p className="mt-1 text-lg font-bold text-primary">{sessions.length}</p>
           </div>
           <div className="rounded-xl border border-primary/20 bg-[#1a3523] p-3">
@@ -247,7 +247,7 @@ export default function UserHistoryPage() {
 
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                     <div className="rounded-lg bg-slate-900/35 p-2">
-                      <p className="text-slate-400">Estacao</p>
+                      <p className="text-slate-400">Estação</p>
                       <p className="font-semibold text-slate-100">{stationName}</p>
                       {session.station_location_label ? (
                         <p className="text-[11px] text-slate-300">{session.station_location_label}</p>
@@ -315,11 +315,11 @@ export default function UserHistoryPage() {
             to="/app/home"
           >
             <span className="material-symbols-outlined">home</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">Inicio</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Início</span>
           </Link>
           <Link className="flex flex-col items-center gap-1 p-2 text-primary" to="/app/history">
             <span className="material-symbols-outlined active-icon">history</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">Historico</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Histórico</span>
           </Link>
           <Link
             className="flex flex-col items-center gap-1 p-2 text-slate-400 transition-colors hover:text-primary"

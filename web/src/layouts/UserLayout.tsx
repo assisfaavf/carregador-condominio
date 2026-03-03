@@ -29,7 +29,7 @@ export default function UserLayout() {
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <h1 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-              Area do Usuario
+              Área do Usuário
             </h1>
             {user?.is_admin ? (
               <Link

@@ -63,7 +63,7 @@ export default function AdminStartModal({
       <div className="w-full max-w-md rounded-2xl border border-secondary bg-surface-dark p-5 shadow-2xl">
         <h2 className="text-lg font-bold text-slate-100">Iniciar carregamento</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-400">
-          Selecione o usuario e a unidade para iniciar a sessao na estacao{' '}
+          Selecione o usuário e a unidade para iniciar a sessão na estação{' '}
           <span className="font-semibold text-slate-100">{stationName}</span>.
         </p>
 
@@ -76,7 +76,7 @@ export default function AdminStartModal({
         <div className="mt-4 space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-200" htmlFor="admin-start-user">
-              Usuario
+              Usuário
             </label>
             <select
               className="h-12 w-full rounded-xl border border-secondary bg-background-dark px-3 text-sm text-slate-100 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
@@ -85,7 +85,7 @@ export default function AdminStartModal({
               onChange={(event) => onUserChange(event.target.value)}
               value={selectedUserId ?? ''}
             >
-              <option value="">{loadingUsers ? 'Carregando usuarios...' : 'Selecione um usuario'}</option>
+              <option value="">{loadingUsers ? 'Carregando usuários...' : 'Selecione um usuário'}</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.name} ({user.email})
@@ -107,9 +107,9 @@ export default function AdminStartModal({
             >
               <option value="">
                 {selectedUserId == null
-                  ? 'Selecione um usuario primeiro'
+                  ? 'Selecione um usuário primeiro'
                   : loadingAddresses
-                    ? 'Carregando enderecos...'
+                    ? 'Carregando endereços...'
                     : 'Selecione uma unidade'}
               </option>
               {addresses.map((address) => (

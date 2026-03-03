@@ -379,20 +379,20 @@ export default function AdminDashboardPage() {
     if (startStationId == null) return
 
     if (startStation == null) {
-      setStartModalError('Estacao nao encontrada ou inativa.')
+      setStartModalError('Estação não encontrada ou inativa.')
       return
     }
     if (startStationSession) {
-      setStartModalError('Estacao ocupada')
+      setStartModalError('Estação ocupada')
       return
     }
     if (isStationOffline(startStationLive)) {
-      setStartModalError('Estacao offline no momento.')
+      setStartModalError('Estação offline no momento.')
       return
     }
 
     setStartModalError((current) => (
-      current === 'Estacao ocupada' || current === 'Estacao offline no momento.' ? null : current
+      current === 'Estação ocupada' || current === 'Estação offline no momento.' ? null : current
     ))
   }, [startStation, startStationId, startStationLive, startStationSession])
 
@@ -421,7 +421,7 @@ export default function AdminDashboardPage() {
         if (cancelled) return
         setAddresses([])
         setSelectedAddressId(null)
-        setStartModalError(getErrorMessage(error, 'Nao foi possivel carregar os enderecos do usuario.'))
+        setStartModalError(getErrorMessage(error, 'Não foi possível carregar os endereços do usuário.'))
       }
     }
 
@@ -462,7 +462,7 @@ export default function AdminDashboardPage() {
 
   const handleStartSubmit = useCallback(async () => {
     if (!startStation) {
-      setStartModalError('Estacao nao encontrada ou inativa.')
+      setStartModalError('Estação não encontrada ou inativa.')
       return
     }
     if (selectedUserId == null) {
@@ -470,15 +470,15 @@ export default function AdminDashboardPage() {
       return
     }
     if (selectedAddressId == null) {
-      setStartModalError('Usuario sem endereco cadastrado/default.')
+      setStartModalError('Usuário sem endereço cadastrado/default.')
       return
     }
     if (startStationSession) {
-      setStartModalError('Estacao ocupada')
+      setStartModalError('Estação ocupada')
       return
     }
     if (isStationOffline(startStationLive)) {
-      setStartModalError('Estacao offline no momento.')
+      setStartModalError('Estação offline no momento.')
       return
     }
 
@@ -495,7 +495,7 @@ export default function AdminDashboardPage() {
         },
       })
 
-      setErrorMessage(response.message ?? 'Sessao iniciada (admin).')
+      setErrorMessage(response.message ?? 'Sessão iniciada (admin).')
       setStartStationId(null)
       setSelectedUserId(null)
       setSelectedAddressId(null)
@@ -527,7 +527,7 @@ export default function AdminDashboardPage() {
         body: { station_id: stopStationId },
       })
 
-      setErrorMessage(response.message ?? 'Sessao finalizada (admin).')
+      setErrorMessage(response.message ?? 'Sessão finalizada (admin).')
       setStopStationId(null)
       await reloadStationsAndDashboard()
     } catch (error) {
@@ -624,11 +624,11 @@ export default function AdminDashboardPage() {
                     <span className="material-symbols-outlined text-xl">battery_charging_full</span>
                   </div>
                   <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
-                    sessoes running
+                    sessões ativas
                   </span>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-400">Energia em Sessoes</p>
+                  <p className="text-xs font-medium text-slate-400">Energia em Sessões</p>
                   <h3 className="mt-1 text-xl font-bold text-white">
                     {formatNumber(sessionEnergySumKwh, 'kWh', 2)}
                   </h3>
@@ -640,7 +640,7 @@ export default function AdminDashboardPage() {
 
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold">Sessoes Ativas</h2>
+            <h2 className="text-xl font-bold">Sessões Ativas</h2>
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
               <span className="text-xs text-slate-400">
@@ -692,14 +692,14 @@ export default function AdminDashboardPage() {
 
                   <div className="mt-4 space-y-1 text-sm">
                     <p className="text-slate-300">
-                      Usuario:{' '}
+                      Usuário:{' '}
                       <span className="font-semibold text-slate-100">
                         {session?.user_name || 'Nenhuma sessao running'}
                       </span>
                     </p>
                     <p className="text-slate-400">
                       {session?.user_email || station.max_current_a == null
-                        ? session?.user_email || 'Sem usuario associado'
+                        ? session?.user_email || 'Sem usuário associado'
                         : `Corrente maxima ${station.max_current_a} A`}
                     </p>
                     <p className="text-slate-500">
@@ -758,7 +758,7 @@ export default function AdminDashboardPage() {
                     )}
                     {!session && offline ? (
                       <p className="mt-2 text-xs text-red-300">
-                        Start bloqueado: estacao offline no momento.
+                        Start bloqueado: estação offline no momento.
                       </p>
                     ) : null}
                   </div>
@@ -769,7 +769,7 @@ export default function AdminDashboardPage() {
 
           {!isLoading && stationCards.length === 0 ? (
             <div className="rounded-xl border border-secondary bg-surface-dark px-4 py-6 text-center text-sm text-slate-400">
-              Nenhuma estacao ativa cadastrada.
+              Nenhuma estação ativa cadastrada.
             </div>
           ) : null}
         </section>
@@ -795,7 +795,7 @@ export default function AdminDashboardPage() {
             <div className="flex h-7 items-center justify-center transition-transform group-active:scale-95">
               <span className="material-symbols-outlined text-[26px]">history</span>
             </div>
-            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Historico</p>
+            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Histórico</p>
           </Link>
           <Link
             className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200"
@@ -804,7 +804,7 @@ export default function AdminDashboardPage() {
             <div className="flex h-7 items-center justify-center transition-transform group-active:scale-95">
               <span className="material-symbols-outlined text-[26px]">group</span>
             </div>
-            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Usuarios</p>
+            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Usuários</p>
           </Link>
           <Link
             className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200"
@@ -813,7 +813,7 @@ export default function AdminDashboardPage() {
             <div className="flex h-7 items-center justify-center transition-transform group-active:scale-95">
               <span className="material-symbols-outlined text-[26px]">settings</span>
             </div>
-            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Configuracoes</p>
+            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Configurações</p>
           </Link>
         </div>
       </nav>
@@ -832,7 +832,7 @@ export default function AdminDashboardPage() {
         open={startStation != null}
         selectedAddressId={selectedAddressId}
         selectedUserId={selectedUserId}
-        stationName={startStation?.name || 'Estacao'}
+        stationName={startStation?.name || 'Estação'}
         submitting={startingStationId === startStationId && startStationId != null}
         users={users}
       />
@@ -842,7 +842,7 @@ export default function AdminDashboardPage() {
         cancelText="Cancelar"
         confirmDisabled={stoppingStationId != null}
         confirmText={stoppingStationId != null ? 'Encerrando...' : 'Encerrar'}
-        message={`Tem certeza que deseja encerrar o carregamento desta estacao${stopStation ? ` (${stopStation.name})` : ''}?`}
+        message={`Tem certeza que deseja encerrar o carregamento desta estação${stopStation ? ` (${stopStation.name})` : ''}?`}
         onCancel={() => {
           if (stoppingStationId == null) {
             setStopStationId(null)

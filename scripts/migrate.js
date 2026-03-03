@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
-require("dotenv").config();
+const config = require("../config");
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = config.dbUrl;
 if (!databaseUrl) {
   throw new Error("DATABASE_URL não definido. Configure no .env antes de rodar as migrações.");
 }

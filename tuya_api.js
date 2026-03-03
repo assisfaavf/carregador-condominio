@@ -1,8 +1,9 @@
 const crypto = require("crypto");
+const config = require("./config");
 
-const BASE_URL = process.env.TUYA_BASE_URL;
-const ACCESS_ID = process.env.TUYA_ACCESS_ID;
-const ACCESS_SECRET = process.env.TUYA_ACCESS_SECRET;
+const BASE_URL = config.tuya.endpoint;
+const ACCESS_ID = config.tuya.clientId;
+const ACCESS_SECRET = config.tuya.clientSecret;
 
 let cachedToken = null;
 let cachedTokenExpireAt = 0;
@@ -45,7 +46,9 @@ function buildSignature({ method, pathWithQuery, bodyText, token, t }) {
 
 async function tuyaRequest({ method, path, body, token }) {
   if (!BASE_URL || !ACCESS_ID || !ACCESS_SECRET) {
-    throw new Error("Faltam variaveis Tuya no .env (TUYA_BASE_URL, TUYA_ACCESS_ID, TUYA_ACCESS_SECRET).");
+    throw new Error(
+      "Faltam variáveis Tuya no .env (TUYA_ENDPOINT/TUYA_BASE_URL, TUYA_CLIENT_ID/TUYA_ACCESS_ID, TUYA_CLIENT_SECRET/TUYA_ACCESS_SECRET)."
+    );
   }
 
   const t = Date.now().toString();

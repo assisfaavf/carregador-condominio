@@ -6,6 +6,7 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const config = require("./config");
 
 const { getDeviceStatus, sendCommands } = require("./tuya_api");
 const pgDb = require("./db/pg");
@@ -13,8 +14,12 @@ const usersRepo = require("./repositories/usersRepo");
 const addressesRepo = require("./repositories/addressesRepo");
 const stationsRepo = require("./repositories/stationsRepo");
 const sessionsRepo = require("./repositories/sessionsRepo");
+const systemSettingsRepo = require("./repositories/systemSettingsRepo");
 
 const app = express();
+if (config.isProd) {
+  app.set("trust proxy", 1);
+}
 const legacyPublicDir = path.join(__dirname, "public");
 const frontendDistDir = path.join(__dirname, "web", "dist");
 const frontendIndexPath = path.join(frontendDistDir, "index.html");
@@ -22,7 +27,6 @@ const hasFrontendDist = fs.existsSync(frontendIndexPath);
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.static(hasFrontendDist ? frontendDistDir : legacyPublicDir));
 
 const SESSION_WATCHDOG_INTERVAL_MS = 5000;
 const AUTO_END_ZERO_POWER_THRESHOLD_KW = 0.1;
@@ -33,6 +37,8 @@ const USER_ROLES = new Set(["morador", "visitante"]);
 const USER_APPROVAL_STATUSES = new Set(["pending", "approved", "rejected"]);
 const USER_LIST_DEFAULT_LIMIT = 50;
 const USER_LIST_MAX_LIMIT = 200;
+const STATION_MIN_CURRENT_A = 6;
+const STATION_MAX_CURRENT_A = 32;
 const runningSessionMonitor = new Map();
 let sessionWatchdogTimer = null;
 let sessionWatchdogRunning = false;
@@ -50,6 +56,12 @@ function parsePositiveInt(value) {
 function parseNonNegativeInt(value) {
   const n = Number(value);
   if (!Number.isInteger(n) || n < 0) return null;
+  return n;
+}
+
+function parseIntegerInRange(value, min, max) {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < min || n > max) return null;
   return n;
 }
 
@@ -312,9 +324,39 @@ function pickChargerStateLabel(workState, sw) {
   return `Estado: ${workState || "desconhecido"}`;
 }
 
-function getTariffPerKwh() {
-  const n = Number(process.env.PRICE_PER_KWH);
+function getEnvTariffPerKwh() {
+  const n = Number(config.priceFallback);
   return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function getEnvDefaultChargeCurrentA() {
+  const n = parseIntegerInRange(config.defaultChargeCurrentA, STATION_MIN_CURRENT_A, STATION_MAX_CURRENT_A);
+  return n ?? 32;
+}
+
+async function getSystemSettings() {
+  const rows = await systemSettingsRepo.getAll();
+  const valuesByKey = Object.fromEntries(rows.map((row) => [row.key, row.value]));
+
+  const pricePerKwh = toFiniteNumber(valuesByKey.price_per_kwh);
+  const defaultChargeCurrentA = parseIntegerInRange(
+    valuesByKey.default_charge_current_a,
+    STATION_MIN_CURRENT_A,
+    STATION_MAX_CURRENT_A
+  );
+
+  return {
+    price_per_kwh: pricePerKwh != null && pricePerKwh > 0 ? pricePerKwh : getEnvTariffPerKwh(),
+    default_charge_current_a: defaultChargeCurrentA ?? getEnvDefaultChargeCurrentA(),
+  };
+}
+
+async function getTariffPerKwh() {
+  return (await getSystemSettings()).price_per_kwh;
+}
+
+async function getDefaultChargeCurrentA() {
+  return (await getSystemSettings()).default_charge_current_a;
 }
 
 function isDatabaseUnavailableError(error) {
@@ -331,17 +373,32 @@ function isDatabaseUnavailableError(error) {
 }
 
 function signToken(payload) {
-  const secret = process.env.JWT_SECRET;
+  const secret = config.jwtSecret;
   if (!secret) throw new Error("JWT_SECRET nao configurado no .env");
-  return jwt.sign(payload, secret, { expiresIn: process.env.JWT_EXPIRES_IN || "7d" });
+  return jwt.sign(payload, secret, { expiresIn: config.jwtExpiresIn });
+}
+
+function getAuthCookieOptions() {
+  const options = {
+    httpOnly: true,
+    secure: config.cookie.secure,
+    sameSite: config.cookie.sameSite,
+    path: config.cookie.path,
+  };
+
+  if (config.cookie.domain) {
+    options.domain = config.cookie.domain;
+  }
+
+  return options;
 }
 
 function setAuthCookie(res, token) {
-  res.cookie("token", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: false,
-  });
+  res.cookie(config.cookie.name, token, getAuthCookieOptions());
+}
+
+function clearAuthCookie(res) {
+  res.clearCookie(config.cookie.name, getAuthCookieOptions());
 }
 
 function toAuthUser(user) {
@@ -360,10 +417,10 @@ function toAuthUser(user) {
 
 async function requireAuth(req, res, next) {
   try {
-    const token = req.cookies?.token;
+    const token = req.cookies?.[config.cookie.name];
     if (!token) return res.status(401).json({ success: false, message: "Nao autenticado." });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwtSecret);
     const userId = Number(decoded?.id);
     if (!Number.isFinite(userId) || userId <= 0) {
       return res.status(401).json({ success: false, message: "Token invalido." });
@@ -459,9 +516,26 @@ app.get("/health/db", async (req, res) => {
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("Servidor do Carregador rodando. Use /health para testar.");
-});
+if (!config.isProd) {
+  app.get("/api/debug/cookie-config", (_req, res) => {
+    return res.json({
+      cookieName: config.cookie.name,
+      secure: config.cookie.secure,
+      sameSite: config.cookie.sameSite,
+      domain: config.cookie.domain ?? null,
+      path: config.cookie.path,
+      nodeEnv: config.nodeEnv,
+    });
+  });
+}
+
+if (!hasFrontendDist) {
+  app.use(express.static(legacyPublicDir));
+
+  app.get("/", (req, res) => {
+    res.send("Servidor do Carregador rodando. Use /health para testar.");
+  });
+}
 
 app.post("/auth/register", async (req, res) => {
   try {
@@ -584,11 +658,11 @@ app.post("/auth/login", async (req, res) => {
 app.get("/auth/me", requireAuth, (req, res) => res.json({ success: true, user: toAuthUser(req.user) }));
 app.get("/api/me", requireAuth, (req, res) => res.json({ success: true, user: toAuthUser(req.user) }));
 app.post("/auth/logout", (req, res) => {
-  res.clearCookie("token");
+  clearAuthCookie(res);
   return res.json({ ok: true });
 });
 app.post("/api/logout", (req, res) => {
-  res.clearCookie("token");
+  clearAuthCookie(res);
   return res.json({ ok: true });
 });
 
@@ -704,19 +778,73 @@ app.get("/api/admin/stations", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+app.get("/api/admin/settings", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const settings = await getSystemSettings();
+    return res.json({ success: true, settings });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Erro ao carregar configuracoes", error: String(error.message || error) });
+  }
+});
+
+app.patch("/api/admin/settings", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const updates = {};
+
+    if (Object.prototype.hasOwnProperty.call(body, "price_per_kwh")) {
+      const pricePerKwh = toFiniteNumber(body.price_per_kwh);
+      if (pricePerKwh == null || pricePerKwh <= 0) {
+        return res.status(400).json({ success: false, message: "price_per_kwh deve ser numero maior que zero." });
+      }
+      updates.price_per_kwh = String(pricePerKwh);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "default_charge_current_a")) {
+      const current = parseIntegerInRange(body.default_charge_current_a, STATION_MIN_CURRENT_A, STATION_MAX_CURRENT_A);
+      if (current == null) {
+        return res.status(400).json({
+          success: false,
+          message: `default_charge_current_a deve ser inteiro entre ${STATION_MIN_CURRENT_A} e ${STATION_MAX_CURRENT_A}.`,
+        });
+      }
+      updates.default_charge_current_a = String(current);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: "Nenhuma configuracao valida enviada." });
+    }
+
+    await systemSettingsRepo.setMany(updates);
+    const settings = await getSystemSettings();
+    return res.json({ ok: true, success: true, settings });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Erro ao salvar configuracoes", error: String(error.message || error) });
+  }
+});
+
 app.post("/api/admin/stations", requireAuth, requireAdmin, async (req, res) => {
   try {
     const body = req.body || {};
     const name = String(body.name || "").trim();
     const tuyaDeviceId = String(body.tuya_device_id || "").trim();
     const locationLabel = body.location_label == null ? null : String(body.location_label).trim();
-    const maxCurrentA = body.max_current_a == null ? 32 : Number(body.max_current_a);
+    const defaultChargeCurrentA = await getDefaultChargeCurrentA();
+    const maxCurrentA = body.max_current_a == null
+      ? defaultChargeCurrentA
+      : parseIntegerInRange(body.max_current_a, STATION_MIN_CURRENT_A, STATION_MAX_CURRENT_A);
     const isActive = body.is_active !== false;
 
     if (!name) return res.status(400).json({ success: false, message: "name e obrigatorio." });
     if (!tuyaDeviceId) return res.status(400).json({ success: false, message: "tuya_device_id e obrigatorio." });
-    if (!Number.isInteger(maxCurrentA) || maxCurrentA <= 0) {
-      return res.status(400).json({ success: false, message: "max_current_a invalido." });
+    if (maxCurrentA == null) {
+      return res.status(400).json({
+        success: false,
+        message: `max_current_a invalido. Use inteiro entre ${STATION_MIN_CURRENT_A} e ${STATION_MAX_CURRENT_A}.`,
+      });
+    }
+    if (Object.prototype.hasOwnProperty.call(body, "is_active") && typeof body.is_active !== "boolean") {
+      return res.status(400).json({ success: false, message: "is_active deve ser boolean." });
     }
 
     const station = await stationsRepo.create({
@@ -758,9 +886,12 @@ app.patch("/api/admin/stations/:id", requireAuth, requireAdmin, async (req, res)
       }
     }
     if (Object.prototype.hasOwnProperty.call(body, "max_current_a")) {
-      const maxCurrentA = Number(body.max_current_a);
-      if (!Number.isInteger(maxCurrentA) || maxCurrentA <= 0) {
-        return res.status(400).json({ success: false, message: "max_current_a invalido." });
+      const maxCurrentA = parseIntegerInRange(body.max_current_a, STATION_MIN_CURRENT_A, STATION_MAX_CURRENT_A);
+      if (maxCurrentA == null) {
+        return res.status(400).json({
+          success: false,
+          message: `max_current_a invalido. Use inteiro entre ${STATION_MIN_CURRENT_A} e ${STATION_MAX_CURRENT_A}.`,
+        });
       }
       payload.max_current_a = maxCurrentA;
     }
@@ -1054,13 +1185,14 @@ async function finalizeSessionAsFailed(sessionId, message) {
 async function startSessionFlow({ userId, addressId, station }) {
   const statusBefore = await getDeviceStatus(station.tuya_device_id);
   const totalRawBefore = readDpNumber(statusBefore, "forward_energy_total");
+  const tariffPerKwh = await getTariffPerKwh();
 
   const session = await sessionsRepo.createRunning({
     user_id: userId,
     address_id: addressId,
     station_id: station.id,
     start_energy_total: scale2ToKwh(totalRawBefore),
-    tariff_per_kwh: getTariffPerKwh(),
+    tariff_per_kwh: tariffPerKwh,
   });
 
   try {
@@ -1226,7 +1358,7 @@ async function stopSessionFlow({ running, station }) {
   const energyKwh = energyOnce != null ? energyOnce : energyFromTotal;
   const energySource = energyOnce != null ? "once" : (energyFromTotal != null ? "total_delta" : null);
   const durationSeconds = calcElapsedSeconds(running.start_time);
-  const tariff = getTariffPerKwh();
+  const tariff = await getTariffPerKwh();
   const priceCalculated = energyKwh != null ? round2(energyKwh * tariff) : null;
   const needsReview = computeNeedsReview(energyOnce, energyFromTotal, energyKwh);
   const patch = {
@@ -1268,6 +1400,7 @@ async function stopSessionFlow({ running, station }) {
 async function buildLivePayload(stationId) {
   const station = await getStationForOperation(stationId, true);
   if (!station) return null;
+  const tariffPerKwh = await getTariffPerKwh();
 
   let status = null;
   let telemetryError = null;
@@ -1312,7 +1445,7 @@ async function buildLivePayload(stationId) {
       kwh_estimated: kwhEstimated != null ? round2(kwhEstimated) : null,
       session_energy_kwh: sessionEnergyKwh != null ? round2(sessionEnergyKwh) : null,
       session_energy_source: sessionEnergySource,
-      price_estimated: kwhEstimated != null ? round2(kwhEstimated * getTariffPerKwh()) : null,
+      price_estimated: kwhEstimated != null ? round2(kwhEstimated * tariffPerKwh) : null,
     };
   }
 
@@ -1495,7 +1628,7 @@ app.get("/tuya/status", requireAuth, requireAdmin, async (req, res) => {
       if (!station) return res.status(404).json({ success: false, message: "Estacao nao encontrada." });
       deviceId = station.tuya_device_id;
     } else {
-      deviceId = process.env.TUYA_DEVICE_ID || null;
+      deviceId = config.tuya.deviceId || null;
     }
 
     if (!deviceId) {
@@ -1964,17 +2097,14 @@ app.post("/api/admin/stop", requireAuth, requireAdmin, async (req, res) => {
 });
 
 if (hasFrontendDist) {
-  const sendFrontendIndex = (_, res) => {
-    return res.sendFile(frontendIndexPath);
-  };
+  app.use(express.static(frontendDistDir));
 
-  app.get("/", sendFrontendIndex);
-  app.get(/^\/(?:login|register|pending)\/?$/, sendFrontendIndex);
-  app.get(/^\/app(?:\/.*)?$/, sendFrontendIndex);
-  app.get(/^\/admin(?:\/(?:dashboard|history|users|settings))?\/?$/, sendFrontendIndex);
+  app.get(/^(?!\/(?:api|session|auth)(?:\/|$)).*/, (_, res) => {
+    return res.sendFile(frontendIndexPath);
+  });
 }
 
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
 app.listen(PORT, "0.0.0.0", () => {
   startSessionWatchdog();
   console.log(`Servidor rodando em http://localhost:${PORT}`);

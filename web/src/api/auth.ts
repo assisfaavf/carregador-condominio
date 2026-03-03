@@ -74,7 +74,7 @@ export async function register(input: RegisterInput): Promise<AuthUser> {
     tower: String(primary.tower || '').trim().toLowerCase(),
     apartment: String(primary.apartment || '').trim(),
     addresses: input.addresses.map((address, index) => ({
-      label: String(address.label || (index === 0 ? 'Principal' : `Endereco ${index + 1}`)).trim(),
+      label: String(address.label || (index === 0 ? 'Principal' : `Endereço ${index + 1}`)).trim(),
       tower: String(address.tower || '').trim().toLowerCase(),
       apartment: String(address.apartment || '').trim(),
     })),

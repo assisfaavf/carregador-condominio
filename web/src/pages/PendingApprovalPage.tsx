@@ -83,7 +83,7 @@ export default function PendingApprovalPage() {
         </div>
 
         <h1 className="mb-4 text-center font-display text-3xl font-bold tracking-tight">
-          Cadastro em <span className="text-primary">Analise</span>
+          Cadastro em <span className="text-primary">Análise</span>
         </h1>
 
         <p className="mb-4 text-center text-base text-slate-600 dark:text-slate-400">

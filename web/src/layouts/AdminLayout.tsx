@@ -35,13 +35,13 @@ export default function AdminLayout() {
               className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-slate-800 transition-colors hover:bg-primary/20 dark:text-slate-100"
               to="/app/home"
             >
-              Ver como usuario
+              Ver como usuário
             </Link>
             <Link
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               to="/app/home"
             >
-              Painel do usuario
+              Painel do usuário
             </Link>
           </div>
           <button

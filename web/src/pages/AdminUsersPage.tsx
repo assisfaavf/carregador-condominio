@@ -340,7 +340,7 @@ function AddressModal({
         <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#90cba4]">
-              Enderecos do usuario
+              Endereços do usuário
             </p>
             <h2 className="mt-1 text-2xl font-bold text-white">{state?.user.name || 'Carregando...'}</h2>
             <p className="mt-1 text-sm text-[#90cba4]">{state?.user.email || 'Consultando cadastro'}</p>
@@ -357,7 +357,7 @@ function AddressModal({
         <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
           {loading ? (
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-8 text-center text-sm text-slate-300">
-              Carregando enderecos...
+              Carregando endereços...
             </div>
           ) : null}
 
@@ -369,7 +369,7 @@ function AddressModal({
 
           {!loading && !errorMessage && state && state.addresses.length === 0 ? (
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-8 text-center text-sm text-slate-300">
-              Nenhum endereco cadastrado para este usuario.
+              Nenhum endereço cadastrado para este usuário.
             </div>
           ) : null}
 
@@ -377,8 +377,8 @@ function AddressModal({
             <section className="mb-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-base font-bold text-white">Novo endereco</h3>
-                  <p className="text-xs text-[#90cba4]">Abra o formulario apenas quando precisar adicionar.</p>
+                  <h3 className="text-base font-bold text-white">Novo endereço</h3>
+                  <p className="text-xs text-[#90cba4]">Abra o formulário apenas quando precisar adicionar.</p>
                 </div>
                 {isCreating ? (
                   <div className="flex gap-2">
@@ -396,7 +396,7 @@ function AddressModal({
                       onClick={onCreate}
                       type="button"
                     >
-                      {creating ? 'Salvando...' : 'Salvar endereco'}
+                      {creating ? 'Salvando...' : 'Salvar endereço'}
                     </button>
                   </div>
                 ) : (
@@ -405,7 +405,7 @@ function AddressModal({
                     onClick={onStartCreate}
                     type="button"
                   >
-                    Adicionar endereco
+                    Adicionar endereço
                   </button>
                 )}
               </div>
@@ -453,7 +453,7 @@ function AddressModal({
                       {details.length > 0 ? (
                         details.map((detail) => <p key={`${address.id}-${detail}`}>{detail}</p>)
                       ) : (
-                        <p>Endereco sem detalhes adicionais.</p>
+                        <p>Endereço sem detalhes adicionais.</p>
                       )}
                     </div>
 
@@ -672,7 +672,7 @@ export default function AdminUsersPage() {
     try {
       await loadAddressesForUser(user)
     } catch (error) {
-      setAddressError(getErrorMessage(error, 'Nao foi possivel carregar os enderecos.'))
+      setAddressError(getErrorMessage(error, 'Não foi possível carregar os endereços.'))
     } finally {
       setLoadingAddresses(false)
     }
@@ -688,12 +688,12 @@ export default function AdminUsersPage() {
         method: 'POST',
         body: sanitizeAddressDraft(createAddressDraft),
       })
-      setFeedbackMessage('Endereco adicionado.')
+      setFeedbackMessage('Endereço adicionado.')
       setCreateAddressDraft(EMPTY_ADDRESS_DRAFT)
       setIsCreatingAddress(false)
       await loadAddressesForUser(addressModal.user)
     } catch (error) {
-      setCreateAddressError(getErrorMessage(error, 'Nao foi possivel adicionar o endereco.'))
+      setCreateAddressError(getErrorMessage(error, 'Não foi possível adicionar o endereço.'))
     } finally {
       setCreatingAddress(false)
     }
@@ -711,11 +711,11 @@ export default function AdminUsersPage() {
           method: 'PATCH',
           body: sanitizeAddressDraft(draft),
         })
-        setFeedbackMessage('Endereco atualizado.')
+        setFeedbackMessage('Endereço atualizado.')
         setEditingAddressId(null)
         await loadAddressesForUser(addressModal.user)
       } catch (error) {
-        setAddressError(getErrorMessage(error, 'Nao foi possivel atualizar o endereco.'))
+        setAddressError(getErrorMessage(error, 'Não foi possível atualizar o endereço.'))
       } finally {
         setSavingAddressId(null)
       }
@@ -733,10 +733,10 @@ export default function AdminUsersPage() {
         await apiFetch<DeleteAddressResponse>(`/api/admin/addresses/${addressId}`, {
           method: 'DELETE',
         })
-        setFeedbackMessage('Endereco removido.')
+        setFeedbackMessage('Endereço removido.')
         await loadAddressesForUser(addressModal.user)
       } catch (error) {
-        setAddressError(getErrorMessage(error, 'Nao foi possivel remover o endereco.'))
+        setAddressError(getErrorMessage(error, 'Não foi possível remover o endereço.'))
       } finally {
         setDeletingAddressId(null)
       }
@@ -754,7 +754,7 @@ export default function AdminUsersPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#90cba4]">
-                  Gestao de usuarios
+                  Gestão de usuários
                 </p>
                 <h1 className="mt-2 text-3xl font-bold tracking-tight text-white md:text-4xl">
                   Aprovar, classificar e acompanhar acessos
@@ -770,7 +770,7 @@ export default function AdminUsersPage() {
                   <p className="mt-2 text-3xl font-bold text-white">{pendingCount}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Usuarios</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Usuários</p>
                   <p className="mt-2 text-3xl font-bold text-white">{total}</p>
                 </div>
               </div>
@@ -806,7 +806,7 @@ export default function AdminUsersPage() {
                 }}
                 type="button"
               >
-                Lista de usuarios
+                Lista de usuários
               </button>
             </div>
           </div>
@@ -828,7 +828,7 @@ export default function AdminUsersPage() {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-white">Aprovacoes pendentes</h2>
+                <h2 className="text-xl font-bold text-white">Aprovações pendentes</h2>
                 <p className="text-sm text-slate-400">Atalhos para as solicitacoes mais recentes.</p>
               </div>
               {filters.status !== 'pending' ? (
@@ -882,7 +882,7 @@ export default function AdminUsersPage() {
                         <p className="mt-2 font-semibold">{formatRole(user.role)}</p>
                       </div>
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Ultimo login</p>
+                        <p className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Último login</p>
                         <p className="mt-2 font-semibold">{formatDateTime(user.last_login_at)}</p>
                       </div>
                     </div>
@@ -898,7 +898,7 @@ export default function AdminUsersPage() {
                         className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={saving}
                         onClick={() => {
-                          void updateUser(user.id, { approval_status: 'rejected' }, 'Usuario reprovado.')
+                          void updateUser(user.id, { approval_status: 'rejected' }, 'Usuário reprovado.')
                         }}
                         type="button"
                       >
@@ -908,7 +908,7 @@ export default function AdminUsersPage() {
                         className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-background-dark transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={saving}
                         onClick={() => {
-                          void updateUser(user.id, { approval_status: 'approved' }, 'Usuario aprovado.')
+                          void updateUser(user.id, { approval_status: 'approved' }, 'Usuário aprovado.')
                         }}
                         type="button"
                       >
@@ -925,9 +925,9 @@ export default function AdminUsersPage() {
         <section className="rounded-[32px] border border-white/10 bg-surface-dark/95 p-5 shadow-[0_16px_60px_rgba(0,0,0,0.28)]">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-white">Lista de usuarios</h2>
+              <h2 className="text-xl font-bold text-white">Lista de usuários</h2>
               <p className="text-sm text-slate-400">
-                {loading ? 'Carregando usuarios...' : `Mostrando ${showingFrom}-${showingTo} de ${total}`}
+                {loading ? 'Carregando usuários...' : `Mostrando ${showingFrom}-${showingTo} de ${total}`}
               </p>
             </div>
 
@@ -994,7 +994,7 @@ export default function AdminUsersPage() {
                 <span>Email</span>
                 <span>Role</span>
                 <span>Status</span>
-                <span>Ultimo login</span>
+                <span>Último login</span>
                 <span>Acoes</span>
               </div>
 
@@ -1011,7 +1011,7 @@ export default function AdminUsersPage() {
 
               {!loading && users.length === 0 ? (
                 <div className="bg-[#112417] px-4 py-12 text-center text-sm text-slate-300">
-                  Nenhum usuario encontrado com os filtros atuais.
+                Nenhum usuário encontrado com os filtros atuais.
                 </div>
               ) : null}
 
@@ -1043,7 +1043,7 @@ export default function AdminUsersPage() {
                                 void updateUser(
                                   user.id,
                                   { role: event.target.value as UserRole },
-                                  'Perfil do usuario atualizado.',
+                                  'Perfil do usuário atualizado.',
                                 )
                               }}
                               value={user.role ?? 'morador'}
@@ -1068,7 +1068,7 @@ export default function AdminUsersPage() {
                               className="w-full rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-center text-xs font-semibold text-primary transition hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
                               disabled={saving || user.approval_status === 'approved'}
                               onClick={() => {
-                                void updateUser(user.id, { approval_status: 'approved' }, 'Usuario aprovado.')
+                                void updateUser(user.id, { approval_status: 'approved' }, 'Usuário aprovado.')
                               }}
                               type="button"
                             >
@@ -1078,7 +1078,7 @@ export default function AdminUsersPage() {
                               className="w-full rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-xs font-semibold text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                               disabled={saving || user.approval_status === 'rejected'}
                               onClick={() => {
-                                void updateUser(user.id, { approval_status: 'rejected' }, 'Usuario reprovado.')
+                                void updateUser(user.id, { approval_status: 'rejected' }, 'Usuário reprovado.')
                               }}
                               type="button"
                             >
@@ -1091,7 +1091,7 @@ export default function AdminUsersPage() {
                                 void updateUser(
                                   user.id,
                                   { is_admin: !user.is_admin },
-                                  user.is_admin ? 'Acesso de admin removido.' : 'Usuario promovido a admin.',
+                                  user.is_admin ? 'Acesso de admin removido.' : 'Usuário promovido a admin.',
                                 )
                               }}
                               type="button"
@@ -1105,7 +1105,7 @@ export default function AdminUsersPage() {
                               }}
                               type="button"
                             >
-                              Ver enderecos
+                              Ver endereços
                             </button>
                           </div>
                         </div>
@@ -1135,7 +1135,7 @@ export default function AdminUsersPage() {
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
             <p>
-              Pagina {currentPage} de {totalPages}
+              Página {currentPage} de {totalPages}
             </p>
             <div className="flex gap-2">
               <button
@@ -1162,7 +1162,7 @@ export default function AdminUsersPage() {
                 }}
                 type="button"
               >
-                Proxima
+                Próxima
               </button>
             </div>
           </div>
@@ -1187,7 +1187,7 @@ export default function AdminUsersPage() {
             <div className="flex h-7 items-center justify-center transition-transform group-active:scale-95">
               <span className="material-symbols-outlined text-[26px]">history</span>
             </div>
-            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Historico</p>
+            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Histórico</p>
           </Link>
           <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-primary" to="/admin/users">
             <div className="relative flex h-7 items-center justify-center transition-transform group-active:scale-95">
@@ -1198,7 +1198,7 @@ export default function AdminUsersPage() {
                 group
               </span>
             </div>
-            <p className="text-[10px] font-bold leading-normal tracking-[0.015em]">Usuarios</p>
+            <p className="text-[10px] font-bold leading-normal tracking-[0.015em]">Usuários</p>
           </Link>
           <Link
             className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200"
@@ -1207,7 +1207,7 @@ export default function AdminUsersPage() {
             <div className="flex h-7 items-center justify-center transition-transform group-active:scale-95">
               <span className="material-symbols-outlined text-[26px]">settings</span>
             </div>
-            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Configuracoes</p>
+            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Configurações</p>
           </Link>
         </div>
       </nav>

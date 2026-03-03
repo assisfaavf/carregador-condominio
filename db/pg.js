@@ -1,6 +1,7 @@
 const { Pool } = require("pg");
+const config = require("../config");
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = config.dbUrl;
 if (!connectionString) {
   throw new Error("DATABASE_URL não definido. Configure no .env antes de iniciar o servidor.");
 }

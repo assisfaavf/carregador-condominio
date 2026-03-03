@@ -118,7 +118,7 @@ function sessionBadge(status: string | null) {
   if (status === 'done') return ['Concluida', 'bg-green-500/10 text-green-400', 'ev_station'] as const
   if (status === 'running') return ['Running', 'bg-blue-500/10 text-blue-300', 'bolt'] as const
   if (status === 'failed') return ['Falha', 'bg-red-500/10 text-red-400', 'error'] as const
-  return [status || 'Sessao', 'bg-slate-500/10 text-slate-300', 'history'] as const
+  return [status || 'Sessão', 'bg-slate-500/10 text-slate-300', 'history'] as const
 }
 
 export default function AdminHistoryPage() {
@@ -301,8 +301,8 @@ export default function AdminHistoryPage() {
         <section className="space-y-4">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Historico Global</h1>
-              <p className="text-sm text-slate-500 dark:text-text-secondary">Sessoes recentes com ajuste rapido de pagamento e valor.</p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Histórico Global</h1>
+              <p className="text-sm text-slate-500 dark:text-text-secondary">Sessões recentes com ajuste rápido de pagamento e valor.</p>
             </div>
             <div className="text-xs text-slate-500 dark:text-text-secondary">Carregadas: {sessions.length}</div>
           </div>
@@ -310,11 +310,11 @@ export default function AdminHistoryPage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-white/5 dark:bg-surface-dark">
             <div className="flex h-12 items-center rounded-xl bg-slate-100 px-4 focus-within:ring-2 focus-within:ring-primary/50 dark:bg-background-dark">
               <span className="material-symbols-outlined text-slate-500 dark:text-text-secondary">search</span>
-              <input className="flex-1 border-none bg-transparent px-3 text-sm font-medium outline-none placeholder:text-slate-500 dark:text-white" onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por usuario, estacao ou unidade" value={search} />
+              <input className="flex-1 border-none bg-transparent px-3 text-sm font-medium outline-none placeholder:text-slate-500 dark:text-white" onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por usuário, estação ou unidade" value={search} />
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <select className="h-11 rounded-full bg-slate-100 px-4 text-sm font-medium outline-none dark:bg-background-dark dark:text-white" onChange={(event) => setStationId(event.target.value)} value={stationId}>
-                <option value="">Todas as estacoes</option>
+                <option value="">Todas as estações</option>
                 {stations.map((station) => <option key={station.id} value={String(station.id)}>{station.name}</option>)}
               </select>
               <select className="h-11 rounded-full bg-slate-100 px-4 text-sm font-medium outline-none dark:bg-background-dark dark:text-white" onChange={(event) => setPaymentStatus(event.target.value)} value={paymentStatus}>
@@ -327,7 +327,7 @@ export default function AdminHistoryPage() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Sessoes visiveis</p><p className="mt-2 text-2xl font-bold">{visibleSessions.length}</p></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Sessões visíveis</p><p className="mt-2 text-2xl font-bold">{visibleSessions.length}</p></div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Energia</p><p className="mt-2 text-2xl font-bold text-primary">{formatKwh(summary.energy)}</p></div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Valor exibido</p><p className="mt-2 text-2xl font-bold">{formatMoney(summary.value)}</p></div>
           </div>
@@ -335,7 +335,7 @@ export default function AdminHistoryPage() {
 
         {loadingInitial ? <section className="space-y-4">{[1, 2, 3].map((item) => <div className="animate-pulse rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/5 dark:bg-surface-dark" key={item}><div className="h-5 w-1/3 rounded bg-slate-200 dark:bg-white/10" /><div className="mt-4 grid gap-3 md:grid-cols-4">{[1, 2, 3, 4].map((cell) => <div className="h-16 rounded-xl bg-slate-100 dark:bg-white/5" key={cell} />)}</div></div>)}</section> : null}
 
-        {!loadingInitial && !errorMessage && visibleSessions.length === 0 ? <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-base font-semibold">Nenhuma sessao encontrada</p><p className="mt-1 text-sm text-slate-500 dark:text-text-secondary">Ajuste os filtros ou carregue mais sessoes.</p></section> : null}
+        {!loadingInitial && !errorMessage && visibleSessions.length === 0 ? <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-base font-semibold">Nenhuma sessão encontrada</p><p className="mt-1 text-sm text-slate-500 dark:text-text-secondary">Ajuste os filtros ou carregue mais sessões.</p></section> : null}
 
         {visibleSessions.length > 0 ? (
           <section className="space-y-4">
@@ -349,8 +349,8 @@ export default function AdminHistoryPage() {
                     <div className="flex items-center gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/15 text-primary"><span className="material-symbols-outlined">{statusIcon}</span></div>
                       <div>
-                        <h3 className="text-base font-bold">{session.station_name ?? `Estacao #${session.station_id ?? session.id}`}</h3>
-                        <p className="text-xs text-slate-500 dark:text-text-secondary">Sessao #{session.id}{session.address_label ? ` • ${session.address_label}` : ''}</p>
+                        <h3 className="text-base font-bold">{session.station_name ?? `Estação #${session.station_id ?? session.id}`}</h3>
+                        <p className="text-xs text-slate-500 dark:text-text-secondary">Sessão #{session.id}{session.address_label ? ` • ${session.address_label}` : ''}</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -362,8 +362,8 @@ export default function AdminHistoryPage() {
 
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Data/hora</p><p className="mt-2 text-sm font-semibold">{formatDateTime(session.start_time)}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">Duracao: {formatDuration(session.duration_seconds)}</p></div>
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Usuario</p><p className="mt-2 text-sm font-semibold">{displayText(session.user_name)}</p>{session.user_email && session.user_email.trim() ? <p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.user_email}</p> : null}</div>
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Estacao</p><p className="mt-2 text-sm font-semibold">{session.station_name ?? 'Sem estacao'}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.address_label ?? 'Unidade nao informada'}</p></div>
+                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Usuário</p><p className="mt-2 text-sm font-semibold">{displayText(session.user_name)}</p>{session.user_email && session.user_email.trim() ? <p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.user_email}</p> : null}</div>
+                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Estação</p><p className="mt-2 text-sm font-semibold">{session.station_name ?? 'Sem estação'}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.address_label ?? 'Unidade não informada'}</p></div>
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Energia</p><p className="mt-2 text-sm font-semibold">{formatKwh(session.energy_kwh)}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">Tarifa: {formatMoney(session.tariff_per_kwh)}</p></div>
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Valor</p><p className="mt-2 text-sm font-semibold">{formatMoney(effectivePrice(session))}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.price_override != null ? 'Usando ajuste manual' : 'Usando valor calculado'}</p></div>
                   </div>
@@ -390,9 +390,9 @@ export default function AdminHistoryPage() {
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-secondary bg-surface-dark px-4 pb-6 pt-3">
         <div className="mx-auto flex w-full max-w-6xl justify-between items-end">
           <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200" to="/admin/dashboard"><div className="flex h-7 items-center justify-center transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]">monitoring</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Dashboard</p></Link>
-          <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-primary" to="/admin/history"><div className="flex h-7 items-center justify-center rounded-2xl bg-primary/20 px-4 transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>history</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Historico</p></Link>
-          <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200" to="/admin/users"><div className="flex h-7 items-center justify-center transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]">group</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Usuarios</p></Link>
-          <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200" to="/admin/settings"><div className="flex h-7 items-center justify-center transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]">settings</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Configuracoes</p></Link>
+          <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-primary" to="/admin/history"><div className="flex h-7 items-center justify-center rounded-2xl bg-primary/20 px-4 transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>history</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Histórico</p></Link>
+          <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200" to="/admin/users"><div className="flex h-7 items-center justify-center transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]">group</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Usuários</p></Link>
+          <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200" to="/admin/settings"><div className="flex h-7 items-center justify-center transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]">settings</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Configurações</p></Link>
         </div>
       </nav>
     </div>

@@ -78,20 +78,20 @@ export default function RegisterPage() {
     try {
       const normalizedCpf = sanitizeCpf(cpf)
       if (normalizedCpf.length !== 11) {
-        throw new Error('CPF invalido. Informe 11 numeros.')
+        throw new Error('CPF inválido. Informe 11 números.')
       }
       if (password.length < 8) {
-        throw new Error('Senha deve ter no minimo 8 caracteres.')
+        throw new Error('Senha deve ter no mínimo 8 caracteres.')
       }
 
       const payloadAddresses = visibleAddresses.map((address, index) => ({
-        label: index === 0 ? 'Principal' : `Endereco ${index + 1}`,
+        label: index === 0 ? 'Principal' : `Endereço ${index + 1}`,
         tower: address.tower,
         apartment: address.apartment.trim(),
       }))
 
       if (payloadAddresses.some((address) => !address.apartment)) {
-        throw new Error('Preencha apartamento em todos os enderecos.')
+        throw new Error('Preencha apartamento em todos os endereços.')
       }
 
       await register({
@@ -214,7 +214,7 @@ export default function RegisterPage() {
 
           <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-100 p-4 dark:border-[#316843] dark:bg-[#183422]">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-[#90cba4]">Enderecos</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[#90cba4]">Endereços</h2>
               {role === 'morador' ? (
                 <button
                   className="rounded-lg border border-primary/50 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/10"
@@ -233,7 +233,7 @@ export default function RegisterPage() {
               >
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">
-                    {index === 0 ? 'Endereco principal' : `Endereco ${index + 1}`}
+                    {index === 0 ? 'Endereço principal' : `Endereço ${index + 1}`}
                   </p>
                   {role === 'morador' && visibleAddresses.length > 1 ? (
                     <button
