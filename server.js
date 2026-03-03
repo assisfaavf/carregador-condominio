@@ -1,11 +1,17 @@
 require("dotenv").config();
 
+const { randomUUID } = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const compression = require("compression");
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const rateLimit = require("express-rate-limit");
+const pino = require("pino");
+const pinoHttp = require("pino-http");
 const config = require("./config");
 
 const { getDeviceStatus, sendCommands } = require("./tuya_api");
@@ -17,16 +23,196 @@ const sessionsRepo = require("./repositories/sessionsRepo");
 const systemSettingsRepo = require("./repositories/systemSettingsRepo");
 
 const app = express();
+const appLogger = pino({
+  level: config.isProd ? "info" : "debug",
+});
+
 if (config.isProd) {
   app.set("trust proxy", 1);
 }
+app.disable("x-powered-by");
 const legacyPublicDir = path.join(__dirname, "public");
 const frontendDistDir = path.join(__dirname, "web", "dist");
 const frontendIndexPath = path.join(frontendDistDir, "index.html");
 const hasFrontendDist = fs.existsSync(frontendIndexPath);
 
+function extractStationId(req) {
+  const candidates = [
+    req.params?.station_id,
+    req.query?.station_id,
+    req.body?.station_id,
+  ];
+
+  for (const value of candidates) {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) return parsed;
+  }
+
+  return null;
+}
+
+function extractSessionId(req) {
+  const candidates = [
+    req.params?.session_id,
+    req.query?.session_id,
+    req.body?.session_id,
+    req.body?.sessionId,
+  ];
+
+  for (const value of candidates) {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) return parsed;
+  }
+
+  return null;
+}
+
+function buildRequestLogContext(req) {
+  return {
+    method: req.method,
+    route: req.originalUrl || req.url,
+    user_id: req.user?.id ?? null,
+    station_id: extractStationId(req),
+    session_id: extractSessionId(req),
+  };
+}
+
+function createRateLimiter({ windowMs, max, message }) {
+  return rateLimit({
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+      const resetTime = req.rateLimit?.resetTime instanceof Date
+        ? req.rateLimit.resetTime.getTime()
+        : Date.now() + windowMs;
+      const retryAfterSeconds = Math.max(1, Math.ceil((resetTime - Date.now()) / 1000));
+
+      return res.status(429).json({
+        ok: false,
+        success: false,
+        error: message,
+        retry_after_seconds: retryAfterSeconds,
+      });
+    },
+  });
+}
+
+function buildErrorPayload(statusCode, publicMessage, error, extra = {}) {
+  const fallbackMessage = statusCode >= 500
+    ? "Erro interno do servidor."
+    : "Requisicao invalida.";
+  const errorMessage = publicMessage || fallbackMessage;
+  const payload = {
+    ok: false,
+    success: false,
+    error: errorMessage,
+    ...extra,
+  };
+
+  if (publicMessage) {
+    payload.message = publicMessage;
+  }
+
+  if (!config.isProd && error) {
+    payload.details = String(error.message || error);
+    if (error.stack) {
+      payload.stack = error.stack;
+    }
+  }
+
+  return payload;
+}
+
+function sendErrorResponse(res, statusCode, publicMessage, error, extra = {}) {
+  if (error) {
+    res.err = error;
+  }
+
+  return res.status(statusCode).json(buildErrorPayload(statusCode, publicMessage, error, extra));
+}
+
+const apiRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: "Limite de requisicoes excedido. Tente novamente em alguns minutos.",
+});
+
+const authRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: "Muitas tentativas neste endpoint sensivel. Aguarde antes de tentar novamente.",
+});
+
+app.use(pinoHttp({
+  logger: appLogger,
+  genReqId: (req, res) => {
+    const headerId = String(req.headers["x-request-id"] || "").trim();
+    const requestId = headerId || randomUUID();
+    res.setHeader("x-request-id", requestId);
+    return requestId;
+  },
+  customLogLevel: (_req, res, err) => {
+    if (err || res.statusCode >= 500) return "error";
+    if (res.statusCode >= 400) return "warn";
+    return "info";
+  },
+  customSuccessMessage: (req, res) => `${req.method} ${req.originalUrl || req.url} ${res.statusCode}`,
+  customErrorMessage: (req, res, err) => `${req.method} ${req.originalUrl || req.url} ${res.statusCode} - ${err.message}`,
+  customProps: (req) => buildRequestLogContext(req),
+  serializers: {
+    req: (req) => ({
+      id: req.id,
+      method: req.method,
+      url: req.originalUrl || req.url,
+      remoteAddress: req.ip || req.socket?.remoteAddress || null,
+      userAgent: req.headers["user-agent"] || null,
+    }),
+    res: (res) => ({
+      statusCode: res.statusCode,
+    }),
+    err: (err) => ({
+      type: err.name,
+      message: err.message,
+      stack: config.isProd ? undefined : err.stack,
+    }),
+  },
+  customSuccessObject: (req, res, val) => ({
+    ...val,
+    ...buildRequestLogContext(req),
+    status: res.statusCode,
+  }),
+  customErrorObject: (req, res, err, val) => ({
+    ...val,
+    ...buildRequestLogContext(req),
+    status: res.statusCode,
+    err: {
+      type: err.name,
+      message: err.message,
+      stack: config.isProd ? undefined : err.stack,
+    },
+  }),
+}));
+app.use(helmet({
+  contentSecurityPolicy: hasFrontendDist ? undefined : false,
+}));
+app.use(compression());
 app.use(express.json());
 app.use(cookieParser());
+app.use("/api", apiRateLimiter);
+app.use("/session", apiRateLimiter);
+app.use(
+  [
+    "/auth/login",
+    "/auth/register",
+    "/api/login",
+    "/api/register",
+    "/admin/session/start",
+    "/api/admin/start",
+  ],
+  authRateLimiter
+);
 
 const SESSION_WATCHDOG_INTERVAL_MS = 5000;
 const AUTO_END_ZERO_POWER_THRESHOLD_KW = 0.1;
@@ -401,6 +587,10 @@ function clearAuthCookie(res) {
   res.clearCookie(config.cookie.name, getAuthCookieOptions());
 }
 
+function hasTuyaCredentials() {
+  return Boolean(config.tuya.clientId && config.tuya.clientSecret && config.tuya.endpoint);
+}
+
 function toAuthUser(user) {
   if (!user) return null;
   return {
@@ -430,6 +620,7 @@ async function requireAuth(req, res, next) {
     if (!user) return res.status(401).json({ success: false, message: "Usuario nao encontrado." });
 
     req.user = user;
+    res.locals.userId = user.id;
     return next();
   } catch (_error) {
     return res.status(401).json({ success: false, message: "Token invalido ou expirado." });
@@ -498,7 +689,7 @@ async function getStationForOperation(stationId, requireActive = true) {
   return station;
 }
 
-app.get("/health", (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+app.get("/health", (_req, res) => res.json({ ok: true }));
 
 app.get("/health/db", async (req, res) => {
   try {
@@ -506,14 +697,28 @@ app.get("/health/db", async (req, res) => {
     return res.status(200).json({ ok: true, db: "postgres" });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
-      return res.status(503).json({
-        ok: false,
-        error: "Postgres indisponivel",
-        message: "Nao foi possivel conectar ao banco. Verifique DATABASE_URL e se o Postgres esta ativo.",
-      });
+      return sendErrorResponse(
+        res,
+        503,
+        "Postgres indisponivel",
+        error,
+        { db: "postgres" }
+      );
     }
-    return res.status(500).json({ ok: false, error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Falha no health check do banco", error, { db: "postgres" });
   }
+});
+
+app.get("/health/tuya", (_req, res) => {
+  if (!hasTuyaCredentials()) {
+    return sendErrorResponse(res, 503, "Tuya nao configurado");
+  }
+
+  return res.status(200).json({
+    ok: true,
+    tuya: "configured",
+    device_id_configured: Boolean(config.tuya.deviceId),
+  });
 });
 
 if (!config.isProd) {
@@ -611,7 +816,7 @@ app.post("/auth/register", async (req, res) => {
     if (error?.code === "DUPLICATE_EMAIL") {
       return res.status(409).json({ success: false, message: "Email ja cadastrado" });
     }
-    return res.status(500).json({ success: false, message: "Erro ao cadastrar usuario.", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao cadastrar usuario.", error);
   }
 });
 
@@ -646,12 +851,14 @@ app.post("/auth/login", async (req, res) => {
     });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
-      return res.status(503).json({
-        success: false,
-        message: "Banco de dados indisponivel. Verifique o Postgres e a DATABASE_URL.",
-      });
+      return sendErrorResponse(
+        res,
+        503,
+        "Banco de dados indisponivel. Verifique o Postgres e a DATABASE_URL.",
+        error
+      );
     }
-    return res.status(500).json({ success: false, message: "Erro no login", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro no login", error);
   }
 });
 
@@ -671,7 +878,7 @@ app.get("/api/my/addresses", requireAuth, async (req, res) => {
     const addresses = await ensureUserHasAddresses(req.user);
     return res.json({ success: true, addresses });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao listar enderecos", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao listar enderecos", error);
   }
 });
 
@@ -695,7 +902,7 @@ app.post("/api/my/addresses", requireAuth, async (req, res) => {
 
     return res.status(201).json({ success: true, address });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao criar endereco", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao criar endereco", error);
   }
 });
 
@@ -725,7 +932,7 @@ app.patch("/api/my/addresses/:id", requireAuth, async (req, res) => {
     if (!updated) return res.status(404).json({ success: false, message: "Endereco nao encontrado." });
     return res.json({ success: true, address: updated });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao atualizar endereco", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao atualizar endereco", error);
   }
 });
 
@@ -738,7 +945,7 @@ app.delete("/api/my/addresses/:id", requireAuth, async (req, res) => {
     if (!deleted) return res.status(404).json({ success: false, message: "Endereco nao encontrado." });
     return res.json({ success: true });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao remover endereco", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao remover endereco", error);
   }
 });
 
@@ -755,7 +962,7 @@ app.get("/api/stations", requireAuth, async (req, res) => {
       })),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao listar estacoes", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao listar estacoes", error);
   }
 });
 
@@ -774,7 +981,7 @@ app.get("/api/admin/stations", requireAuth, requireAdmin, async (req, res) => {
       })),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao listar estacoes", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao listar estacoes", error);
   }
 });
 
@@ -783,7 +990,7 @@ app.get("/api/admin/settings", requireAuth, requireAdmin, async (req, res) => {
     const settings = await getSystemSettings();
     return res.json({ success: true, settings });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao carregar configuracoes", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao carregar configuracoes", error);
   }
 });
 
@@ -819,7 +1026,7 @@ app.patch("/api/admin/settings", requireAuth, requireAdmin, async (req, res) => 
     const settings = await getSystemSettings();
     return res.json({ ok: true, success: true, settings });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao salvar configuracoes", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao salvar configuracoes", error);
   }
 });
 
@@ -860,7 +1067,7 @@ app.post("/api/admin/stations", requireAuth, requireAdmin, async (req, res) => {
     if (error?.code === "DUPLICATE_TUYA_DEVICE") {
       return res.status(409).json({ success: false, message: "tuya_device_id ja cadastrado." });
     }
-    return res.status(500).json({ success: false, message: "Erro ao criar estacao", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao criar estacao", error);
   }
 });
 
@@ -912,7 +1119,7 @@ app.patch("/api/admin/stations/:id", requireAuth, requireAdmin, async (req, res)
     if (error?.code === "DUPLICATE_TUYA_DEVICE") {
       return res.status(409).json({ success: false, message: "tuya_device_id ja cadastrado." });
     }
-    return res.status(500).json({ success: false, message: "Erro ao atualizar estacao", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao atualizar estacao", error);
   }
 });
 
@@ -954,7 +1161,7 @@ app.get("/api/admin/users", requireAuth, requireAdmin, async (req, res) => {
       offset,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao listar usuarios", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao listar usuarios", error);
   }
 });
 
@@ -1015,7 +1222,7 @@ app.patch("/api/admin/users/:id", requireAuth, requireAdmin, async (req, res) =>
       },
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao atualizar usuario", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao atualizar usuario", error);
   }
 });
 
@@ -1033,7 +1240,7 @@ app.get("/api/admin/users/:id/addresses", requireAuth, requireAdmin, async (req,
       addresses,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao listar enderecos do usuario", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao listar enderecos do usuario", error);
   }
 });
 
@@ -1051,7 +1258,7 @@ app.post("/api/admin/users/:id/addresses", requireAuth, requireAdmin, async (req
     const address = await addressesRepo.createForUser(userId, payload);
     return res.status(201).json({ success: true, address });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao criar endereco do usuario", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao criar endereco do usuario", error);
   }
 });
 
@@ -1068,7 +1275,7 @@ app.patch("/api/admin/addresses/:id", requireAuth, requireAdmin, async (req, res
 
     return res.json({ success: true, address });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao atualizar endereco", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao atualizar endereco", error);
   }
 });
 
@@ -1082,7 +1289,7 @@ app.delete("/api/admin/addresses/:id", requireAuth, requireAdmin, async (req, re
 
     return res.json({ success: true });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao remover endereco", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao remover endereco", error);
   }
 });
 
@@ -1504,43 +1711,48 @@ async function runSessionWatchdogTick() {
     for (const session of runningSessions) {
       activeIds.add(session.id);
 
-      const station = session.station || await stationsRepo.getById(session.station_id);
-      if (!station?.tuya_device_id) {
-        runningSessionMonitor.delete(session.id);
-        continue;
-      }
-
-      let status;
       try {
-        status = await getDeviceStatus(station.tuya_device_id);
-      } catch (error) {
-        console.warn(`[watchdog] Falha ao consultar status da estacao ${station.id}: ${String(error.message || error)}`);
-        continue;
-      }
+        const station = session.station || await stationsRepo.getById(session.station_id);
+        if (!station?.tuya_device_id) {
+          runningSessionMonitor.delete(session.id);
+          continue;
+        }
 
-      const monitorState = runningSessionMonitor.get(session.id) || { zeroPowerCount: 0 };
-      const detection = didChargingEnd(status, monitorState, session);
+        const status = await getDeviceStatus(station.tuya_device_id);
+        const monitorState = runningSessionMonitor.get(session.id) || { zeroPowerCount: 0 };
+        const detection = didChargingEnd(status, monitorState, session);
 
-      if (!detection.ended) {
-        runningSessionMonitor.set(session.id, { zeroPowerCount: detection.zeroPowerCount });
-        continue;
-      }
+        if (!detection.ended) {
+          runningSessionMonitor.set(session.id, { zeroPowerCount: detection.zeroPowerCount });
+          continue;
+        }
 
-      const latestRunning = await sessionsRepo.getRunningByStation(session.station_id);
-      if (!latestRunning || latestRunning.id !== session.id) {
+        const latestRunning = await sessionsRepo.getRunningByStation(session.station_id);
+        if (!latestRunning || latestRunning.id !== session.id) {
+          runningSessionMonitor.delete(session.id);
+          continue;
+        }
+
+        const autoEndNote = `auto-ended: car reached full / charger reported finished (${detection.reason})`;
+        const finalized = await stopSessionFlow({
+          running: { ...latestRunning, auto_end_note: autoEndNote },
+          station,
+        });
+
         runningSessionMonitor.delete(session.id);
+        if (finalized) {
+          appLogger.info({
+            session_id: session.id,
+            station_id: station.id,
+          }, "[watchdog] Sessao finalizada automaticamente.");
+        }
+      } catch (error) {
+        appLogger.warn({
+          err: error,
+          session_id: session.id,
+          station_id: session.station_id,
+        }, "[watchdog] Falha ao processar sessao.");
         continue;
-      }
-
-      const autoEndNote = `auto-ended: car reached full / charger reported finished (${detection.reason})`;
-      const finalized = await stopSessionFlow({
-        running: { ...latestRunning, auto_end_note: autoEndNote },
-        station,
-      });
-
-      runningSessionMonitor.delete(session.id);
-      if (finalized) {
-        console.log(`[watchdog] Sessao ${session.id} finalizada automaticamente na estacao ${station.id}.`);
       }
     }
 
@@ -1550,7 +1762,7 @@ async function runSessionWatchdogTick() {
       }
     }
   } catch (error) {
-    console.error(`[watchdog] Erro no monitor de sessoes: ${String(error.message || error)}`);
+    appLogger.error({ err: error }, "[watchdog] Erro no monitor de sessoes.");
   } finally {
     sessionWatchdogRunning = false;
   }
@@ -1638,7 +1850,7 @@ app.get("/tuya/status", requireAuth, requireAdmin, async (req, res) => {
     const data = await getDeviceStatus(deviceId);
     return res.json({ success: true, station_id: stationId || null, data });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Falha ao consultar Tuya", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Falha ao consultar Tuya", error);
   }
 });
 
@@ -1651,7 +1863,7 @@ app.get("/api/live", requireAuth, async (req, res) => {
     if (!payload) return res.status(404).json({ success: false, message: "Estacao nao encontrada ou inativa." });
     return res.json(payload);
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao consultar dados ao vivo", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao consultar dados ao vivo", error);
   }
 });
 
@@ -1664,7 +1876,7 @@ app.get("/api/admin/live", requireAuth, requireAdmin, async (req, res) => {
     if (!payload) return res.status(404).json({ success: false, message: "Estacao nao encontrada ou inativa." });
     return res.json(payload);
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao consultar dados ao vivo", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao consultar dados ao vivo", error);
   }
 });
 
@@ -1692,7 +1904,7 @@ app.get("/api/session/current", requireAuth, async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao consultar sessao atual", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao consultar sessao atual", error);
   }
 });
 
@@ -1716,7 +1928,7 @@ app.get("/api/admin/current-sessions", requireAuth, requireAdmin, async (req, re
       })),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao listar sessoes em andamento", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao listar sessoes em andamento", error);
   }
 });
 
@@ -1806,7 +2018,7 @@ async function handleMySessions(req, res, defaultLimit = 20) {
       sessions: sessions.map(mapUserSessionForUi),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao buscar historico", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao buscar historico", error);
   }
 }
 
@@ -1848,7 +2060,7 @@ app.get("/api/admin/sessions", requireAuth, requireAdmin, async (req, res) => {
       sessions: sessions.map(mapAdminSessionForUi),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao listar sessoes", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao listar sessoes", error);
   }
 });
 
@@ -1915,7 +2127,7 @@ app.patch("/api/admin/sessions/:id", requireAuth, requireAdmin, async (req, res)
       session: sessionWithRelations ? mapAdminSessionForUi(sessionWithRelations) : mapAdminSessionForUi(updated),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao atualizar sessao", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao atualizar sessao", error);
   }
 });
 
@@ -1934,7 +2146,7 @@ app.get("/sessions", requireAuth, requireAdmin, async (req, res) => {
     });
     return res.json({ success: true, sessions });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao listar sessoes", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao listar sessoes", error);
   }
 });
 
@@ -1952,7 +2164,7 @@ app.get("/admin/running-sessions", requireAuth, requireAdmin, async (req, res) =
       })),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao listar sessoes running", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao listar sessoes running", error);
   }
 });
 
@@ -1975,7 +2187,7 @@ app.post("/admin/force-close-running", requireAuth, requireAdmin, async (req, re
     );
     return res.json({ success: true, closed: rows.length, session_ids: rows.map((row) => row.id) });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao forcar encerramento", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao forcar encerramento", error);
   }
 });
 
@@ -1998,7 +2210,7 @@ app.post("/admin/set-paid", requireAuth, requireAdmin, async (req, res) => {
     if (!updated) return res.status(404).json({ success: false, message: "Sessao nao encontrada." });
     return res.json({ success: true, session: updated });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao atualizar pagamento", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao atualizar pagamento", error);
   }
 });
 
@@ -2034,7 +2246,7 @@ app.post("/session/start", requireAuth, async (req, res) => {
     if (!started.success) return res.status(started.statusCode).json(started.body);
     return res.json(started.body);
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao iniciar a sessao", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao iniciar a sessao", error);
   }
 });
 
@@ -2043,7 +2255,7 @@ app.post("/admin/session/start", requireAuth, requireAdmin, async (req, res) => 
     const result = await startSessionAsAdmin(req.body);
     return res.status(result.statusCode).json(result.body);
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao iniciar (admin)", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao iniciar (admin)", error);
   }
 });
 
@@ -2052,7 +2264,7 @@ app.post("/api/admin/start", requireAuth, requireAdmin, async (req, res) => {
     const result = await startSessionAsAdmin(req.body);
     return res.status(result.statusCode).json(result.body);
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao iniciar (admin)", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao iniciar (admin)", error);
   }
 });
 
@@ -2074,7 +2286,7 @@ app.post("/session/stop", requireAuth, async (req, res) => {
     if (!finalized) return res.status(409).json({ success: false, message: "A sessao ja foi finalizada." });
     return res.json({ success: true, message: "Sessao finalizada.", ...finalized });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao finalizar sessao", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao finalizar sessao", error);
   }
 });
 
@@ -2083,7 +2295,7 @@ app.post("/admin/session/stop", requireAuth, requireAdmin, async (req, res) => {
     const result = await stopSessionAsAdmin(req.body);
     return res.status(result.statusCode).json(result.body);
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao parar (admin)", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao parar (admin)", error);
   }
 });
 
@@ -2092,7 +2304,7 @@ app.post("/api/admin/stop", requireAuth, requireAdmin, async (req, res) => {
     const result = await stopSessionAsAdmin(req.body);
     return res.status(result.statusCode).json(result.body);
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Erro ao parar (admin)", error: String(error.message || error) });
+    return sendErrorResponse(res, 500, "Erro ao parar (admin)", error);
   }
 });
 
@@ -2104,8 +2316,25 @@ if (hasFrontendDist) {
   });
 }
 
+app.use((error, req, res, next) => {
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+  const publicMessage = error?.publicMessage
+    || (statusCode < 500 ? error?.message : "Erro interno do servidor.");
+
+  return sendErrorResponse(
+    res,
+    statusCode,
+    publicMessage,
+    error
+  );
+});
+
 const PORT = config.port;
 app.listen(PORT, "0.0.0.0", () => {
   startSessionWatchdog();
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+  appLogger.info({ port: PORT }, `Servidor rodando em http://localhost:${PORT}`);
 });

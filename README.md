@@ -1,48 +1,72 @@
 # carregador-condominio
 
-## Postgres e migrações
+Backend Express + frontend React/Vite para operacao de carregadores do condominio.
 
-Subir o Postgres:
+## Requisitos
+
+- Node.js 20+ recomendado
+- PostgreSQL acessivel pela `DATABASE_URL`
+- Docker opcional para subir o Postgres local com `docker compose`
+
+## Variaveis de ambiente
+
+Base:
+
+- `PORT`: porta HTTP do backend. Default: `3000`
+- `NODE_ENV`: `development` ou `production`
+- `DATABASE_URL`: conexao do PostgreSQL
+- `JWT_SECRET`: segredo para assinar o cookie de autenticacao
+- `JWT_EXPIRES_IN`: expiracao do JWT. Default: `7d`
+
+Cookies/autenticacao:
+
+- `COOKIE_NAME`: nome do cookie. Default: `token`
+- `COOKIE_SECURE`: use `true` em producao com HTTPS
+- `COOKIE_SAMESITE`: `lax`, `strict` ou `none`
+- `COOKIE_DOMAIN`: dominio do cookie quando necessario
+- `COOKIE_PATH`: caminho do cookie. Default: `/`
+
+Tuya:
+
+- `TUYA_CLIENT_ID`
+- `TUYA_CLIENT_SECRET`
+- `TUYA_ENDPOINT`
+- `TUYA_DEVICE_REGION`
+- `TUYA_DEVICE_ID`: opcional, usado como fallback em `/tuya/status`
+
+Operacao:
+
+- `PRICE_PER_KWH`: tarifa fallback por kWh
+- `DEFAULT_CHARGE_CURRENT_A`: corrente padrao para novas estacoes
+
+Obrigatorias em producao:
+
+- `DATABASE_URL`
+- `JWT_SECRET`
+
+Para fluxo real de carregamento, as credenciais Tuya tambem precisam estar configuradas.
+
+## Banco e migracoes
+
+Subir o Postgres local:
 
 ```bash
 docker compose up -d
 ```
 
-Rodar migrações:
+Rodar migracoes:
 
 ```bash
 npm run migrate
 ```
 
-## Produção
+## Desenvolvimento
 
-Instalar dependências:
+Instalar dependencias:
 
 ```bash
 npm install
 ```
-
-Gerar o frontend em `web/dist`:
-
-```bash
-npm run build:web
-```
-
-Iniciar o backend Express servindo a SPA:
-
-```bash
-npm start
-```
-
-Acessar:
-
-```text
-http://localhost:<PORT_BACKEND>/
-```
-
-## Testes
-
-### Dev (Vite + backend separado)
 
 Subir o backend:
 
@@ -50,52 +74,49 @@ Subir o backend:
 npm start
 ```
 
-Subir o frontend:
+Subir o frontend Vite em outra janela:
 
 ```bash
 npm run web:dev
 ```
 
-Validar:
+Nesse modo, o Vite roda separado do Express. Websocket do Vite e hot reload sao apenas de desenvolvimento.
 
-1. Fazer login no React.
-2. Atualizar a página e confirmar que a sessão foi mantida.
-3. Fazer logout e confirmar que o cookie foi removido.
-4. Conferir a leitura do `.env` em desenvolvimento:
+## Producao local
 
-```text
-GET /api/debug/cookie-config
-```
-
-### Produção local (React servido pelo Express)
-
-Gerar build:
+Gerar o frontend:
 
 ```bash
-npm --prefix web run build
+npm run build:web
 ```
 
-Definir no `.env`:
-
-```env
-NODE_ENV=production
-```
-
-Subir a aplicação:
+Subir a aplicacao:
 
 ```bash
 npm start
 ```
 
-Validar:
+Com `web/dist` presente, o Express serve a SPA e continua expondo os endpoints do backend no mesmo processo.
 
-1. Abrir `/login`.
-2. Fazer login.
-3. Atualizar `/app/home` e confirmar que a sessão continua válida.
-4. Fazer logout e confirmar que o cookie foi removido.
+## Health checks
 
-Se o cookie não for gravado em ambiente local sem HTTPS, deixe:
+- `GET /health`: retorna `{ "ok": true }`
+- `GET /health/db`: executa `SELECT 1` e retorna `{ "ok": true, "db": "postgres" }`
+- `GET /health/tuya`: verifica se as credenciais Tuya estao configuradas sem expor secrets
 
-```env
-COOKIE_SECURE=false
-```
+## Seguranca e observacoes operacionais
+
+- `helmet` esta habilitado globalmente para endurecer headers HTTP.
+- Rate limit global:
+  `100` requisicoes por `15` minutos em rotas ` /api/* ` e ` /session/* `
+- Rate limit reforcado:
+  `10` requisicoes por `15` minutos em endpoints sensiveis de login/cadastro e inicio administrativo
+- Logs HTTP registram metodo, rota, status, tempo de resposta, `user_id`, `station_id` e `session_id` quando disponiveis.
+- Tokens, cookies e senha nao sao logados.
+
+Cookies e HTTPS:
+
+- Em producao, prefira `COOKIE_SECURE=true`.
+- `COOKIE_SAMESITE=none` exige `COOKIE_SECURE=true`.
+- Em ambiente local sem HTTPS, use `COOKIE_SECURE=false`.
+- Se o frontend estiver em outro dominio/subdominio, ajuste `COOKIE_DOMAIN` e `COOKIE_SAMESITE` com cuidado.
