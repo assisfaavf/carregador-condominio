@@ -14,7 +14,7 @@ const pino = require("pino");
 const pinoHttp = require("pino-http");
 const config = require("./config");
 
-const { getDeviceStatus, sendCommands } = require("./tuya_api");
+const { getDeviceShadow, getDeviceLogs, sendCommands } = require("./tuya_api");
 const pgDb = require("./db/pg");
 const usersRepo = require("./repositories/usersRepo");
 const addressesRepo = require("./repositories/addressesRepo");
@@ -77,10 +77,11 @@ function buildRequestLogContext(req) {
   };
 }
 
-function createRateLimiter({ windowMs, max, message }) {
+function createRateLimiter({ windowMs, max, message, skip }) {
   return rateLimit({
     windowMs,
     max,
+    skip,
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) => {
@@ -133,10 +134,22 @@ function sendErrorResponse(res, statusCode, publicMessage, error, extra = {}) {
   return res.status(statusCode).json(buildErrorPayload(statusCode, publicMessage, error, extra));
 }
 
+const POLLING_API_PATHS = new Set([
+  "/api/live",
+  "/api/admin/live",
+  "/api/session/current",
+  "/api/admin/current-sessions",
+]);
+
 const apiRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: "Limite de requisicoes excedido. Tente novamente em alguns minutos.",
+  skip: (req) => {
+    if (req.method !== "GET") return false;
+    const path = String(req.originalUrl || "").split("?", 1)[0];
+    return POLLING_API_PATHS.has(path);
+  },
 });
 
 const authRateLimiter = createRateLimiter({
@@ -226,6 +239,8 @@ const USER_LIST_MAX_LIMIT = 200;
 const STATION_MIN_CURRENT_A = 6;
 const STATION_MAX_CURRENT_A = 32;
 const runningSessionMonitor = new Map();
+const externalSessionBaselineCache = new Map();
+const totalPowerTrendCache = new Map();
 let sessionWatchdogTimer = null;
 let sessionWatchdogRunning = false;
 
@@ -381,7 +396,10 @@ function round2(value) {
 }
 
 function findDp(statusData, code) {
-  const arr = statusData?.result || [];
+  const result = statusData?.result;
+  const arr = Array.isArray(result)
+    ? result
+    : (Array.isArray(result?.properties) ? result.properties : []);
   return arr.find((item) => item.code === code);
 }
 
@@ -401,7 +419,158 @@ function scale2ToKwh(raw) {
   return n / 100;
 }
 
+function extractDeviceLogs(response) {
+  return Array.isArray(response?.result?.logs) ? response.result.logs : [];
+}
+
+async function resolveExternalSessionEnergy(deviceId, totalKwh, charging) {
+  if (!charging || totalKwh == null) {
+    externalSessionBaselineCache.delete(deviceId);
+    return { energyKwh: null, startedAt: null, source: null };
+  }
+
+  const cached = externalSessionBaselineCache.get(deviceId);
+  if (cached && totalKwh >= cached.startTotalKwh) {
+    return {
+      energyKwh: Math.max(0, totalKwh - cached.startTotalKwh),
+      startedAt: cached.startedAt,
+      source: "tuya_total_delta",
+    };
+  }
+
+  const endTime = Date.now();
+  const startTime = endTime - (48 * 60 * 60 * 1000);
+  const stateResponse = await getDeviceLogs(deviceId, {
+    code: "work_state",
+    startTime,
+    endTime,
+  });
+  const stateLogs = extractDeviceLogs(stateResponse)
+    .filter((item) => Number.isFinite(Number(item.event_time)))
+    .sort((a, b) => Number(b.event_time) - Number(a.event_time));
+
+  const currentChargingEvents = [];
+  for (const item of stateLogs) {
+    if (item.value === "charger_charging") {
+      currentChargingEvents.push(item);
+      continue;
+    }
+    if (currentChargingEvents.length > 0) break;
+  }
+
+  if (currentChargingEvents.length === 0) {
+    return { energyKwh: null, startedAt: null, source: null };
+  }
+
+  const chargingStartedAtMs = Math.min(
+    ...currentChargingEvents.map((item) => Number(item.event_time))
+  );
+  const energyResponse = await getDeviceLogs(deviceId, {
+    code: "forward_energy_total",
+    startTime: chargingStartedAtMs - (15 * 60 * 1000),
+    endTime: chargingStartedAtMs + (15 * 60 * 1000),
+  });
+  const energyLogs = extractDeviceLogs(energyResponse)
+    .map((item) => ({
+      time: Number(item.event_time),
+      totalKwh: scale2ToKwh(item.value),
+    }))
+    .filter((item) => Number.isFinite(item.time) && item.totalKwh != null)
+    .sort((a, b) => a.time - b.time);
+
+  const beforeStart = energyLogs.filter((item) => item.time <= chargingStartedAtMs);
+  const baseline = beforeStart[beforeStart.length - 1] || energyLogs[0] || null;
+  if (!baseline || totalKwh < baseline.totalKwh) {
+    return { energyKwh: null, startedAt: new Date(chargingStartedAtMs).toISOString(), source: null };
+  }
+
+  const sessionBaseline = {
+    startTotalKwh: baseline.totalKwh,
+    startedAt: new Date(chargingStartedAtMs).toISOString(),
+  };
+  externalSessionBaselineCache.set(deviceId, sessionBaseline);
+
+  return {
+    energyKwh: Math.max(0, totalKwh - baseline.totalKwh),
+    startedAt: sessionBaseline.startedAt,
+    source: "tuya_total_delta",
+  };
+}
+
+function median(values) {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+}
+
+async function resolveTotalPowerTrend(deviceId, charging) {
+  if (!charging) {
+    totalPowerTrendCache.delete(deviceId);
+    return null;
+  }
+
+  const cached = totalPowerTrendCache.get(deviceId);
+  if (cached && Date.now() - cached.cachedAt < 60_000) return cached.powerKw;
+
+  const endTime = Date.now();
+  const response = await getDeviceLogs(deviceId, {
+    code: "forward_energy_total",
+    startTime: endTime - (20 * 60 * 1000),
+    endTime,
+  });
+  const samples = extractDeviceLogs(response)
+    .map((item) => ({
+      time: Number(item.event_time),
+      totalKwh: scale2ToKwh(item.value),
+    }))
+    .filter((item) => Number.isFinite(item.time) && item.totalKwh != null)
+    .sort((a, b) => a.time - b.time);
+
+  const rates = [];
+  for (let index = 1; index < samples.length; index += 1) {
+    const elapsedHours = (samples[index].time - samples[index - 1].time) / 3_600_000;
+    const energyKwh = samples[index].totalKwh - samples[index - 1].totalKwh;
+    const powerKw = elapsedHours > 0 ? energyKwh / elapsedHours : null;
+    if (powerKw != null && Number.isFinite(powerKw) && powerKw > 0 && powerKw <= 100) {
+      rates.push(powerKw);
+    }
+  }
+
+  const powerKw = median(rates.slice(-8));
+  if (powerKw != null) {
+    totalPowerTrendCache.set(deviceId, { powerKw, cachedAt: Date.now() });
+  }
+  return powerKw;
+}
+
+function decodePhaseA(statusData) {
+  const dp = findDp(statusData, "phase_a");
+  if (typeof dp?.value !== "string" || !dp.value) return null;
+
+  try {
+    const raw = Buffer.from(dp.value, "base64");
+    if (raw.length < 8) return null;
+
+    return {
+      voltageV: raw.readUInt16BE(0) / 10,
+      currentA: raw.readUIntBE(2, 3) / 1000,
+      powerKw: raw.readUIntBE(5, 3) / 1000,
+      observedAt: Number.isFinite(Number(dp.time))
+        ? new Date(Number(dp.time)).toISOString()
+        : null,
+    };
+  } catch (_error) {
+    return null;
+  }
+}
+
 function pickPowerKwFromStatus(statusData) {
+  const phaseA = decodePhaseA(statusData);
+  if (phaseA?.powerKw != null) return phaseA.powerKw;
+
   const raw =
     readDpNumber(statusData, "power_total") ??
     readDpNumber(statusData, "cur_power") ??
@@ -410,7 +579,7 @@ function pickPowerKwFromStatus(statusData) {
 
   if (raw == null) return null;
   if (raw <= 0) return 0;
-  return raw > 30 ? raw / 1000 : raw;
+  return raw / 1000;
 }
 
 function normalizeStatusToken(value) {
@@ -1319,7 +1488,7 @@ async function runStartCommands(station) {
   let lastStatus = null;
   for (let i = 0; i < 20; i += 1) {
     await sleep(1000);
-    lastStatus = await getDeviceStatus(deviceId);
+    lastStatus = await getDeviceShadow(deviceId);
     const workState = findDp(lastStatus, "work_state")?.value;
     const sw = findDp(lastStatus, "switch")?.value;
     if (workState === "charger_charging" || sw === true) {
@@ -1340,7 +1509,7 @@ async function runStopPolling(station) {
 
   for (let i = 0; i < 60; i += 1) {
     await sleep(1000);
-    lastStatus = await getDeviceStatus(deviceId);
+    lastStatus = await getDeviceShadow(deviceId);
 
     const sw = findDp(lastStatus, "switch")?.value;
     const workState = findDp(lastStatus, "work_state")?.value;
@@ -1371,7 +1540,7 @@ async function runStopPolling(station) {
   }
 
   if (!lastStatus) {
-    lastStatus = await getDeviceStatus(deviceId);
+    lastStatus = await getDeviceShadow(deviceId);
   }
   return lastStatus;
 }
@@ -1390,7 +1559,7 @@ async function finalizeSessionAsFailed(sessionId, message) {
 }
 
 async function startSessionFlow({ userId, addressId, station }) {
-  const statusBefore = await getDeviceStatus(station.tuya_device_id);
+  const statusBefore = await getDeviceShadow(station.tuya_device_id);
   const totalRawBefore = readDpNumber(statusBefore, "forward_energy_total");
   const tariffPerKwh = await getTariffPerKwh();
 
@@ -1549,8 +1718,8 @@ function computeNeedsReview(energyOnce, energyFromTotal, energyKwh) {
   return diff > Math.max(0.15, energyKwh * 0.2);
 }
 
-async function stopSessionFlow({ running, station }) {
-  const finalStatus = await runStopPolling(station);
+async function stopSessionFlow({ running, station, finalStatus: suppliedFinalStatus = null }) {
+  const finalStatus = suppliedFinalStatus || await runStopPolling(station);
 
   const energyOnce = (() => {
     const raw = readDpNumber(finalStatus, "charge_energy_once");
@@ -1562,8 +1731,8 @@ async function stopSessionFlow({ running, station }) {
     ? Math.max(0, endEnergyTotal - startEnergyTotal)
     : null;
 
-  const energyKwh = energyOnce != null ? energyOnce : energyFromTotal;
-  const energySource = energyOnce != null ? "once" : (energyFromTotal != null ? "total_delta" : null);
+  const energyKwh = energyFromTotal != null ? energyFromTotal : energyOnce;
+  const energySource = energyFromTotal != null ? "total_delta" : (energyOnce != null ? "once" : null);
   const durationSeconds = calcElapsedSeconds(running.start_time);
   const tariff = await getTariffPerKwh();
   const priceCalculated = energyKwh != null ? round2(energyKwh * tariff) : null;
@@ -1613,7 +1782,7 @@ async function buildLivePayload(stationId) {
   let telemetryError = null;
 
   try {
-    status = await getDeviceStatus(station.tuya_device_id);
+    status = await getDeviceShadow(station.tuya_device_id);
   } catch (error) {
     telemetryError = String(error?.message || error);
   }
@@ -1625,12 +1794,32 @@ async function buildLivePayload(stationId) {
   const currentSet = readDpNumber(status, "charge_cur_set");
   const totalKwh = scale2ToKwh(readDpNumber(status, "forward_energy_total"));
   const totalKwhRounded = totalKwh != null ? round2(totalKwh) : null;
-  let powerKw = pickPowerKwFromStatus(status);
+  const phaseA = decodePhaseA(status);
+  let totalPowerTrendKw = null;
+  let phaseDetectionError = null;
+  try {
+    totalPowerTrendKw = await resolveTotalPowerTrend(station.tuya_device_id, charging);
+  } catch (error) {
+    phaseDetectionError = String(error?.message || error);
+  }
+
+  const phasePowerKw = phaseA?.powerKw ?? null;
+  const powerRatio = phasePowerKw > 0 && totalPowerTrendKw > 0
+    ? totalPowerTrendKw / phasePowerKw
+    : null;
+  const detectedPhaseCount = powerRatio != null && powerRatio >= 2 && powerRatio <= 4.5
+    ? 3
+    : (powerRatio != null && powerRatio >= 0.5 && powerRatio < 2 ? 1 : null);
+  let powerKw = phasePowerKw != null
+    ? phasePowerKw * (detectedPhaseCount || 1)
+    : pickPowerKwFromStatus(status);
 
   const running = await sessionsRepo.getRunningByStation(station.id);
   let runningSession = null;
   let sessionEnergyKwh = null;
   let sessionEnergySource = null;
+  let sessionStartedAt = null;
+  let sessionEnergyError = null;
 
   if (running) {
     const elapsedSeconds = calcElapsedSeconds(running.start_time);
@@ -1638,6 +1827,7 @@ async function buildLivePayload(stationId) {
     const kwhEstimated = startTotal != null && totalKwh != null ? Math.max(0, totalKwh - startTotal) : null;
     sessionEnergyKwh = kwhEstimated;
     sessionEnergySource = sessionEnergyKwh != null ? "delta_total" : (startTotal == null ? "missing_start_total" : null);
+    sessionStartedAt = running.start_time;
 
     if ((powerKw == null || powerKw <= 0) && kwhEstimated != null) {
       const estimatedPower = estimatePowerKwFromSession(kwhEstimated, elapsedSeconds);
@@ -1654,7 +1844,22 @@ async function buildLivePayload(stationId) {
       session_energy_source: sessionEnergySource,
       price_estimated: kwhEstimated != null ? round2(kwhEstimated * tariffPerKwh) : null,
     };
+  } else {
+    try {
+      const externalSession = await resolveExternalSessionEnergy(
+        station.tuya_device_id,
+        totalKwh,
+        charging
+      );
+      sessionEnergyKwh = externalSession.energyKwh;
+      sessionEnergySource = externalSession.source;
+      sessionStartedAt = externalSession.startedAt;
+    } catch (error) {
+      sessionEnergyError = String(error?.message || error);
+    }
   }
+
+  const liveSessionEnergyKwh = sessionEnergyKwh != null ? round2(sessionEnergyKwh) : null;
 
   return {
     success: true,
@@ -1672,9 +1877,22 @@ async function buildLivePayload(stationId) {
       connection_state: connectionState,
       switch: sw,
       power_kw: powerKw != null ? round2(powerKw) : null,
+      phase_power_kw: phaseA?.powerKw != null ? round2(phaseA.powerKw) : null,
+      voltage_v: phaseA?.voltageV != null ? round2(phaseA.voltageV) : null,
+      current_a: phaseA?.currentA != null ? round2(phaseA.currentA) : null,
+      detected_phase_count: detectedPhaseCount,
+      phase_detection_ratio: powerRatio != null ? round2(powerRatio) : null,
+      phase_detection_source: detectedPhaseCount ? "energy_total_trend" : null,
+      phase_detection_error: phaseDetectionError,
+      total_power_trend_kw: totalPowerTrendKw != null ? round2(totalPowerTrendKw) : null,
+      observed_at: phaseA?.observedAt || null,
       current_set_a: currentSet != null ? currentSet : null,
       total_kwh: totalKwhRounded,
-      session_energy_kwh: sessionEnergyKwh != null ? round2(sessionEnergyKwh) : null,
+      live_session_energy_kwh: liveSessionEnergyKwh,
+      live_session_started_at: sessionStartedAt,
+      live_session_energy_source: sessionEnergySource,
+      live_session_energy_error: sessionEnergyError,
+      session_energy_kwh: liveSessionEnergyKwh,
       state_label: pickChargerStateLabel(workState, sw),
     },
     running_session: runningSession,
@@ -1683,13 +1901,29 @@ async function buildLivePayload(stationId) {
     connectionState,
     switch: sw,
     powerKw: powerKw != null ? round2(powerKw) : null,
+    phasePowerKw: phaseA?.powerKw != null ? round2(phaseA.powerKw) : null,
+    voltageV: phaseA?.voltageV != null ? round2(phaseA.voltageV) : null,
+    currentA: phaseA?.currentA != null ? round2(phaseA.currentA) : null,
+    phaseCount: detectedPhaseCount,
+    phaseDetectionRatio: powerRatio != null ? round2(powerRatio) : null,
+    phaseDetectionSource: detectedPhaseCount ? "energy_total_trend" : null,
+    phaseDetectionError,
+    totalPowerTrendKw: totalPowerTrendKw != null ? round2(totalPowerTrendKw) : null,
+    telemetryObservedAt: phaseA?.observedAt || null,
     currentSetA: currentSet != null ? currentSet : null,
     totalKwh: totalKwhRounded,
     energy_total_kwh: totalKwhRounded,
+    liveSessionEnergyKwh,
+    liveSessionEnergyLabel: charging ? "Energia da carga atual" : "Energia da carga",
+    liveSessionStartedAt: sessionStartedAt,
+    liveSessionEnergySource: sessionEnergySource,
+    liveSessionEnergyError: sessionEnergyError,
+    deviceSessionEnergyKwh: liveSessionEnergyKwh,
+    deviceSessionEnergyLabel: charging ? "Energia da carga atual" : "Energia da carga",
     session_active: running != null,
     session_id: running?.id || null,
     session_start_time: running?.start_time || null,
-    session_energy_kwh: sessionEnergyKwh != null ? round2(sessionEnergyKwh) : null,
+    session_energy_kwh: liveSessionEnergyKwh,
     session_energy_source: sessionEnergySource,
     stateLabel: pickChargerStateLabel(workState, sw),
     sessionId: runningSession?.session_id || null,
@@ -1700,11 +1934,60 @@ async function buildLivePayload(stationId) {
   };
 }
 
+async function detectExternalSessions() {
+  const stations = await stationsRepo.listActive();
+
+  for (const station of stations) {
+    try {
+      const existing = await sessionsRepo.getRunningByStation(station.id);
+      if (existing) continue;
+
+      const status = await getDeviceShadow(station.tuya_device_id);
+      const workState = findDp(status, "work_state")?.value || null;
+      const sw = findDp(status, "switch")?.value ?? false;
+      if (!isActivelyCharging(workState, sw)) continue;
+
+      const totalKwh = scale2ToKwh(readDpNumber(status, "forward_energy_total"));
+      const external = await resolveExternalSessionEnergy(
+        station.tuya_device_id,
+        totalKwh,
+        true
+      );
+      if (external.energyKwh == null || !external.startedAt || totalKwh == null) continue;
+
+      const startEnergyTotal = Math.max(0, totalKwh - external.energyKwh);
+      const tariffPerKwh = await getTariffPerKwh();
+      const session = await sessionsRepo.createRunning({
+        user_id: null,
+        address_id: null,
+        station_id: station.id,
+        start_time: external.startedAt,
+        start_energy_total: startEnergyTotal,
+        tariff_per_kwh: tariffPerKwh,
+        origin: "external",
+        authorization_method: "unknown",
+        detected_at: new Date(),
+        notes: "Carga externa detectada automaticamente. Metodo de autorizacao nao informado pela Tuya.",
+      });
+
+      appLogger.info({
+        session_id: session.id,
+        station_id: station.id,
+        start_time: external.startedAt,
+      }, "[watchdog] Carga externa registrada automaticamente.");
+    } catch (error) {
+      if (isUniqueRunningByStation(error)) continue;
+      appLogger.warn({ err: error, station_id: station.id }, "[watchdog] Falha ao detectar carga externa.");
+    }
+  }
+}
+
 async function runSessionWatchdogTick() {
   if (sessionWatchdogRunning) return;
   sessionWatchdogRunning = true;
 
   try {
+    await detectExternalSessions();
     const runningSessions = await sessionsRepo.listCurrentRunning();
     const activeIds = new Set();
 
@@ -1718,7 +2001,7 @@ async function runSessionWatchdogTick() {
           continue;
         }
 
-        const status = await getDeviceStatus(station.tuya_device_id);
+        const status = await getDeviceShadow(station.tuya_device_id);
         const monitorState = runningSessionMonitor.get(session.id) || { zeroPowerCount: 0 };
         const detection = didChargingEnd(status, monitorState, session);
 
@@ -1737,6 +2020,7 @@ async function runSessionWatchdogTick() {
         const finalized = await stopSessionFlow({
           running: { ...latestRunning, auto_end_note: autoEndNote },
           station,
+          finalStatus: status,
         });
 
         runningSessionMonitor.delete(session.id);
@@ -1847,7 +2131,7 @@ app.get("/tuya/status", requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: "Envie station_id ou configure TUYA_DEVICE_ID para fallback." });
     }
 
-    const data = await getDeviceStatus(deviceId);
+    const data = await getDeviceShadow(deviceId);
     return res.json({ success: true, station_id: stationId || null, data });
   } catch (error) {
     return sendErrorResponse(res, 500, "Falha ao consultar Tuya", error);
@@ -1991,6 +2275,9 @@ function mapAdminSessionForUi(session) {
     end_time: session.end_time ?? null,
     duration_seconds: session.duration_seconds ?? null,
     status: session.status ?? null,
+    origin: session.origin ?? "program",
+    authorization_method: session.authorization_method ?? "program",
+    detected_at: session.detected_at ?? null,
     energy_kwh: energyKwh,
     tariff_per_kwh: session.tariff_per_kwh ?? null,
     price_calculated: session.price_calculated ?? null,

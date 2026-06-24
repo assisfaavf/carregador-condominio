@@ -343,8 +343,12 @@ async function refreshState() {
       adminState.live = null;
       document.getElementById("chargerState").textContent = "Status: selecione uma estacao";
       document.getElementById("powerKw").textContent = "--";
-      document.getElementById("currentSetA").textContent = "--";
-      document.getElementById("totalKwh").textContent = "--";
+      document.getElementById("phasePowerKw").textContent = "--";
+      document.getElementById("voltageV").textContent = "--";
+      document.getElementById("currentA").textContent = "--";
+      document.getElementById("phaseCount").textContent = "--";
+      document.getElementById("deviceSessionEnergyLabel").textContent = "Energia da carga";
+      document.getElementById("deviceSessionEnergyKwh").textContent = "--";
       document.getElementById("hasRunning").textContent = "Nao";
       document.getElementById("runUser").textContent = "--";
       document.getElementById("runStart").textContent = "--";
@@ -371,8 +375,12 @@ async function refreshState() {
 
     document.getElementById("chargerState").textContent = `Status: ${liveData.stateLabel || "--"}`;
     document.getElementById("powerKw").textContent = fmt(liveData.powerKw);
-    document.getElementById("currentSetA").textContent = fmt(liveData.currentSetA, 0);
-    document.getElementById("totalKwh").textContent = fmt(liveData.totalKwh);
+    document.getElementById("phasePowerKw").textContent = fmt(liveData.phasePowerKw, 3);
+    document.getElementById("voltageV").textContent = fmt(liveData.voltageV, 1);
+    document.getElementById("currentA").textContent = fmt(liveData.currentA, 2);
+    document.getElementById("phaseCount").textContent = String(liveData.phaseCount || "--");
+    document.getElementById("deviceSessionEnergyLabel").textContent = liveData.deviceSessionEnergyLabel || "Energia da carga";
+    document.getElementById("deviceSessionEnergyKwh").textContent = fmt(liveData.deviceSessionEnergyKwh);
     document.getElementById("hasRunning").textContent = running ? "Sim" : "Nao";
 
     if (liveData.telemetry_unavailable) {
