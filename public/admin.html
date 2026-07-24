@@ -153,6 +153,34 @@
       </section>
 
       <section class="panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Carregamentos</h2>
+            <p class="mini-note">Ultimos carregamentos registrados pelo sistema.</p>
+          </div>
+          <button id="sessionsRefreshBtn" class="btn btn-secondary btn-inline" type="button">Atualizar</button>
+        </div>
+
+        <p id="sessionsMsg" class="message"></p>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Inicio</th>
+                <th>Final</th>
+                <th>Energia usada</th>
+              </tr>
+            </thead>
+            <tbody id="chargingSessionsTableBody">
+              <tr><td colspan="4">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
         <h2 class="section-title">Debug</h2>
         <div class="actions-three">
           <button onclick="loadSessions()" class="btn btn-secondary">Ver sessoes</button>

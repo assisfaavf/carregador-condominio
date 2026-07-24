@@ -13,6 +13,7 @@ const adminState = {
   userAddresses: [],
   live: null,
   currentSessions: [],
+  chargingSessions: [],
   modalResolve: null,
   modalBusy: false,
 };
@@ -25,6 +26,13 @@ function setMsg(text, type = "") {
 
 function setStationMsg(text, type = "") {
   const msg = document.getElementById("stationMsg");
+  msg.textContent = text || "";
+  msg.className = type ? `message ${type}` : "message";
+}
+
+function setSessionsMsg(text, type = "") {
+  const msg = document.getElementById("sessionsMsg");
+  if (!msg) return;
   msg.textContent = text || "";
   msg.className = type ? `message ${type}` : "message";
 }
@@ -58,6 +66,24 @@ function renderRunElapsedNow() {
 
 function fmt(v, digits = 2) {
   return (typeof v === "number" && Number.isFinite(v)) ? v.toFixed(digits) : "--";
+}
+
+function formatDateTime(value) {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "--";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatKwh(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? `${number.toFixed(2)} kWh` : "--";
 }
 
 function formatTelemetryError(raw) {
@@ -285,6 +311,52 @@ async function loadCurrentSessions() {
   const res = await fetch("/api/admin/current-sessions");
   const data = await res.json().catch(() => ({}));
   adminState.currentSessions = res.ok && data.success && Array.isArray(data.running) ? data.running : [];
+}
+
+function renderChargingSessionsTable() {
+  const tbody = document.getElementById("chargingSessionsTableBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(adminState.chargingSessions) || adminState.chargingSessions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4">Nenhum carregamento registrado.</td></tr>';
+    return;
+  }
+
+  for (const session of adminState.chargingSessions) {
+    const tr = document.createElement("tr");
+    const cells = [
+      String(session.id ?? "--"),
+      formatDateTime(session.start_time),
+      session.end_time ? formatDateTime(session.end_time) : "Em andamento",
+      formatKwh(session.energy_kwh),
+    ];
+
+    for (const text of cells) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.appendChild(td);
+    }
+
+    tbody.appendChild(tr);
+  }
+}
+
+async function loadChargingSessions() {
+  const res = await fetch("/api/admin/sessions?limit=100");
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data.success || !Array.isArray(data.sessions)) {
+    adminState.chargingSessions = [];
+    renderChargingSessionsTable();
+    setSessionsMsg(data.message || "Erro ao carregar carregamentos.", "error");
+    return;
+  }
+
+  adminState.chargingSessions = data.sessions;
+  renderChargingSessionsTable();
+  setSessionsMsg("");
 }
 
 function renderActionMode() {
@@ -567,7 +639,7 @@ async function toggleStationActive(station) {
 }
 
 async function refreshAll() {
-  await Promise.all([loadUsers(), loadStationsAdmin(), loadCurrentSessions()]);
+  await Promise.all([loadUsers(), loadStationsAdmin(), loadCurrentSessions(), loadChargingSessions()]);
   await loadAddressesForUser(getSelectedUserId());
   await refreshState();
   setMsg("Dados atualizados.", "ok");
@@ -620,6 +692,7 @@ async function logout() {
 function setupEvents() {
   document.getElementById("adminActionBtn").addEventListener("click", handlePrimaryAction);
   document.getElementById("refreshBtn").addEventListener("click", refreshAll);
+  document.getElementById("sessionsRefreshBtn").addEventListener("click", loadChargingSessions);
 
   document.getElementById("controlStationSelect").addEventListener("change", (event) => {
     const id = Number(event.target.value);
