@@ -32,8 +32,11 @@
 
         <div class="metrics mt-16">
           <p>Potencia agora: <b id="powerKw">--</b> kW</p>
-          <p>Corrente configurada: <b id="currentSetA">--</b> A</p>
-          <p>kWh total no equipamento: <b id="totalKwh">--</b></p>
+          <p>Potencia por fase: <b id="phasePowerKw">--</b> kW</p>
+          <p>Tensao fase A: <b id="voltageV">--</b> V</p>
+          <p>Corrente fase A: <b id="currentA">--</b> A</p>
+          <p>Fases detectadas: <b id="phaseCount">--</b></p>
+          <p><span id="deviceSessionEnergyLabel">Energia da carga</span>: <b id="deviceSessionEnergyKwh">--</b> kWh</p>
           <p>Sessao ativa: <b id="hasRunning">Nao</b></p>
         </div>
       </section>
@@ -144,6 +147,34 @@
             </thead>
             <tbody id="stationsTableBody">
               <tr><td colspan="7">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Carregamentos</h2>
+            <p class="mini-note">Ultimos carregamentos registrados pelo sistema.</p>
+          </div>
+          <button id="sessionsRefreshBtn" class="btn btn-secondary btn-inline" type="button">Atualizar</button>
+        </div>
+
+        <p id="sessionsMsg" class="message"></p>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Inicio</th>
+                <th>Final</th>
+                <th>Energia usada</th>
+              </tr>
+            </thead>
+            <tbody id="chargingSessionsTableBody">
+              <tr><td colspan="4">Carregando...</td></tr>
             </tbody>
           </table>
         </div>

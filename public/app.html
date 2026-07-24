@@ -113,10 +113,11 @@
         <div id="state" class="status-main">Status: ...</div>
 
         <div class="metrics">
-          <p>kWh estimado nesta sessao: <b id="kwh">0.00</b></p>
+          <p><span id="deviceSessionEnergyLabel">Energia da carga</span>: <b id="kwh">--</b> kWh</p>
           <p>Preco estimado: <b id="price">--</b></p>
           <p>Potencia agora: <b id="power">--</b> kW</p>
-          <p>Corrente configurada: <b id="current">--</b> A</p>
+          <p>Tensao fase A: <b id="voltage">--</b> V</p>
+          <p>Corrente fase A: <b id="current">--</b> A</p>
           <p>Tempo de sessao: <b id="elapsed">00:00</b></p>
         </div>
 
@@ -359,9 +360,11 @@
           state.current = null;
           state.live = null;
           document.getElementById("state").textContent = "Status: selecione uma estacao";
-          document.getElementById("kwh").textContent = "0.00";
+          document.getElementById("deviceSessionEnergyLabel").textContent = "Energia da carga";
+          document.getElementById("kwh").textContent = "--";
           document.getElementById("price").textContent = "--";
           document.getElementById("power").textContent = "--";
+          document.getElementById("voltage").textContent = "--";
           document.getElementById("current").textContent = "--";
           document.getElementById("elapsed").textContent = "00:00";
           return;
@@ -393,21 +396,25 @@
         const running = Boolean(liveData.runningSession);
         const incomingKwh = Number(liveData.kwhEstimated);
         const hasIncomingKwh = Number.isFinite(incomingKwh);
+        const deviceSessionKwh = liveData.deviceSessionEnergyKwh;
+        const hasDeviceSessionKwh = typeof deviceSessionKwh === "number" && Number.isFinite(deviceSessionKwh);
         const cachedKwh = getCachedKwh(stationId);
-        const kwhToShow = running
-          ? (hasIncomingKwh ? incomingKwh : (Number.isFinite(cachedKwh) ? cachedKwh : 0))
-          : 0;
+        const kwhToShow = hasDeviceSessionKwh
+          ? deviceSessionKwh
+          : (running ? (hasIncomingKwh ? incomingKwh : (Number.isFinite(cachedKwh) ? cachedKwh : 0)) : null);
 
         if (running && hasIncomingKwh) setCachedKwh(stationId, incomingKwh);
         if (!running) clearCachedKwh(stationId);
 
         document.getElementById("state").textContent = "Status: " + label;
-        document.getElementById("kwh").textContent = Number(kwhToShow).toFixed(2);
+        document.getElementById("deviceSessionEnergyLabel").textContent = liveData.deviceSessionEnergyLabel || "Energia da carga";
+        document.getElementById("kwh").textContent = kwhToShow == null ? "--" : Number(kwhToShow).toFixed(2);
         document.getElementById("price").textContent = typeof liveData.priceEstimated === "number"
           ? `R$ ${liveData.priceEstimated.toFixed(2)}`
           : "--";
         document.getElementById("power").textContent = liveData.powerKw == null ? "--" : Number(liveData.powerKw).toFixed(2);
-        document.getElementById("current").textContent = liveData.currentSetA == null ? "--" : liveData.currentSetA;
+        document.getElementById("voltage").textContent = liveData.voltageV == null ? "--" : Number(liveData.voltageV).toFixed(1);
+        document.getElementById("current").textContent = liveData.currentA == null ? "--" : Number(liveData.currentA).toFixed(2);
         renderElapsedNow();
 
         if (state.current.occupied && !state.current.active) {

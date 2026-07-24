@@ -215,6 +215,30 @@ async function getDeviceStatus(deviceId) {
   ));
 }
 
+async function getDeviceShadow(deviceId) {
+  return runWithTokenAndRetry((token) => (
+    tuyaRequest({
+      method: "GET",
+      path: `/v2.0/cloud/thing/${deviceId}/shadow/properties`,
+      token,
+    })
+  ));
+}
+
+async function getDeviceLogs(deviceId, { code, startTime, endTime, size = 100, type = 7 }) {
+  const path = [
+    `/v1.0/devices/${deviceId}/logs?codes=${encodeURIComponent(code)}`,
+    `end_time=${endTime}`,
+    `size=${size}`,
+    `start_time=${startTime}`,
+    `type=${type}`,
+  ].join("&");
+
+  return runWithTokenAndRetry((token) => (
+    tuyaRequest({ method: "GET", path, token })
+  ));
+}
+
 async function sendCommands(deviceId, commands) {
   return runWithTokenAndRetry((token) => (
     tuyaRequest({
@@ -226,4 +250,4 @@ async function sendCommands(deviceId, commands) {
   ));
 }
 
-module.exports = { getDeviceStatus, sendCommands };
+module.exports = { getDeviceStatus, getDeviceShadow, getDeviceLogs, sendCommands };

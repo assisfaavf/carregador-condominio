@@ -123,6 +123,21 @@ a {
   font-size: 1.1rem;
 }
 
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.section-header .section-title {
+  margin-bottom: 0.25rem;
+}
+
+.section-header .mini-note {
+  margin: 0;
+}
+
 .panel {
   margin-top: 1.1rem;
   background: var(--panel-bg);
@@ -508,5 +523,9 @@ a {
   .actions-three,
   .metrics {
     grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    display: grid;
   }
 }
