@@ -20,6 +20,7 @@ const usersRepo = require("./repositories/usersRepo");
 const addressesRepo = require("./repositories/addressesRepo");
 const stationsRepo = require("./repositories/stationsRepo");
 const sessionsRepo = require("./repositories/sessionsRepo");
+const chargingClientsRepo = require("./repositories/chargingClientsRepo");
 const systemSettingsRepo = require("./repositories/systemSettingsRepo");
 
 const app = express();
@@ -1154,6 +1155,39 @@ app.get("/api/admin/stations", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+app.get("/api/admin/charging-clients", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const clients = await chargingClientsRepo.listAll();
+    return res.json({
+      success: true,
+      clients: clients.map(mapChargingClientForUi),
+    });
+  } catch (error) {
+    return sendErrorResponse(res, 500, "Erro ao listar clientes", error);
+  }
+});
+
+app.post("/api/admin/charging-clients", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const name = String(body.name || "").trim();
+    const tower = normalizeNullableText(body.tower);
+    const apartment = normalizeNullableText(body.apartment);
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: "Nome do cliente e obrigatorio." });
+    }
+
+    const client = await chargingClientsRepo.create({ name, tower, apartment });
+    return res.status(201).json({
+      success: true,
+      client: mapChargingClientForUi(client),
+    });
+  } catch (error) {
+    return sendErrorResponse(res, 500, "Erro ao cadastrar cliente", error);
+  }
+});
+
 app.get("/api/admin/settings", requireAuth, requireAdmin, async (req, res) => {
   try {
     const settings = await getSystemSettings();
@@ -2265,10 +2299,28 @@ function normalizeNullableText(value) {
   return trimmed || null;
 }
 
+function mapChargingClientForUi(client) {
+  if (!client) return null;
+  return {
+    id: client.id,
+    name: normalizeNullableText(client.name) || "-",
+    tower: normalizeNullableText(client.tower),
+    apartment: normalizeNullableText(client.apartment),
+    label: [
+      normalizeNullableText(client.name) || "-",
+      [normalizeNullableText(client.tower), normalizeNullableText(client.apartment)]
+        .filter(Boolean)
+        .join("/"),
+    ].filter(Boolean).join(" - "),
+  };
+}
+
 function mapAdminSessionForUi(session) {
   const energyKwh = session?.energy_kwh != null ? session.energy_kwh : session?.energy_once;
+  const client = mapChargingClientForUi(session.client);
   return {
     id: session.id,
+    client_id: session.client_id ?? session.client?.id ?? null,
     user_id: session.user_id ?? session.user?.id ?? null,
     station_id: session.station_id ?? session.station?.id ?? null,
     start_time: session.start_time ?? null,
@@ -2285,6 +2337,11 @@ function mapAdminSessionForUi(session) {
     payment_status: session.payment_status ?? null,
     notes: session.notes ?? null,
     needs_review: session.needs_review === true,
+    client,
+    client_name: client?.name ?? null,
+    client_tower: client?.tower ?? null,
+    client_apartment: client?.apartment ?? null,
+    client_label: client?.label ?? null,
     user_name: normalizeNullableText(session.user_name ?? session.user?.name),
     user_email: normalizeNullableText(session.user_email ?? session.user?.email),
     station_name: normalizeNullableText(session.station_name ?? session.station?.name),
@@ -2394,6 +2451,22 @@ app.patch("/api/admin/sessions/:id", requireAuth, requireAdmin, async (req, res)
         return res.status(400).json({ success: false, message: "needs_review deve ser boolean." });
       }
       patch.needs_review = body.needs_review;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "client_id")) {
+      if (body.client_id == null || body.client_id === "") {
+        patch.client_id = null;
+      } else {
+        const clientId = parsePositiveInt(body.client_id);
+        if (!clientId) {
+          return res.status(400).json({ success: false, message: "client_id invalido." });
+        }
+        const client = await chargingClientsRepo.getById(clientId);
+        if (!client) {
+          return res.status(400).json({ success: false, message: "Cliente nao encontrado." });
+        }
+        patch.client_id = clientId;
+      }
     }
 
     if (Object.keys(patch).length === 0) {

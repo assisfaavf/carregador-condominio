@@ -156,10 +156,18 @@ a {
   gap: 0.9rem;
 }
 
-.form-grid-2 {
+.form-grid-2,
+.form-grid-3 {
   display: grid;
   gap: 0.9rem;
+}
+
+.form-grid-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .field {
@@ -386,6 +394,12 @@ a {
 .table-actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.table-select {
+  min-width: 190px;
+  height: 42px;
 }
 
 .modal {
@@ -519,6 +533,7 @@ a {
   }
 
   .form-grid-2,
+  .form-grid-3,
   .actions-two,
   .actions-three,
   .metrics {

@@ -14,6 +14,7 @@ const adminState = {
   live: null,
   currentSessions: [],
   chargingSessions: [],
+  chargingClients: [],
   modalResolve: null,
   modalBusy: false,
 };
@@ -32,6 +33,13 @@ function setStationMsg(text, type = "") {
 
 function setSessionsMsg(text, type = "") {
   const msg = document.getElementById("sessionsMsg");
+  if (!msg) return;
+  msg.textContent = text || "";
+  msg.className = type ? `message ${type}` : "message";
+}
+
+function setClientMsg(text, type = "") {
+  const msg = document.getElementById("clientMsg");
   if (!msg) return;
   msg.textContent = text || "";
   msg.className = type ? `message ${type}` : "message";
@@ -84,6 +92,12 @@ function formatDateTime(value) {
 function formatKwh(value) {
   const number = Number(value);
   return Number.isFinite(number) ? `${number.toFixed(2)} kWh` : "--";
+}
+
+function formatClientLabel(client) {
+  if (!client) return "Sem cliente";
+  const unit = [client.tower, client.apartment].filter(Boolean).join("/");
+  return [client.name || "-", unit].filter(Boolean).join(" - ");
 }
 
 function formatTelemetryError(raw) {
@@ -320,27 +334,77 @@ function renderChargingSessionsTable() {
   tbody.innerHTML = "";
 
   if (!Array.isArray(adminState.chargingSessions) || adminState.chargingSessions.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4">Nenhum carregamento registrado.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">Nenhum carregamento registrado.</td></tr>';
     return;
   }
 
   for (const session of adminState.chargingSessions) {
     const tr = document.createElement("tr");
-    const cells = [
+    tr.dataset.sessionId = String(session.id);
+
+    for (const text of [
       String(session.id ?? "--"),
       formatDateTime(session.start_time),
       session.end_time ? formatDateTime(session.end_time) : "Em andamento",
       formatKwh(session.energy_kwh),
-    ];
-
-    for (const text of cells) {
+      session.client_label || formatClientLabel(session.client),
+    ]) {
       const td = document.createElement("td");
       td.textContent = text;
       tr.appendChild(td);
     }
 
+    const linkTd = document.createElement("td");
+    const wrap = document.createElement("div");
+    wrap.className = "table-actions";
+
+    const select = document.createElement("select");
+    select.className = "select table-select";
+    select.dataset.sessionClientSelect = String(session.id);
+
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "Sem cliente";
+    select.appendChild(emptyOption);
+
+    for (const client of adminState.chargingClients) {
+      const option = document.createElement("option");
+      option.value = String(client.id);
+      option.textContent = formatClientLabel(client);
+      select.appendChild(option);
+    }
+
+    select.value = session.client_id ? String(session.client_id) : "";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn btn-secondary btn-inline";
+    button.dataset.action = "link-client";
+    button.dataset.sessionId = String(session.id);
+    button.textContent = "Salvar";
+
+    wrap.appendChild(select);
+    wrap.appendChild(button);
+    linkTd.appendChild(wrap);
+    tr.appendChild(linkTd);
+
     tbody.appendChild(tr);
   }
+}
+
+async function loadChargingClients() {
+  const res = await fetch("/api/admin/charging-clients");
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data.success || !Array.isArray(data.clients)) {
+    adminState.chargingClients = [];
+    renderChargingSessionsTable();
+    setClientMsg(data.message || "Erro ao carregar clientes.", "error");
+    return;
+  }
+
+  adminState.chargingClients = data.clients;
+  renderChargingSessionsTable();
 }
 
 async function loadChargingSessions() {
@@ -357,6 +421,48 @@ async function loadChargingSessions() {
   adminState.chargingSessions = data.sessions;
   renderChargingSessionsTable();
   setSessionsMsg("");
+}
+
+async function submitChargingClientForm(event) {
+  event.preventDefault();
+
+  const payload = {
+    name: document.getElementById("clientName").value.trim(),
+    tower: document.getElementById("clientTower").value.trim(),
+    apartment: document.getElementById("clientApartment").value.trim(),
+  };
+
+  if (!payload.name) return setClientMsg("Informe o nome do cliente.", "error");
+
+  const res = await fetch("/api/admin/charging-clients", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    return setClientMsg(data.message || `Falha ao cadastrar cliente (HTTP ${res.status})`, "error");
+  }
+
+  document.getElementById("chargingClientForm").reset();
+  setClientMsg("Cliente cadastrado.", "ok");
+  await loadChargingClients();
+}
+
+async function linkClientToSession(sessionId, clientId) {
+  const res = await fetch(`/api/admin/sessions/${sessionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ client_id: clientId || null }),
+  });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data.success) {
+    return setSessionsMsg(data.message || `Falha ao vincular cliente (HTTP ${res.status})`, "error");
+  }
+
+  setSessionsMsg("Cliente vinculado ao carregamento.", "ok");
+  await loadChargingSessions();
 }
 
 function renderActionMode() {
@@ -639,7 +745,8 @@ async function toggleStationActive(station) {
 }
 
 async function refreshAll() {
-  await Promise.all([loadUsers(), loadStationsAdmin(), loadCurrentSessions(), loadChargingSessions()]);
+  await Promise.all([loadUsers(), loadStationsAdmin(), loadCurrentSessions(), loadChargingClients()]);
+  await loadChargingSessions();
   await loadAddressesForUser(getSelectedUserId());
   await refreshState();
   setMsg("Dados atualizados.", "ok");
@@ -693,6 +800,7 @@ function setupEvents() {
   document.getElementById("adminActionBtn").addEventListener("click", handlePrimaryAction);
   document.getElementById("refreshBtn").addEventListener("click", refreshAll);
   document.getElementById("sessionsRefreshBtn").addEventListener("click", loadChargingSessions);
+  document.getElementById("chargingClientForm").addEventListener("submit", submitChargingClientForm);
 
   document.getElementById("controlStationSelect").addEventListener("change", (event) => {
     const id = Number(event.target.value);
@@ -728,6 +836,20 @@ function setupEvents() {
     }
 
     if (action === "toggle") await toggleStationActive(station);
+  });
+
+  document.getElementById("chargingSessionsTableBody").addEventListener("click", async (event) => {
+    const action = event.target?.dataset?.action;
+    const sessionId = Number(event.target?.dataset?.sessionId || "0");
+    if (action !== "link-client" || !Number.isInteger(sessionId) || sessionId <= 0) return;
+
+    const select = document.querySelector(`[data-session-client-select="${sessionId}"]`);
+    const clientId = select?.value ? Number(select.value) : null;
+    if (clientId != null && (!Number.isInteger(clientId) || clientId <= 0)) {
+      return setSessionsMsg("Cliente invalido.", "error");
+    }
+
+    await linkClientToSession(sessionId, clientId);
   });
 
   document.getElementById("adminStopCancel").addEventListener("click", () => closeStopModal(false));
