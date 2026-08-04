@@ -203,6 +203,39 @@
       </section>
 
       <section class="panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Dashboard mensal por cliente</h2>
+            <p class="mini-note">Filtre por mes e abra um cliente para ver os carregamentos vinculados.</p>
+          </div>
+          <div class="dashboard-filter">
+            <input id="clientDashboardMonth" class="input month-input" type="month" />
+            <button id="clientDashboardRefreshBtn" class="btn btn-secondary btn-inline" type="button">Atualizar</button>
+          </div>
+        </div>
+
+        <p id="clientDashboardMsg" class="message"></p>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Torre</th>
+                <th>Apartamento</th>
+                <th>Carregamentos</th>
+                <th>Energia no mes</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody id="clientDashboardTableBody">
+              <tr><td colspan="6">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
         <h2 class="section-title">Debug</h2>
         <div class="actions-three">
           <button onclick="loadSessions()" class="btn btn-secondary">Ver sessoes</button>
