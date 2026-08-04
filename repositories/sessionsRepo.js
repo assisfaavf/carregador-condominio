@@ -14,6 +14,7 @@ function mapSessionRow(row) {
   if (!row) return null;
   return {
     id: row.id,
+    client_id: row.client_id ?? null,
     user_id: row.user_id,
     address_id: row.address_id,
     station_id: row.station_id,
@@ -51,6 +52,12 @@ function mapSessionWithRelations(row) {
       tower: row.u_tower ?? null,
       apartment: row.u_apartment ?? null,
       is_admin: row.u_is_admin === true,
+    },
+    client: row.c_id == null ? null : {
+      id: row.c_id,
+      name: row.c_name,
+      tower: row.c_tower ?? null,
+      apartment: row.c_apartment ?? null,
     },
     station: row.st_id == null ? null : {
       id: row.st_id,
@@ -96,6 +103,7 @@ async function getRunningByStation(stationId, tx) {
     `
       SELECT
         id,
+        client_id,
         user_id,
         address_id,
         station_id,
@@ -135,6 +143,7 @@ async function getRunningByUser(userId, tx) {
     `
       SELECT
         id,
+        client_id,
         user_id,
         address_id,
         station_id,
@@ -174,6 +183,7 @@ async function getById(sessionId, tx) {
     `
       SELECT
         id,
+        client_id,
         user_id,
         address_id,
         station_id,
@@ -239,6 +249,7 @@ async function createRunning(payload, tx) {
       VALUES ($1, $2, $3, 'running', COALESCE($4, NOW()), $5, $6, $7, $8, $9, $10)
       RETURNING
         id,
+        client_id,
         user_id,
         address_id,
         station_id,
@@ -321,6 +332,7 @@ async function finishSession(sessionId, patch, tx) {
       WHERE id = $${whereIdx} AND status = 'running'
       RETURNING
         id,
+        client_id,
         user_id,
         address_id,
         station_id,
@@ -355,6 +367,7 @@ async function listByUser(userId, limit = 50, offset = 0) {
     `
       SELECT
         s.id,
+        s.client_id,
         s.user_id,
         s.address_id,
         s.station_id,
@@ -457,6 +470,7 @@ async function listAdmin(filters = {}) {
     `
       SELECT
         s.id,
+        s.client_id,
         s.user_id,
         s.address_id,
         s.station_id,
@@ -479,6 +493,10 @@ async function listAdmin(filters = {}) {
         s.price_override,
         s.payment_status,
         s.paid_at,
+        c.id AS c_id,
+        c.name AS c_name,
+        c.tower AS c_tower,
+        c.apartment AS c_apartment,
         u.id AS u_id,
         u.name AS u_name,
         u.email AS u_email,
@@ -502,6 +520,7 @@ async function listAdmin(filters = {}) {
         ad.zip AS ad_zip,
         ad.is_default AS ad_is_default
       FROM sessions s
+      LEFT JOIN charging_clients c ON c.id = s.client_id
       LEFT JOIN users u ON u.id = s.user_id
       LEFT JOIN stations st ON st.id = s.station_id
       LEFT JOIN addresses ad ON ad.id = s.address_id
@@ -553,6 +572,10 @@ async function updateAdminFields(sessionId, patch, tx) {
     setField("needs_review", patch.needs_review === true);
   }
 
+  if (Object.prototype.hasOwnProperty.call(patch, "client_id")) {
+    setField("client_id", patch.client_id == null ? null : patch.client_id);
+  }
+
   if (updates.length === 0) {
     return getById(sessionId, tx);
   }
@@ -565,6 +588,7 @@ async function updateAdminFields(sessionId, patch, tx) {
       WHERE id = $${whereIdx}
       RETURNING
         id,
+        client_id,
         user_id,
         address_id,
         station_id,

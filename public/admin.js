@@ -14,6 +14,9 @@ const adminState = {
   live: null,
   currentSessions: [],
   chargingSessions: [],
+  chargingClients: [],
+  clientDashboardSessions: [],
+  expandedDashboardClientId: null,
   modalResolve: null,
   modalBusy: false,
 };
@@ -32,6 +35,20 @@ function setStationMsg(text, type = "") {
 
 function setSessionsMsg(text, type = "") {
   const msg = document.getElementById("sessionsMsg");
+  if (!msg) return;
+  msg.textContent = text || "";
+  msg.className = type ? `message ${type}` : "message";
+}
+
+function setClientMsg(text, type = "") {
+  const msg = document.getElementById("clientMsg");
+  if (!msg) return;
+  msg.textContent = text || "";
+  msg.className = type ? `message ${type}` : "message";
+}
+
+function setClientDashboardMsg(text, type = "") {
+  const msg = document.getElementById("clientDashboardMsg");
   if (!msg) return;
   msg.textContent = text || "";
   msg.className = type ? `message ${type}` : "message";
@@ -84,6 +101,43 @@ function formatDateTime(value) {
 function formatKwh(value) {
   const number = Number(value);
   return Number.isFinite(number) ? `${number.toFixed(2)} kWh` : "--";
+}
+
+function getNumericKwh(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatClientLabel(client) {
+  if (!client) return "Sem cliente";
+  const unit = [client.tower, client.apartment].filter(Boolean).join("/");
+  return [client.name || "-", unit].filter(Boolean).join(" - ");
+}
+
+function getCurrentMonthValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getSelectedDashboardMonth() {
+  const input = document.getElementById("clientDashboardMonth");
+  const value = input?.value || getCurrentMonthValue();
+  return /^\d{4}-\d{2}$/.test(value) ? value : getCurrentMonthValue();
+}
+
+function getDashboardMonthRange(monthValue) {
+  const [yearText, monthText] = String(monthValue).split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    return getDashboardMonthRange(getCurrentMonthValue());
+  }
+
+  const lastDay = new Date(year, month, 0).getDate();
+  return {
+    dateFrom: `${yearText}-${monthText}-01`,
+    dateTo: `${yearText}-${monthText}-${String(lastDay).padStart(2, "0")}`,
+  };
 }
 
 function formatTelemetryError(raw) {
@@ -320,27 +374,77 @@ function renderChargingSessionsTable() {
   tbody.innerHTML = "";
 
   if (!Array.isArray(adminState.chargingSessions) || adminState.chargingSessions.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4">Nenhum carregamento registrado.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">Nenhum carregamento registrado.</td></tr>';
     return;
   }
 
   for (const session of adminState.chargingSessions) {
     const tr = document.createElement("tr");
-    const cells = [
+    tr.dataset.sessionId = String(session.id);
+
+    for (const text of [
       String(session.id ?? "--"),
       formatDateTime(session.start_time),
       session.end_time ? formatDateTime(session.end_time) : "Em andamento",
       formatKwh(session.energy_kwh),
-    ];
-
-    for (const text of cells) {
+      session.client_label || formatClientLabel(session.client),
+    ]) {
       const td = document.createElement("td");
       td.textContent = text;
       tr.appendChild(td);
     }
 
+    const linkTd = document.createElement("td");
+    const wrap = document.createElement("div");
+    wrap.className = "table-actions";
+
+    const select = document.createElement("select");
+    select.className = "select table-select";
+    select.dataset.sessionClientSelect = String(session.id);
+
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "Sem cliente";
+    select.appendChild(emptyOption);
+
+    for (const client of adminState.chargingClients) {
+      const option = document.createElement("option");
+      option.value = String(client.id);
+      option.textContent = formatClientLabel(client);
+      select.appendChild(option);
+    }
+
+    select.value = session.client_id ? String(session.client_id) : "";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn btn-secondary btn-inline";
+    button.dataset.action = "link-client";
+    button.dataset.sessionId = String(session.id);
+    button.textContent = "Salvar";
+
+    wrap.appendChild(select);
+    wrap.appendChild(button);
+    linkTd.appendChild(wrap);
+    tr.appendChild(linkTd);
+
     tbody.appendChild(tr);
   }
+}
+
+async function loadChargingClients() {
+  const res = await fetch("/api/admin/charging-clients");
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data.success || !Array.isArray(data.clients)) {
+    adminState.chargingClients = [];
+    renderChargingSessionsTable();
+    setClientMsg(data.message || "Erro ao carregar clientes.", "error");
+    return;
+  }
+
+  adminState.chargingClients = data.clients;
+  renderChargingSessionsTable();
 }
 
 async function loadChargingSessions() {
@@ -357,6 +461,219 @@ async function loadChargingSessions() {
   adminState.chargingSessions = data.sessions;
   renderChargingSessionsTable();
   setSessionsMsg("");
+}
+
+async function submitChargingClientForm(event) {
+  event.preventDefault();
+
+  const payload = {
+    name: document.getElementById("clientName").value.trim(),
+    tower: document.getElementById("clientTower").value.trim(),
+    apartment: document.getElementById("clientApartment").value.trim(),
+  };
+
+  if (!payload.name) return setClientMsg("Informe o nome do cliente.", "error");
+
+  const res = await fetch("/api/admin/charging-clients", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    return setClientMsg(data.message || `Falha ao cadastrar cliente (HTTP ${res.status})`, "error");
+  }
+
+  document.getElementById("chargingClientForm").reset();
+  setClientMsg("Cliente cadastrado.", "ok");
+  await loadChargingClients();
+  await loadClientDashboard();
+}
+
+async function linkClientToSession(sessionId, clientId) {
+  const res = await fetch(`/api/admin/sessions/${sessionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ client_id: clientId || null }),
+  });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data.success) {
+    return setSessionsMsg(data.message || `Falha ao vincular cliente (HTTP ${res.status})`, "error");
+  }
+
+  setSessionsMsg("Cliente vinculado ao carregamento.", "ok");
+  await loadChargingSessions();
+  await loadClientDashboard();
+}
+
+function getDashboardSessionsForClient(clientId) {
+  return adminState.clientDashboardSessions
+    .filter((session) => String(session.client_id || "") === String(clientId))
+    .sort((a, b) => Date.parse(b.start_time || 0) - Date.parse(a.start_time || 0));
+}
+
+function renderClientSessionDetails(client, sessions) {
+  const tr = document.createElement("tr");
+  tr.className = "detail-row";
+
+  const td = document.createElement("td");
+  td.colSpan = 6;
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "table-wrap";
+
+  const table = document.createElement("table");
+  table.className = "table nested-table";
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Energia</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+  `;
+
+  const tbody = document.createElement("tbody");
+  if (sessions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3">Nenhum carregamento vinculado a este cliente no mes selecionado.</td></tr>';
+  } else {
+    for (const session of sessions) {
+      const detailTr = document.createElement("tr");
+
+      const dateTd = document.createElement("td");
+      dateTd.textContent = formatDateTime(session.start_time);
+      detailTr.appendChild(dateTd);
+
+      const energyTd = document.createElement("td");
+      energyTd.textContent = formatKwh(session.energy_kwh);
+      detailTr.appendChild(energyTd);
+
+      const statusTd = document.createElement("td");
+      const select = document.createElement("select");
+      select.className = "select table-select";
+      select.dataset.action = "update-dashboard-payment";
+      select.dataset.sessionId = String(session.id);
+      select.innerHTML = `
+        <option value="pendente">Pendente</option>
+        <option value="pago">Pago</option>
+      `;
+      select.value = session.payment_status === "pago" ? "pago" : "pendente";
+      statusTd.appendChild(select);
+      detailTr.appendChild(statusTd);
+
+      tbody.appendChild(detailTr);
+    }
+  }
+
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
+  td.appendChild(wrapper);
+  tr.appendChild(td);
+  return tr;
+}
+
+function renderClientDashboard() {
+  const tbody = document.getElementById("clientDashboardTableBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(adminState.chargingClients) || adminState.chargingClients.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6">Nenhum cliente cadastrado.</td></tr>';
+    return;
+  }
+
+  for (const client of adminState.chargingClients) {
+    const sessions = getDashboardSessionsForClient(client.id);
+    const totalKwh = sessions.reduce((sum, session) => sum + getNumericKwh(session.energy_kwh), 0);
+    const isExpanded = String(adminState.expandedDashboardClientId || "") === String(client.id);
+
+    const tr = document.createElement("tr");
+    for (const text of [
+      client.name || "-",
+      client.tower || "-",
+      client.apartment || "-",
+      String(sessions.length),
+      formatKwh(totalKwh),
+    ]) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.appendChild(td);
+    }
+
+    const actionTd = document.createElement("td");
+    const button = document.createElement("button");
+    button.className = "btn btn-secondary btn-inline";
+    button.type = "button";
+    button.dataset.action = "toggle-client-dashboard";
+    button.dataset.clientId = String(client.id);
+    button.textContent = isExpanded ? "Fechar" : "Ver carregamentos";
+    actionTd.appendChild(button);
+    tr.appendChild(actionTd);
+    tbody.appendChild(tr);
+
+    if (isExpanded) {
+      tbody.appendChild(renderClientSessionDetails(client, sessions));
+    }
+  }
+}
+
+async function loadClientDashboard() {
+  const month = getSelectedDashboardMonth();
+  const { dateFrom, dateTo } = getDashboardMonthRange(month);
+  const params = new URLSearchParams({
+    limit: "500",
+    date_from: dateFrom,
+    date_to: dateTo,
+  });
+
+  const [clientsRes, sessionsRes] = await Promise.all([
+    fetch("/api/admin/charging-clients"),
+    fetch(`/api/admin/sessions?${params.toString()}`),
+  ]);
+  const clientsData = await clientsRes.json().catch(() => ({}));
+  const sessionsData = await sessionsRes.json().catch(() => ({}));
+
+  if (!clientsRes.ok || !clientsData.success || !Array.isArray(clientsData.clients)) {
+    adminState.chargingClients = [];
+    adminState.clientDashboardSessions = [];
+    renderClientDashboard();
+    setClientDashboardMsg(clientsData.message || "Erro ao carregar clientes.", "error");
+    return;
+  }
+
+  if (!sessionsRes.ok || !sessionsData.success || !Array.isArray(sessionsData.sessions)) {
+    adminState.chargingClients = clientsData.clients;
+    adminState.clientDashboardSessions = [];
+    renderClientDashboard();
+    setClientDashboardMsg(sessionsData.message || "Erro ao carregar carregamentos do mes.", "error");
+    return;
+  }
+
+  adminState.chargingClients = clientsData.clients;
+  adminState.clientDashboardSessions = sessionsData.sessions.filter((session) => session.client_id);
+  renderClientDashboard();
+  setClientDashboardMsg("");
+}
+
+async function updateDashboardPaymentStatus(sessionId, paymentStatus) {
+  const res = await fetch(`/api/admin/sessions/${sessionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ payment_status: paymentStatus }),
+  });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data.success) {
+    setClientDashboardMsg(data.message || `Falha ao atualizar status (HTTP ${res.status})`, "error");
+    return false;
+  }
+
+  setClientDashboardMsg("Status atualizado.", "ok");
+  await Promise.all([loadClientDashboard(), loadChargingSessions()]);
+  return true;
 }
 
 function renderActionMode() {
@@ -639,7 +956,9 @@ async function toggleStationActive(station) {
 }
 
 async function refreshAll() {
-  await Promise.all([loadUsers(), loadStationsAdmin(), loadCurrentSessions(), loadChargingSessions()]);
+  await Promise.all([loadUsers(), loadStationsAdmin(), loadCurrentSessions(), loadChargingClients()]);
+  await loadChargingSessions();
+  await loadClientDashboard();
   await loadAddressesForUser(getSelectedUserId());
   await refreshState();
   setMsg("Dados atualizados.", "ok");
@@ -693,6 +1012,13 @@ function setupEvents() {
   document.getElementById("adminActionBtn").addEventListener("click", handlePrimaryAction);
   document.getElementById("refreshBtn").addEventListener("click", refreshAll);
   document.getElementById("sessionsRefreshBtn").addEventListener("click", loadChargingSessions);
+  document.getElementById("chargingClientForm").addEventListener("submit", submitChargingClientForm);
+  document.getElementById("clientDashboardRefreshBtn").addEventListener("click", loadClientDashboard);
+  document.getElementById("clientDashboardMonth").value = getCurrentMonthValue();
+  document.getElementById("clientDashboardMonth").addEventListener("change", async () => {
+    adminState.expandedDashboardClientId = null;
+    await loadClientDashboard();
+  });
 
   document.getElementById("controlStationSelect").addEventListener("change", (event) => {
     const id = Number(event.target.value);
@@ -728,6 +1054,52 @@ function setupEvents() {
     }
 
     if (action === "toggle") await toggleStationActive(station);
+  });
+
+  document.getElementById("chargingSessionsTableBody").addEventListener("click", async (event) => {
+    const action = event.target?.dataset?.action;
+    const sessionId = Number(event.target?.dataset?.sessionId || "0");
+    if (action !== "link-client" || !Number.isInteger(sessionId) || sessionId <= 0) return;
+
+    const select = document.querySelector(`[data-session-client-select="${sessionId}"]`);
+    const clientId = select?.value ? Number(select.value) : null;
+    if (clientId != null && (!Number.isInteger(clientId) || clientId <= 0)) {
+      return setSessionsMsg("Cliente invalido.", "error");
+    }
+
+    await linkClientToSession(sessionId, clientId);
+  });
+
+  document.getElementById("clientDashboardTableBody").addEventListener("click", async (event) => {
+    const action = event.target?.dataset?.action;
+    if (action !== "toggle-client-dashboard") return;
+
+    const clientId = Number(event.target?.dataset?.clientId || "0");
+    if (!Number.isInteger(clientId) || clientId <= 0) return;
+
+    adminState.expandedDashboardClientId = String(adminState.expandedDashboardClientId || "") === String(clientId)
+      ? null
+      : clientId;
+    renderClientDashboard();
+  });
+
+  document.getElementById("clientDashboardTableBody").addEventListener("change", async (event) => {
+    const action = event.target?.dataset?.action;
+    if (action !== "update-dashboard-payment") return;
+
+    const sessionId = Number(event.target?.dataset?.sessionId || "0");
+    const paymentStatus = String(event.target.value || "");
+    if (!Number.isInteger(sessionId) || sessionId <= 0) return;
+    if (!["pendente", "pago"].includes(paymentStatus)) {
+      return setClientDashboardMsg("Status invalido.", "error");
+    }
+
+    event.target.disabled = true;
+    try {
+      await updateDashboardPaymentStatus(sessionId, paymentStatus);
+    } finally {
+      event.target.disabled = false;
+    }
   });
 
   document.getElementById("adminStopCancel").addEventListener("click", () => closeStopModal(false));

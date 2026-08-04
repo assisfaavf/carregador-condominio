@@ -163,6 +163,26 @@
 
         <p id="sessionsMsg" class="message"></p>
 
+        <form id="chargingClientForm" class="form mt-16">
+          <div class="form-grid-3">
+            <div class="field">
+              <label for="clientName">Nome do cliente</label>
+              <input id="clientName" class="input" required />
+            </div>
+            <div class="field">
+              <label for="clientTower">Torre</label>
+              <input id="clientTower" class="input" />
+            </div>
+            <div class="field">
+              <label for="clientApartment">Apartamento</label>
+              <input id="clientApartment" class="input" />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-secondary">Cadastrar cliente</button>
+        </form>
+
+        <p id="clientMsg" class="message"></p>
+
         <div class="table-wrap">
           <table class="table">
             <thead>
@@ -171,10 +191,45 @@
                 <th>Inicio</th>
                 <th>Final</th>
                 <th>Energia usada</th>
+                <th>Cliente</th>
+                <th>Vincular</th>
               </tr>
             </thead>
             <tbody id="chargingSessionsTableBody">
-              <tr><td colspan="4">Carregando...</td></tr>
+              <tr><td colspan="6">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Dashboard mensal por cliente</h2>
+            <p class="mini-note">Filtre por mes e abra um cliente para ver os carregamentos vinculados.</p>
+          </div>
+          <div class="dashboard-filter">
+            <input id="clientDashboardMonth" class="input month-input" type="month" />
+            <button id="clientDashboardRefreshBtn" class="btn btn-secondary btn-inline" type="button">Atualizar</button>
+          </div>
+        </div>
+
+        <p id="clientDashboardMsg" class="message"></p>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Torre</th>
+                <th>Apartamento</th>
+                <th>Carregamentos</th>
+                <th>Energia no mes</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody id="clientDashboardTableBody">
+              <tr><td colspan="6">Carregando...</td></tr>
             </tbody>
           </table>
         </div>
