@@ -620,7 +620,7 @@ export default function UserHomePage() {
       <header className="sticky top-0 z-50 flex items-center border-b border-slate-200 bg-background-light p-4 dark:border-primary/20 dark:bg-background-dark">
         <div className="w-10 shrink-0" />
         <div className="flex flex-1 justify-center">
-          <img alt="SPATE Engenharia" className="h-9 w-auto object-contain" src="/assets/Logo.svg" />
+          <img alt="SPATE Engenharia" className="h-9 w-auto object-contain" src="/assets/Logo-rem.png" />
         </div>
         <div className="flex w-10 items-center justify-end">
           <button
