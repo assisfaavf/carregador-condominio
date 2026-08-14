@@ -167,6 +167,8 @@ export default function UserProfilePage() {
   const [addressDraft, setAddressDraft] = useState<AddressDraft>(() => toAddressDraft())
   const [passwordDraft, setPasswordDraft] = useState<PasswordDraft>(emptyPasswordDraft)
   const [editingAddressId, setEditingAddressId] = useState<number | null>(null)
+  const [showAddressForm, setShowAddressForm] = useState(false)
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [loading, setLoading] = useState(true)
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingAddress, setSavingAddress] = useState(false)
@@ -265,6 +267,7 @@ export default function UserProfilePage() {
 
       setAddressDraft(toAddressDraft())
       setEditingAddressId(null)
+      setShowAddressForm(false)
       await loadAddresses()
     } catch (error) {
       setErrorMessage(getErrorMessage(error, 'Nao foi possivel salvar a unidade.'))
@@ -285,6 +288,7 @@ export default function UserProfilePage() {
       if (editingAddressId === addressId) {
         setAddressDraft(toAddressDraft())
         setEditingAddressId(null)
+        setShowAddressForm(false)
       }
       await loadAddresses()
       setMessage('Unidade removida.')
@@ -352,11 +356,19 @@ export default function UserProfilePage() {
   const startEditingAddress = (address: Address) => {
     setEditingAddressId(address.id)
     setAddressDraft(toAddressDraft(address))
+    setShowAddressForm(true)
   }
 
   const cancelAddressEditing = () => {
     setEditingAddressId(null)
     setAddressDraft(toAddressDraft())
+    setShowAddressForm(false)
+  }
+
+  const startAddingAddress = () => {
+    setEditingAddressId(null)
+    setAddressDraft(toAddressDraft())
+    setShowAddressForm(true)
   }
 
   return (
@@ -458,7 +470,7 @@ export default function UserProfilePage() {
             <h3 className="text-sm font-semibold uppercase tracking-wider text-primary">Minhas Unidades</h3>
             <button
               className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80"
-              onClick={cancelAddressEditing}
+              onClick={startAddingAddress}
               type="button"
             >
               <span className="material-symbols-outlined text-sm">add</span>
@@ -529,112 +541,155 @@ export default function UserProfilePage() {
           ))}
         </section>
 
-        <form className="space-y-4" onSubmit={handleSaveAddress}>
-          <h3 className="ml-1 text-sm font-semibold uppercase tracking-wider text-primary">
-            {editingAddressId ? 'Editar unidade' : 'Adicionar unidade'}
-          </h3>
-          <div className="space-y-3 rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark">
-            <input
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
-              onChange={(event) => setAddressDraft((draft) => ({ ...draft, label: event.target.value }))}
-              placeholder="Nome da unidade. Ex: Principal"
-              value={addressDraft.label}
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
-                onChange={(event) => setAddressDraft((draft) => ({ ...draft, street: event.target.value }))}
-                placeholder="Torre / Rua"
-                value={addressDraft.street}
-              />
-              <input
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
-                onChange={(event) => setAddressDraft((draft) => ({ ...draft, number: event.target.value }))}
-                placeholder="Apartamento"
-                value={addressDraft.number}
-              />
-            </div>
-            <input
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
-              onChange={(event) => setAddressDraft((draft) => ({ ...draft, complement: event.target.value }))}
-              placeholder="Complemento"
-              value={addressDraft.complement}
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
-                onChange={(event) => setAddressDraft((draft) => ({ ...draft, city: event.target.value }))}
-                placeholder="Cidade"
-                value={addressDraft.city}
-              />
-              <input
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
-                onChange={(event) => setAddressDraft((draft) => ({ ...draft, state: event.target.value }))}
-                placeholder="UF"
-                value={addressDraft.state}
-              />
-            </div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
-              <input
-                checked={addressDraft.is_default}
-                className="rounded border-slate-400 text-primary focus:ring-primary"
-                onChange={(event) => setAddressDraft((draft) => ({ ...draft, is_default: event.target.checked }))}
-                type="checkbox"
-              />
-              Definir como unidade principal
-            </label>
-            <div className="grid grid-cols-2 gap-3">
+        {showAddressForm ? (
+          <form className="space-y-4" onSubmit={handleSaveAddress}>
+            <div className="ml-1 flex items-center justify-between">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-primary">
+                {editingAddressId ? 'Editar unidade' : 'Adicionar unidade'}
+              </h3>
               <button
-                className="h-11 rounded-xl bg-primary font-bold text-background-dark disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={savingAddress}
-                type="submit"
-              >
-                {savingAddress ? 'Salvando...' : editingAddressId ? 'Salvar unidade' : 'Adicionar'}
-              </button>
-              <button
-                className="h-11 rounded-xl border border-slate-300 font-bold text-slate-700 dark:border-white/10 dark:text-slate-200"
+                className="text-xs font-bold text-slate-500 transition-colors hover:text-primary dark:text-slate-400"
                 onClick={cancelAddressEditing}
                 type="button"
               >
-                Limpar
+                Fechar
               </button>
             </div>
-          </div>
-        </form>
+            <div className="space-y-3 rounded-xl border border-primary/30 bg-white p-4 shadow-sm dark:border-primary/20 dark:bg-surface-dark">
+              <input
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                onChange={(event) => setAddressDraft((draft) => ({ ...draft, label: event.target.value }))}
+                placeholder="Nome da unidade. Ex: Principal"
+                value={addressDraft.label}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                  onChange={(event) => setAddressDraft((draft) => ({ ...draft, street: event.target.value }))}
+                  placeholder="Torre / Rua"
+                  value={addressDraft.street}
+                />
+                <input
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                  onChange={(event) => setAddressDraft((draft) => ({ ...draft, number: event.target.value }))}
+                  placeholder="Apartamento"
+                  value={addressDraft.number}
+                />
+              </div>
+              <input
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                onChange={(event) => setAddressDraft((draft) => ({ ...draft, complement: event.target.value }))}
+                placeholder="Complemento"
+                value={addressDraft.complement}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                  onChange={(event) => setAddressDraft((draft) => ({ ...draft, city: event.target.value }))}
+                  placeholder="Cidade"
+                  value={addressDraft.city}
+                />
+                <input
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                  onChange={(event) => setAddressDraft((draft) => ({ ...draft, state: event.target.value }))}
+                  placeholder="UF"
+                  value={addressDraft.state}
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                <input
+                  checked={addressDraft.is_default}
+                  className="rounded border-slate-400 text-primary focus:ring-primary"
+                  onChange={(event) => setAddressDraft((draft) => ({ ...draft, is_default: event.target.checked }))}
+                  type="checkbox"
+                />
+                Definir como unidade principal
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  className="h-11 rounded-xl bg-primary font-bold text-background-dark disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={savingAddress}
+                  type="submit"
+                >
+                  {savingAddress ? 'Salvando...' : editingAddressId ? 'Salvar unidade' : 'Adicionar'}
+                </button>
+                <button
+                  className="h-11 rounded-xl border border-slate-300 font-bold text-slate-700 dark:border-white/10 dark:text-slate-200"
+                  onClick={cancelAddressEditing}
+                  type="button"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </form>
+        ) : null}
 
-        <form className="space-y-4" onSubmit={handleChangePassword}>
+        <section className="space-y-4">
           <h3 className="ml-1 text-sm font-semibold uppercase tracking-wider text-primary">Seguranca</h3>
-          <div className="space-y-3 rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark">
-            <input
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
-              onChange={(event) => setPasswordDraft((draft) => ({ ...draft, current_password: event.target.value }))}
-              placeholder="Senha atual"
-              type="password"
-              value={passwordDraft.current_password}
-            />
-            <input
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
-              onChange={(event) => setPasswordDraft((draft) => ({ ...draft, new_password: event.target.value }))}
-              placeholder="Nova senha"
-              type="password"
-              value={passwordDraft.new_password}
-            />
-            <input
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
-              onChange={(event) => setPasswordDraft((draft) => ({ ...draft, confirm_password: event.target.value }))}
-              placeholder="Confirmar nova senha"
-              type="password"
-              value={passwordDraft.confirm_password}
-            />
-            <button
-              className="h-12 w-full rounded-xl border border-primary/30 bg-primary/10 font-bold text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={savingPassword}
-              type="submit"
-            >
-              {savingPassword ? 'Alterando...' : 'Alterar senha'}
-            </button>
-          </div>
-        </form>
+          <button
+            className="w-full rounded-xl border border-slate-100 bg-white p-4 text-left shadow-sm transition-colors hover:border-primary/50 dark:border-white/5 dark:bg-surface-dark"
+            onClick={() => setShowPasswordForm((current) => !current)}
+            type="button"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-900 transition-colors dark:bg-white/5 dark:text-white">
+                  <span className="material-symbols-outlined">lock</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold">Trocar senha</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Abra o modulo para atualizar sua senha de acesso
+                  </p>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-slate-400">
+                {showPasswordForm ? 'expand_less' : 'chevron_right'}
+              </span>
+            </div>
+          </button>
+
+          {showPasswordForm ? (
+            <form className="space-y-3 rounded-xl border border-primary/30 bg-white p-4 shadow-sm dark:border-primary/20 dark:bg-surface-dark" onSubmit={handleChangePassword}>
+              <button
+                className="ml-auto block text-xs font-bold text-slate-500 transition-colors hover:text-primary dark:text-slate-400"
+                onClick={() => setShowPasswordForm(false)}
+                type="button"
+              >
+                Fechar
+              </button>
+              <input
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                onChange={(event) => setPasswordDraft((draft) => ({ ...draft, current_password: event.target.value }))}
+                placeholder="Senha atual"
+                type="password"
+                value={passwordDraft.current_password}
+              />
+              <input
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                onChange={(event) => setPasswordDraft((draft) => ({ ...draft, new_password: event.target.value }))}
+                placeholder="Nova senha"
+                type="password"
+                value={passwordDraft.new_password}
+              />
+              <input
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                onChange={(event) => setPasswordDraft((draft) => ({ ...draft, confirm_password: event.target.value }))}
+                placeholder="Confirmar nova senha"
+                type="password"
+                value={passwordDraft.confirm_password}
+              />
+              <button
+                className="h-12 w-full rounded-xl border border-primary/30 bg-primary/10 font-bold text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={savingPassword}
+                type="submit"
+              >
+                {savingPassword ? 'Alterando...' : 'Salvar nova senha'}
+              </button>
+            </form>
+          ) : null}
+        </section>
 
         <section className="mb-8">
           <button
