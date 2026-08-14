@@ -4,6 +4,7 @@ export type AuthUser = {
   id: number
   name: string
   email: string
+  cpf: string | null
   is_admin: boolean
   role: string | null
   approval_status: 'pending' | 'approved' | 'rejected' | string

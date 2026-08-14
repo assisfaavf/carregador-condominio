@@ -769,6 +769,7 @@ function toAuthUser(user) {
     id: user.id,
     name: user.name,
     email: user.email,
+    cpf: user.cpf ?? null,
     is_admin: user.is_admin === true,
     role: user.role ?? null,
     approval_status: user.approval_status ?? "approved",
@@ -1036,6 +1037,86 @@ app.post("/auth/login", async (req, res) => {
 
 app.get("/auth/me", requireAuth, (req, res) => res.json({ success: true, user: toAuthUser(req.user) }));
 app.get("/api/me", requireAuth, (req, res) => res.json({ success: true, user: toAuthUser(req.user) }));
+app.patch("/api/me", requireAuth, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const payload = {};
+
+    if (Object.prototype.hasOwnProperty.call(body, "name")) {
+      const name = String(body.name || "").trim();
+      if (!name) return res.status(400).json({ success: false, message: "Nome e obrigatorio." });
+      payload.name = name;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "email")) {
+      const email = String(body.email || "").trim().toLowerCase();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ success: false, message: "Email invalido." });
+      }
+      payload.email = email;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "cpf")) {
+      const cpf = String(body.cpf || "").replace(/\D/g, "");
+      if (cpf && cpf.length !== 11) {
+        return res.status(400).json({ success: false, message: "CPF invalido (11 numeros)." });
+      }
+      payload.cpf = cpf || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "tower")) {
+      payload.tower = String(body.tower || "").trim().toLowerCase() || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "apartment")) {
+      payload.apartment = String(body.apartment || "").trim() || null;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      return res.status(400).json({ success: false, message: "Nenhum campo valido para atualizar." });
+    }
+
+    const user = await usersRepo.updateProfile(req.user.id, payload);
+    if (!user) return res.status(404).json({ success: false, message: "Usuario nao encontrado." });
+
+    return res.json({ success: true, user: toAuthUser(user) });
+  } catch (error) {
+    if (error?.code === "DUPLICATE_EMAIL") {
+      return res.status(409).json({ success: false, message: "Email ja cadastrado." });
+    }
+    if (error?.code === "DUPLICATE_CPF") {
+      return res.status(409).json({ success: false, message: "CPF ja cadastrado." });
+    }
+    return sendErrorResponse(res, 500, "Erro ao atualizar perfil.", error);
+  }
+});
+app.patch("/api/me/password", requireAuth, async (req, res) => {
+  try {
+    const currentPassword = String(req.body?.current_password || "");
+    const newPassword = String(req.body?.new_password || "");
+
+    if (!currentPassword) {
+      return res.status(400).json({ success: false, message: "Informe a senha atual." });
+    }
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: "Nova senha deve ter no minimo 8 caracteres." });
+    }
+
+    const user = await usersRepo.findByIdWithPassword(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: "Usuario nao encontrado." });
+
+    const ok = bcrypt.compareSync(currentPassword, user.password_hash);
+    if (!ok) return res.status(401).json({ success: false, message: "Senha atual incorreta." });
+
+    await usersRepo.updateProfile(req.user.id, {
+      password_hash: bcrypt.hashSync(newPassword, 10),
+    });
+
+    return res.json({ success: true, message: "Senha atualizada." });
+  } catch (error) {
+    return sendErrorResponse(res, 500, "Erro ao alterar senha.", error);
+  }
+});
 app.post("/auth/logout", (req, res) => {
   clearAuthCookie(res);
   return res.json({ ok: true });

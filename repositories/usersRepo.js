@@ -75,6 +75,25 @@ async function findById(id) {
   return mapUser(rows[0]);
 }
 
+async function findByIdWithPassword(id) {
+  const rows = await pgDb.query(
+    `
+      SELECT
+        ${getUserSelectFields(true)}
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [id]
+  );
+
+  if (!rows[0]) return null;
+  return {
+    ...mapUser(rows[0]),
+    password_hash: rows[0].password_hash,
+  };
+}
+
 async function create({
   name,
   email,
@@ -283,12 +302,71 @@ async function updateAdminUser(id, payload) {
   return mapUser(rows[0]);
 }
 
+async function updateProfile(id, payload) {
+  const updates = [];
+  const values = [];
+
+  const setField = (sqlExpression, value) => {
+    values.push(value);
+    updates.push(`${sqlExpression} = $${values.length}`);
+  };
+
+  for (const field of ["name", "email", "cpf", "tower", "apartment", "password_hash"]) {
+    if (Object.prototype.hasOwnProperty.call(payload, field)) {
+      setField(field, payload[field]);
+    }
+  }
+
+  if (updates.length === 0) {
+    return findById(id);
+  }
+
+  values.push(id);
+
+  try {
+    const rows = await pgDb.query(
+      `
+        UPDATE users
+        SET ${updates.join(", ")}
+        WHERE id = $${values.length}
+        RETURNING
+          ${getUserSelectFields(false)}
+      `,
+      values
+    );
+
+    return mapUser(rows[0]);
+  } catch (error) {
+    if (
+      error &&
+      error.code === "23505" &&
+      (error.constraint === "users_email_key" || String(error.detail || "").includes("(email)"))
+    ) {
+      const duplicateError = new Error("Email ja cadastrado");
+      duplicateError.code = "DUPLICATE_EMAIL";
+      throw duplicateError;
+    }
+    if (
+      error &&
+      error.code === "23505" &&
+      (error.constraint === "users_cpf_key" || String(error.detail || "").includes("(cpf)"))
+    ) {
+      const duplicateError = new Error("CPF ja cadastrado");
+      duplicateError.code = "DUPLICATE_CPF";
+      throw duplicateError;
+    }
+    throw error;
+  }
+}
+
 module.exports = {
   create,
   findByEmail,
   findById,
+  findByIdWithPassword,
   listAdminUsers,
   listBasic,
   setLastLoginAt,
   updateAdminUser,
+  updateProfile,
 };
