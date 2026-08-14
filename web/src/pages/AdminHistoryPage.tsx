@@ -466,7 +466,7 @@ export default function AdminHistoryPage() {
                         <div className="h-full rounded-full bg-primary" style={{ width: `${maxDailyEnergy > 0 ? Math.max((item.energy / maxDailyEnergy) * 100, 3) : 0}%` }} />
                       </div>
                       <div className="h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-background-dark">
-                        <div className="h-full rounded-full bg-emerald-400" style={{ width: `${maxDailyValue > 0 ? Math.max((item.value / maxDailyValue) * 100, 3) : 0}%` }} />
+                        <div className="h-full rounded-full bg-blue-400" style={{ width: `${maxDailyValue > 0 ? Math.max((item.value / maxDailyValue) * 100, 3) : 0}%` }} />
                       </div>
                     </div>
                     <div className="text-right text-[11px] text-slate-500 dark:text-text-secondary">{formatKwh(item.energy)}<br />{formatMoney(item.value)}</div>
@@ -476,7 +476,7 @@ export default function AdminHistoryPage() {
 
               <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-slate-500 dark:text-text-secondary">
                 <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" />Energia</span>
-                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400" />Valor</span>
+                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-400" />Valor</span>
               </div>
             </div>
 
