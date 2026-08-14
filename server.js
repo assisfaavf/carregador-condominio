@@ -37,6 +37,8 @@ const frontendDistDir = path.join(__dirname, "web", "dist");
 const frontendIndexPath = path.join(frontendDistDir, "index.html");
 const hasFrontendDist = fs.existsSync(frontendIndexPath);
 
+app.use(express.static(legacyPublicDir, { index: false }));
+
 function extractStationId(req) {
   const candidates = [
     req.params?.station_id,
