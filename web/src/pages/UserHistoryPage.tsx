@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError, apiFetch } from '../api/client'
+import { useAuth } from '../auth/AuthProvider'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 100
 
 type ApiSession = {
   id: number
@@ -72,6 +73,33 @@ function formatCurrency(value: number | null) {
   })
 }
 
+function getCurrentMonthValue() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function getMonthRange(monthValue: string) {
+  const [yearText, monthText] = monthValue.split('-')
+  const year = Number(yearText)
+  const month = Number(monthText)
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    return getMonthRange(getCurrentMonthValue())
+  }
+
+  const lastDay = new Date(year, month, 0).getDate()
+  return {
+    dateFrom: `${yearText}-${monthText}-01`,
+    dateTo: `${yearText}-${monthText}-${String(lastDay).padStart(2, '0')}`,
+  }
+}
+
+function formatMonthLabel(monthValue: string) {
+  const [yearText, monthText] = monthValue.split('-')
+  const date = new Date(Number(yearText), Number(monthText) - 1, 1)
+  if (Number.isNaN(date.getTime())) return 'mes selecionado'
+  return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+}
+
 function getEffectiveKwh(session: ApiSession) {
   return session.energy_kwh ?? session.energy_once
 }
@@ -111,24 +139,44 @@ function summarizeBySessions(sessions: ApiSession[]) {
     (acc, session) => {
       const energy = getEffectiveKwh(session)
       const price = getEffectivePrice(session)
+      const duration = session.duration_seconds
+      const paymentStatus = String(session.payment_status || '').trim().toLowerCase()
+      const addressKey = session.address_id != null
+        ? String(session.address_id)
+        : String(session.address_label || '').trim()
       return {
         totalKwh: acc.totalKwh + (energy != null ? energy : 0),
         totalValue: acc.totalValue + (price != null ? price : 0),
+        totalSeconds: acc.totalSeconds + (duration != null && Number.isFinite(duration) ? duration : 0),
+        paidCount: acc.paidCount + (paymentStatus === 'pago' ? 1 : 0),
+        pendingCount: acc.pendingCount + (paymentStatus === 'pendente' ? 1 : 0),
+        courtesyCount: acc.courtesyCount + (paymentStatus === 'cortesia' ? 1 : 0),
+        addressKeys: addressKey ? acc.addressKeys.add(addressKey) : acc.addressKeys,
       }
     },
-    { totalKwh: 0, totalValue: 0 },
+    {
+      totalKwh: 0,
+      totalValue: 0,
+      totalSeconds: 0,
+      paidCount: 0,
+      pendingCount: 0,
+      courtesyCount: 0,
+      addressKeys: new Set<string>(),
+    },
   )
 }
 
 export default function UserHistoryPage() {
+  const { user } = useAuth()
   const [sessions, setSessions] = useState<ApiSession[]>([])
   const [offset, setOffset] = useState(0)
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthValue)
   const [hasMore, setHasMore] = useState(true)
   const [loadingInitial, setLoadingInitial] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const fetchPage = useCallback(async (targetOffset: number, append: boolean) => {
+  const fetchPage = useCallback(async (targetOffset: number, append: boolean, monthValue = selectedMonth) => {
     if (append) {
       setLoadingMore(true)
     } else {
@@ -137,8 +185,15 @@ export default function UserHistoryPage() {
     setErrorMessage(null)
 
     try {
+      const { dateFrom, dateTo } = getMonthRange(monthValue)
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(targetOffset),
+        date_from: dateFrom,
+        date_to: dateTo,
+      })
       const response = await apiFetch<MySessionsResponse>(
-        `/api/my/sessions?limit=${PAGE_SIZE}&offset=${targetOffset}`,
+        `/api/my/sessions?${params.toString()}`,
       )
       const page = response.sessions ?? []
 
@@ -154,25 +209,42 @@ export default function UserHistoryPage() {
         setLoadingInitial(false)
       }
     }
-  }, [])
+  }, [selectedMonth])
 
   useEffect(() => {
-    void fetchPage(0, false)
+    void fetchPage(0, false, selectedMonth)
   }, [fetchPage])
 
   const summary = useMemo(() => summarizeBySessions(sessions), [sessions])
+  const averageKwh = sessions.length > 0 ? summary.totalKwh / sessions.length : null
+  const averageValue = sessions.length > 0 ? summary.totalValue / sessions.length : null
+  const monthLabel = formatMonthLabel(selectedMonth)
 
   return (
     <div className="min-h-screen bg-background-dark font-display text-slate-100">
       <main className="mx-auto w-full max-w-md space-y-6 px-4 py-6 pb-28">
         <section className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">Histórico de Carregamentos</h1>
-          <p className="text-sm text-slate-300">Acompanhe suas últimas sessões e pagamentos.</p>
+          <p className="text-sm text-slate-300">Acompanhe suas sessões e pagamentos por mês.</p>
+        </section>
+
+        <section className="rounded-2xl border border-primary/20 bg-[#1a3523] p-4">
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Filtrar por mês</span>
+            <input
+              className="h-12 rounded-xl border border-primary/20 bg-slate-900/35 px-4 text-sm font-semibold text-slate-100 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+              onChange={(event) => {
+                setSelectedMonth(event.target.value || getCurrentMonthValue())
+              }}
+              type="month"
+              value={selectedMonth}
+            />
+          </label>
         </section>
 
         <section className="grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-primary/20 bg-[#1a3523] p-3">
-            <p className="text-[10px] uppercase tracking-wider text-slate-300">Sessões</p>
+            <p className="text-[10px] uppercase tracking-wider text-slate-300">Carregamentos</p>
             <p className="mt-1 text-lg font-bold text-primary">{sessions.length}</p>
           </div>
           <div className="rounded-xl border border-primary/20 bg-[#1a3523] p-3">
@@ -218,7 +290,7 @@ export default function UserHistoryPage() {
         {!loadingInitial && !errorMessage && sessions.length === 0 ? (
           <section className="rounded-2xl border border-primary/20 bg-[#1a3523] p-6 text-center">
             <p className="text-base font-semibold text-slate-100">Nenhuma sessao encontrada</p>
-            <p className="mt-1 text-sm text-slate-300">Quando houver recargas, elas aparecerao aqui.</p>
+            <p className="mt-1 text-sm text-slate-300">Nao ha recargas em {monthLabel}.</p>
           </section>
         ) : null}
 
@@ -306,6 +378,68 @@ export default function UserHistoryPage() {
             {loadingMore ? 'Carregando...' : 'Carregar mais'}
           </button>
         ) : null}
+
+        <section className="space-y-4 rounded-2xl border border-primary/20 bg-[#1a3523] p-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-100">Dashboard do mês</h2>
+            <p className="mt-1 text-sm text-slate-300">
+              Resumo de {monthLabel} com os carregamentos carregados na tela.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-slate-900/35 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">Valor total</p>
+              <p className="mt-1 text-lg font-bold text-primary">{formatCurrency(summary.totalValue)}</p>
+            </div>
+            <div className="rounded-xl bg-slate-900/35 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">Energia total</p>
+              <p className="mt-1 text-lg font-bold text-primary">{formatKwh(summary.totalKwh)}</p>
+            </div>
+            <div className="rounded-xl bg-slate-900/35 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">Carregamentos</p>
+              <p className="mt-1 text-lg font-bold text-slate-100">{sessions.length}</p>
+            </div>
+            <div className="rounded-xl bg-slate-900/35 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">Usuário</p>
+              <p className="mt-1 truncate text-sm font-bold text-slate-100">{user?.name || '--'}</p>
+            </div>
+            <div className="rounded-xl bg-slate-900/35 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">Unidades usadas</p>
+              <p className="mt-1 text-lg font-bold text-slate-100">{summary.addressKeys.size}</p>
+            </div>
+            <div className="rounded-xl bg-slate-900/35 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">Tempo total</p>
+              <p className="mt-1 text-lg font-bold text-slate-100">{formatDuration(summary.totalSeconds)}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-primary/15 bg-primary/10 p-3 text-center">
+              <p className="text-lg font-bold text-primary">{summary.paidCount}</p>
+              <p className="text-[10px] uppercase tracking-wider text-slate-300">Pagos</p>
+            </div>
+            <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-3 text-center">
+              <p className="text-lg font-bold text-amber-300">{summary.pendingCount}</p>
+              <p className="text-[10px] uppercase tracking-wider text-slate-300">Pendentes</p>
+            </div>
+            <div className="rounded-xl border border-sky-400/20 bg-sky-500/10 p-3 text-center">
+              <p className="text-lg font-bold text-sky-300">{summary.courtesyCount}</p>
+              <p className="text-[10px] uppercase tracking-wider text-slate-300">Cortesias</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-primary/10 bg-slate-900/30 p-3 text-sm text-slate-300">
+            <div className="flex items-center justify-between gap-3">
+              <span>Média por carregamento</span>
+              <strong className="text-primary">{formatKwh(averageKwh)}</strong>
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <span>Ticket médio</span>
+              <strong className="text-primary">{formatCurrency(averageValue)}</strong>
+            </div>
+          </div>
+        </section>
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 border-t border-primary/20 bg-slate-900 px-4 pb-6 pt-2">

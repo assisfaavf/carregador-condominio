@@ -362,7 +362,26 @@ async function finishSession(sessionId, patch, tx) {
   return mapSessionRow(rows[0]);
 }
 
-async function listByUser(userId, limit = 50, offset = 0) {
+async function listByUser(userId, limit = 50, offset = 0, filters = {}) {
+  const clauses = ["s.user_id = $1"];
+  const values = [userId];
+  let idx = 2;
+
+  if (filters.date_from) {
+    clauses.push(`s.start_time >= $${idx}`);
+    values.push(filters.date_from);
+    idx += 1;
+  }
+
+  if (filters.date_to) {
+    clauses.push(`s.start_time <= $${idx}`);
+    values.push(filters.date_to);
+    idx += 1;
+  }
+
+  const limitParam = idx;
+  const offsetParam = idx + 1;
+
   const rows = await pgDb.query(
     `
       SELECT
@@ -396,11 +415,11 @@ async function listByUser(userId, limit = 50, offset = 0) {
       FROM sessions s
       LEFT JOIN stations st ON st.id = s.station_id
       LEFT JOIN addresses ad ON ad.id = s.address_id
-      WHERE s.user_id = $1
+      WHERE ${clauses.join(" AND ")}
       ORDER BY s.start_time DESC, s.id DESC
-      LIMIT $2 OFFSET $3
+      LIMIT $${limitParam} OFFSET $${offsetParam}
     `,
-    [userId, normalizeLimit(limit, 50, 200), normalizeOffset(offset, 0)]
+    [...values, normalizeLimit(limit, 50, 200), normalizeOffset(offset, 0)]
   );
 
   return rows.map((row) => ({

@@ -2437,7 +2437,15 @@ async function handleMySessions(req, res, defaultLimit = 20) {
     const limit = parsePositiveInt(req.query.limit) || defaultLimit;
     const offset = parseOffset(req.query.offset);
 
-    const sessions = await sessionsRepo.listByUser(req.user.id, limit, offset);
+    const sessions = await sessionsRepo.listByUser(
+      req.user.id,
+      limit,
+      offset,
+      {
+        date_from: normalizeAdminSessionDateQuery(req.query.date_from),
+        date_to: normalizeAdminSessionDateQuery(req.query.date_to, true),
+      }
+    );
     return res.json({
       success: true,
       limit,
