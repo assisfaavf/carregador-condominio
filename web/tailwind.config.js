@@ -5,12 +5,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#0df259',
+        primary: '#2559f4',
         'background-light': '#f5f8f6',
-        'background-dark': '#102216',
+        'background-dark': '#0f172a',
         danger: '#ef4444',
-        secondary: '#22492f',
-        'surface-dark': '#183422',
+        secondary: '#29406f',
+        'surface-dark': '#17213a',
       },
       fontFamily: {
         display: ['Space Grotesk', 'sans-serif'],

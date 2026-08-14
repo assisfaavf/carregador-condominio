@@ -101,33 +101,33 @@ function StationFields({
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Nome</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Nome</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ name: event.target.value })}
           value={draft.name}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Local</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Local</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ location_label: event.target.value })}
           value={draft.location_label}
         />
       </label>
       <label className="space-y-1 md:col-span-2">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Tuya Device ID</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Tuya Device ID</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ tuya_device_id: event.target.value })}
           value={draft.tuya_device_id}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Corrente maxima (A)</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Corrente maxima (A)</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           inputMode="numeric"
           onChange={(event) => onChange({ max_current_a: event.target.value })}
           value={draft.max_current_a}
@@ -136,7 +136,7 @@ function StationFields({
       <label className="flex items-center gap-2 text-sm text-white">
         <input
           checked={draft.is_active}
-          className="h-4 w-4 rounded border-white/10 bg-[#102216] text-primary focus:ring-primary/40"
+          className="h-4 w-4 rounded border-white/10 bg-[#0f172a] text-primary focus:ring-primary/40"
           onChange={(event) => onChange({ is_active: event.target.checked })}
           type="checkbox"
         />
@@ -315,21 +315,21 @@ export default function AdminSettingsPage() {
   return (
     <div className="bg-background-light font-display text-slate-900 antialiased selection:bg-primary selection:text-background-dark dark:bg-background-dark dark:text-slate-100">
       <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pb-28 pt-6">
-        <section className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,_rgba(13,242,89,0.12),_transparent_30%),linear-gradient(160deg,_rgba(24,52,34,1),_rgba(16,34,22,1))] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
+        <section className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,_rgba(37,89,244,0.12),_transparent_30%),linear-gradient(160deg,_rgba(23,33,58,1),_rgba(15,23,42,1))] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-emerald-600 text-lg font-bold text-background-dark">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-700 text-lg font-bold text-background-dark">
               {adminInitials}
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Configurações</h1>
-              <p className="text-sm text-[#90cba4]">{user?.email || 'Administrador'}</p>
+              <p className="text-sm text-[#9fb7e8]">{user?.email || 'Administrador'}</p>
             </div>
           </div>
         </section>
 
         <section className="rounded-[28px] border border-white/10 bg-surface-dark/95 p-5 shadow-[0_16px_60px_rgba(0,0,0,0.28)]">
           <div className="mb-5 flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#22492f] text-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#29406f] text-primary">
               <span className="material-symbols-outlined">currency_exchange</span>
             </div>
             <div>
@@ -354,7 +354,7 @@ export default function AdminSettingsPage() {
             <label className="space-y-2">
               <span className="text-sm font-semibold text-white">Tarifa por kWh (R$)</span>
               <input
-                className="h-12 w-full rounded-xl border border-white/10 bg-[#102216] px-4 text-sm text-white outline-none transition focus:border-primary/40"
+                className="h-12 w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 text-sm text-white outline-none transition focus:border-primary/40"
                 disabled={settingsLoading || settingsSaving}
                 inputMode="decimal"
                 onChange={(event) => setPricePerKwh(event.target.value)}
@@ -364,7 +364,7 @@ export default function AdminSettingsPage() {
             <label className="space-y-2">
               <span className="text-sm font-semibold text-white">Corrente padrao (A)</span>
               <input
-                className="h-12 w-full rounded-xl border border-white/10 bg-[#102216] px-4 text-sm text-white outline-none transition focus:border-primary/40"
+                className="h-12 w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 text-sm text-white outline-none transition focus:border-primary/40"
                 disabled={settingsLoading || settingsSaving}
                 inputMode="numeric"
                 onChange={(event) => setDefaultChargeCurrentA(event.target.value)}
@@ -396,7 +396,7 @@ export default function AdminSettingsPage() {
 
         <section className="rounded-[28px] border border-white/10 bg-surface-dark/95 p-5 shadow-[0_16px_60px_rgba(0,0,0,0.28)]">
           <div className="mb-5 flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#22492f] text-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#29406f] text-primary">
               <span className="material-symbols-outlined">ev_station</span>
             </div>
             <div>
@@ -421,7 +421,7 @@ export default function AdminSettingsPage() {
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-white">Nova estação</h3>
-                <p className="text-xs text-[#90cba4]">Tuya Device ID deve ser unico.</p>
+                <p className="text-xs text-[#9fb7e8]">Tuya Device ID deve ser unico.</p>
               </div>
               <button
                 className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-background-dark transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
@@ -474,7 +474,7 @@ export default function AdminSettingsPage() {
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <h3 className="text-lg font-bold text-white">{station.name}</h3>
-                        <p className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">
+                        <p className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">
                           {station.location_label || 'Sem local definido'}
                         </p>
                       </div>

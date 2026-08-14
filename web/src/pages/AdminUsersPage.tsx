@@ -162,7 +162,7 @@ function getStatusBadgeClass(status: string | null | undefined) {
 
 function getPendingCardClass(index: number) {
   return index % 2 === 0
-    ? 'from-emerald-400/15 via-surface-dark to-surface-dark'
+    ? 'from-blue-400/15 via-surface-dark to-surface-dark'
     : 'from-cyan-400/15 via-surface-dark to-surface-dark'
 }
 
@@ -211,65 +211,65 @@ function AddressFields({
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <label className="space-y-1 md:col-span-2">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Rotulo</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Rotulo</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ label: event.target.value })}
           value={draft.label}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Rua / Torre</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Rua / Torre</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ street: event.target.value })}
           value={draft.street}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Numero / Apto</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Numero / Apto</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ number: event.target.value })}
           value={draft.number}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Complemento</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Complemento</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ complement: event.target.value })}
           value={draft.complement}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Bairro</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Bairro</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ neighborhood: event.target.value })}
           value={draft.neighborhood}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Cidade</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Cidade</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ city: event.target.value })}
           value={draft.city}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Estado</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Estado</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ state: event.target.value })}
           value={draft.state}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">CEP</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">CEP</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ zip: event.target.value })}
           value={draft.zip}
         />
@@ -277,7 +277,7 @@ function AddressFields({
       <label className="flex items-center gap-2 text-sm text-white">
         <input
           checked={draft.is_default}
-          className="h-4 w-4 rounded border-white/10 bg-[#102216] text-primary focus:ring-primary/40"
+          className="h-4 w-4 rounded border-white/10 bg-[#0f172a] text-primary focus:ring-primary/40"
           onChange={(event) => onChange({ is_default: event.target.checked })}
           type="checkbox"
         />
@@ -336,14 +336,14 @@ function AddressModal({
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/70 p-4 backdrop-blur-sm md:items-center">
-      <div className="w-full max-w-2xl overflow-hidden rounded-[28px] border border-primary/20 bg-[#122818] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+      <div className="w-full max-w-2xl overflow-hidden rounded-[28px] border border-primary/20 bg-[#17213a] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
         <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#90cba4]">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#9fb7e8]">
               Endereços do usuário
             </p>
             <h2 className="mt-1 text-2xl font-bold text-white">{state?.user.name || 'Carregando...'}</h2>
-            <p className="mt-1 text-sm text-[#90cba4]">{state?.user.email || 'Consultando cadastro'}</p>
+            <p className="mt-1 text-sm text-[#9fb7e8]">{state?.user.email || 'Consultando cadastro'}</p>
           </div>
           <button
             className="rounded-full border border-white/10 p-2 text-slate-300 transition hover:border-primary/30 hover:text-white"
@@ -378,7 +378,7 @@ function AddressModal({
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-base font-bold text-white">Novo endereço</h3>
-                  <p className="text-xs text-[#90cba4]">Abra o formulário apenas quando precisar adicionar.</p>
+                  <p className="text-xs text-[#9fb7e8]">Abra o formulário apenas quando precisar adicionar.</p>
                 </div>
                 {isCreating ? (
                   <div className="flex gap-2">
@@ -438,7 +438,7 @@ function AddressModal({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <h3 className="text-base font-bold">{address.label}</h3>
-                        <p className="text-xs text-[#90cba4]">
+                        <p className="text-xs text-[#9fb7e8]">
                           Atualizado em {formatDateTime(address.updated_at)}
                         </p>
                       </div>
@@ -488,7 +488,7 @@ function AddressModal({
                     </div>
 
                     {editingThis ? (
-                      <div className="mt-4 rounded-2xl border border-white/10 bg-[#102216]/70 p-4">
+                      <div className="mt-4 rounded-2xl border border-white/10 bg-[#0f172a]/70 p-4">
                         <AddressFields
                           draft={draft}
                           onChange={(patch) => onEditDraftChange(address.id, patch)}
@@ -747,30 +747,30 @@ export default function AdminUsersPage() {
   return (
     <div className="bg-background-light font-display text-slate-900 antialiased selection:bg-primary selection:text-background-dark dark:bg-background-dark dark:text-slate-100">
       <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pb-28 pt-6">
-        <section className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(13,242,89,0.18),_transparent_35%),linear-gradient(135deg,_rgba(24,52,34,1),_rgba(16,34,22,1))] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
+        <section className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(37,89,244,0.18),_transparent_35%),linear-gradient(135deg,_rgba(23,33,58,1),_rgba(15,23,42,1))] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
           <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
           <div className="absolute bottom-0 right-0 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl" />
           <div className="relative z-10">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#90cba4]">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#9fb7e8]">
                   Gestão de usuários
                 </p>
                 <h1 className="mt-2 text-3xl font-bold tracking-tight text-white md:text-4xl">
                   Aprovar, classificar e acompanhar acessos
                 </h1>
-                <p className="mt-3 max-w-2xl text-sm text-[#cce8d6]">
+                <p className="mt-3 max-w-2xl text-sm text-[#dbe7ff]">
                   Pendentes aparecem primeiro. Filtros, busca e acoes por linha atualizam sem travar a tela.
                 </p>
               </div>
 
               <div className="grid min-w-[220px] grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Pendentes</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Pendentes</p>
                   <p className="mt-2 text-3xl font-bold text-white">{pendingCount}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Usuários</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Usuários</p>
                   <p className="mt-2 text-3xl font-bold text-white">{total}</p>
                 </div>
               </div>
@@ -781,7 +781,7 @@ export default function AdminUsersPage() {
                 className={`flex-1 border-b-2 px-4 pb-3 text-sm font-semibold transition-colors ${
                   filters.status === 'pending'
                     ? 'border-primary text-white'
-                    : 'border-transparent text-[#90cba4] hover:text-white'
+                    : 'border-transparent text-[#9fb7e8] hover:text-white'
                 }`}
                 onClick={() => {
                   setFeedbackMessage(null)
@@ -798,7 +798,7 @@ export default function AdminUsersPage() {
                 className={`flex-1 border-b-2 px-4 pb-3 text-sm font-semibold transition-colors ${
                   filters.status === ''
                     ? 'border-primary text-white'
-                    : 'border-transparent text-[#90cba4] hover:text-white'
+                    : 'border-transparent text-[#9fb7e8] hover:text-white'
                 }`}
                 onClick={() => {
                   setFeedbackMessage(null)
@@ -863,8 +863,8 @@ export default function AdminUsersPage() {
                         </div>
                         <div>
                           <h3 className="text-xl font-bold text-white">{user.name}</h3>
-                          <p className="mt-1 text-sm text-[#cce8d6]">{user.email}</p>
-                          <p className="mt-2 text-xs uppercase tracking-[0.22em] text-[#90cba4]">
+                          <p className="mt-1 text-sm text-[#dbe7ff]">{user.email}</p>
+                          <p className="mt-2 text-xs uppercase tracking-[0.22em] text-[#9fb7e8]">
                             Cadastro em {formatCreatedAt(user.created_at)}
                           </p>
                         </div>
@@ -878,11 +878,11 @@ export default function AdminUsersPage() {
 
                     <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-slate-200">
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Role</p>
+                        <p className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Role</p>
                         <p className="mt-2 font-semibold">{formatRole(user.role)}</p>
                       </div>
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="text-xs uppercase tracking-[0.18em] text-[#90cba4]">Último login</p>
+                        <p className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Último login</p>
                         <p className="mt-2 font-semibold">{formatDateTime(user.last_login_at)}</p>
                       </div>
                     </div>
@@ -937,7 +937,7 @@ export default function AdminUsersPage() {
                   search
                 </span>
                 <input
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-[#102216] pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-primary/40"
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-[#0f172a] pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-primary/40"
                   onChange={(event) => setSearchInput(event.target.value)}
                   placeholder="Buscar por nome ou email"
                   type="search"
@@ -946,7 +946,7 @@ export default function AdminUsersPage() {
               </label>
 
               <select
-                className="h-12 rounded-2xl border border-white/10 bg-[#102216] px-4 text-sm text-white outline-none transition focus:border-primary/40"
+                className="h-12 rounded-2xl border border-white/10 bg-[#0f172a] px-4 text-sm text-white outline-none transition focus:border-primary/40"
                 onChange={(event) => {
                   setFilters((current) => ({
                     ...current,
@@ -962,7 +962,7 @@ export default function AdminUsersPage() {
               </select>
 
               <select
-                className="h-12 rounded-2xl border border-white/10 bg-[#102216] px-4 text-sm text-white outline-none transition focus:border-primary/40"
+                className="h-12 rounded-2xl border border-white/10 bg-[#0f172a] px-4 text-sm text-white outline-none transition focus:border-primary/40"
                 onChange={(event) => {
                   setFilters((current) => ({
                     ...current,
@@ -989,7 +989,7 @@ export default function AdminUsersPage() {
 
           <div className="mt-5 overflow-hidden rounded-[24px] border border-white/10 lg:overflow-x-auto">
             <div className="lg:min-w-[1160px]">
-              <div className="hidden grid-cols-[minmax(180px,1.4fr)_minmax(220px,1.6fr)_120px_120px_120px_340px] gap-4 bg-[#102216] px-5 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-[#90cba4] lg:grid">
+              <div className="hidden grid-cols-[minmax(180px,1.4fr)_minmax(220px,1.6fr)_120px_120px_120px_340px] gap-4 bg-[#0f172a] px-5 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-[#9fb7e8] lg:grid">
                 <span>Nome</span>
                 <span>Email</span>
                 <span>Role</span>
@@ -999,7 +999,7 @@ export default function AdminUsersPage() {
               </div>
 
               {loading ? (
-                <div className="space-y-3 bg-[#112417] p-4">
+                <div className="space-y-3 bg-[#17213a] p-4">
                   {Array.from({ length: 4 }).map((_, index) => (
                     <div
                       className="h-24 animate-pulse rounded-2xl bg-white/5"
@@ -1010,13 +1010,13 @@ export default function AdminUsersPage() {
               ) : null}
 
               {!loading && users.length === 0 ? (
-                <div className="bg-[#112417] px-4 py-12 text-center text-sm text-slate-300">
+                <div className="bg-[#17213a] px-4 py-12 text-center text-sm text-slate-300">
                 Nenhum usuário encontrado com os filtros atuais.
                 </div>
               ) : null}
 
               {!loading && users.length > 0 ? (
-                <div className="divide-y divide-white/10 bg-[#112417]">
+                <div className="divide-y divide-white/10 bg-[#17213a]">
                   {users.map((user) => {
                     const saving = savingById[user.id] === true
                     const rowError = rowErrors[user.id]
@@ -1028,7 +1028,7 @@ export default function AdminUsersPage() {
                         <div className="grid gap-4 lg:grid-cols-[minmax(180px,1.4fr)_minmax(220px,1.6fr)_120px_120px_120px_340px] lg:items-center">
                           <div>
                             <p className="text-base font-bold text-white">{user.name}</p>
-                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#90cba4]">
+                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">
                               Criado em {formatCreatedAt(user.created_at)}
                             </p>
                           </div>
@@ -1037,7 +1037,7 @@ export default function AdminUsersPage() {
 
                           <div>
                             <select
-                              className="h-10 w-full rounded-xl border border-white/10 bg-[#102216] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+                              className="h-10 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
                               disabled={saving}
                               onChange={(event) => {
                                 void updateUser(

@@ -81,6 +81,8 @@ type StopResponse = {
   message?: string
 }
 
+type DebugResponse = Record<string, unknown>
+
 type SessionSummaryCard = {
   station: AdminStation
   session: CurrentSession | null
@@ -206,6 +208,9 @@ export default function AdminDashboardPage() {
   const [loadingAddresses, setLoadingAddresses] = useState(false)
   const [startingStationId, setStartingStationId] = useState<number | null>(null)
   const [stoppingStationId, setStoppingStationId] = useState<number | null>(null)
+  const [debugStationId, setDebugStationId] = useState('')
+  const [debugOutput, setDebugOutput] = useState('(vazio)')
+  const [debugLoading, setDebugLoading] = useState(false)
   const refreshBusyRef = useRef(false)
 
   const activeStations = useMemo(
@@ -537,6 +542,37 @@ export default function AdminDashboardPage() {
     }
   }, [reloadStationsAndDashboard, stopStationId])
 
+  const writeDebugOutput = useCallback((data: unknown) => {
+    setDebugOutput(JSON.stringify(data, null, 2))
+  }, [])
+
+  const loadDebugSessions = useCallback(async () => {
+    setDebugLoading(true)
+    try {
+      const response = await apiFetch<DebugResponse>('/sessions')
+      writeDebugOutput(response)
+    } catch (error) {
+      writeDebugOutput({ success: false, message: getErrorMessage(error, 'Falha ao carregar sessões.') })
+    } finally {
+      setDebugLoading(false)
+    }
+  }, [writeDebugOutput])
+
+  const loadDebugTuya = useCallback(async () => {
+    setDebugLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (debugStationId) params.set('station_id', debugStationId)
+      const suffix = params.toString() ? `?${params.toString()}` : ''
+      const response = await apiFetch<DebugResponse>(`/tuya/status${suffix}`)
+      writeDebugOutput(response)
+    } catch (error) {
+      writeDebugOutput({ success: false, message: getErrorMessage(error, 'Falha ao carregar status Tuya.') })
+    } finally {
+      setDebugLoading(false)
+    }
+  }, [debugStationId, writeDebugOutput])
+
   return (
     <div className="bg-background-light font-display text-slate-900 antialiased selection:bg-primary selection:text-background-dark dark:bg-background-dark dark:text-slate-100">
       <main className="mx-auto w-full max-w-6xl space-y-8 px-4 pb-28 pt-6">
@@ -772,6 +808,66 @@ export default function AdminDashboardPage() {
               Nenhuma estação ativa cadastrada.
             </div>
           ) : null}
+        </section>
+
+        <section>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold">Debug</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Consultas rápidas usadas para conferir sessões e status bruto da Tuya.
+              </p>
+            </div>
+            <select
+              className="h-11 rounded-xl border border-secondary bg-surface-dark px-3 text-sm text-slate-100 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
+              onChange={(event) => setDebugStationId(event.target.value)}
+              value={debugStationId}
+            >
+              <option value="">Estação padrão</option>
+              {stations.map((station) => (
+                <option key={station.id} value={String(station.id)}>
+                  {station.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="rounded-xl border border-secondary bg-surface-dark p-4 shadow-lg">
+            <div className="grid gap-3 md:grid-cols-3">
+              <button
+                className="h-11 rounded-xl border border-primary/30 bg-primary/10 px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={debugLoading}
+                onClick={() => {
+                  void loadDebugSessions()
+                }}
+                type="button"
+              >
+                Ver sessões
+              </button>
+              <button
+                className="h-11 rounded-xl border border-primary/30 bg-primary/10 px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={debugLoading}
+                onClick={() => {
+                  void loadDebugTuya()
+                }}
+                type="button"
+              >
+                Ver status Tuya
+              </button>
+              <button
+                className="h-11 rounded-xl border border-secondary bg-background-dark px-4 text-sm font-semibold text-slate-200 transition-colors hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={debugLoading}
+                onClick={() => setDebugOutput('(vazio)')}
+                type="button"
+              >
+                Limpar saída
+              </button>
+            </div>
+
+            <pre className="mt-4 max-h-[440px] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-secondary bg-background-dark p-4 text-xs leading-relaxed text-slate-200">
+              {debugLoading ? 'Carregando...' : debugOutput}
+            </pre>
+          </div>
         </section>
       </main>
 
