@@ -618,10 +618,10 @@ export default function UserHomePage() {
   return (
     <div className="min-h-screen bg-background-light font-display text-slate-900 dark:bg-background-dark dark:text-slate-100">
       <header className="sticky top-0 z-50 flex items-center border-b border-slate-200 bg-background-light p-4 dark:border-primary/20 dark:bg-background-dark">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <img alt="SPATE Engenharia" className="size-8 object-contain" src="/assets/Logo.svg" />
+        <div className="w-10 shrink-0" />
+        <div className="flex flex-1 justify-center">
+          <img alt="SPATE Engenharia" className="h-9 w-auto object-contain" src="/assets/Logo.svg" />
         </div>
-        <h1 className="flex-1 text-center text-lg font-bold leading-tight">SPATE Engenharia</h1>
         <div className="flex w-10 items-center justify-end">
           <button
             className="flex size-10 items-center justify-center rounded-full text-slate-900 transition-colors hover:bg-primary/10 dark:text-slate-100"
