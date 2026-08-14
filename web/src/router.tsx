@@ -1,4 +1,5 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import RequireAdmin from './auth/RequireAdmin'
 import RequireAuth from './auth/RequireAuth'
 import AdminLayout from './layouts/AdminLayout'
@@ -16,9 +17,36 @@ import UserHomePage from './pages/UserHomePage'
 import UserProfilePage from './pages/UserProfilePage'
 import UserSupportPage from './pages/UserSupportPage'
 
+const PAGE_TITLES: Record<string, string> = {
+  '/login': 'Login - Carregador',
+  '/register': 'Cadastro - Carregador',
+  '/pending': 'Cadastro em análise - Carregador',
+  '/app': 'Home - Carregador',
+  '/app/home': 'Home - Carregador',
+  '/app/history': 'Histórico - Carregador',
+  '/app/profile': 'Perfil - Carregador',
+  '/app/support': 'Suporte - Carregador',
+  '/admin': 'Home Admin - Carregador',
+  '/admin/dashboard': 'Home Admin - Carregador',
+  '/admin/history': 'Histórico Admin - Carregador',
+  '/admin/users': 'Usuários Admin - Carregador',
+  '/admin/settings': 'Configurações Admin - Carregador',
+}
+
+function PageTitle() {
+  const location = useLocation()
+
+  useEffect(() => {
+    document.title = PAGE_TITLES[location.pathname] ?? 'Página não encontrada - Carregador'
+  }, [location.pathname])
+
+  return null
+}
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
+      <PageTitle />
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />

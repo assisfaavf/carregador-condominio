@@ -211,9 +211,9 @@ function AddressFields({
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <label className="space-y-1 md:col-span-2">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Rotulo</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Rótulo</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ label: event.target.value })}
           value={draft.label}
         />
@@ -221,15 +221,15 @@ function AddressFields({
       <label className="space-y-1">
         <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Rua / Torre</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ street: event.target.value })}
           value={draft.street}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Numero / Apto</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Número / Apto</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ number: event.target.value })}
           value={draft.number}
         />
@@ -237,7 +237,7 @@ function AddressFields({
       <label className="space-y-1">
         <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Complemento</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ complement: event.target.value })}
           value={draft.complement}
         />
@@ -245,7 +245,7 @@ function AddressFields({
       <label className="space-y-1">
         <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Bairro</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ neighborhood: event.target.value })}
           value={draft.neighborhood}
         />
@@ -253,7 +253,7 @@ function AddressFields({
       <label className="space-y-1">
         <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Cidade</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ city: event.target.value })}
           value={draft.city}
         />
@@ -261,7 +261,7 @@ function AddressFields({
       <label className="space-y-1">
         <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Estado</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ state: event.target.value })}
           value={draft.state}
         />
@@ -269,7 +269,7 @@ function AddressFields({
       <label className="space-y-1">
         <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">CEP</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ zip: event.target.value })}
           value={draft.zip}
         />
@@ -277,7 +277,7 @@ function AddressFields({
       <label className="flex items-center gap-2 text-sm text-white">
         <input
           checked={draft.is_default}
-          className="h-4 w-4 rounded border-white/10 bg-[#0f172a] text-primary focus:ring-primary/40"
+          className="h-4 w-4 rounded border-white/30 bg-surface-dark text-primary focus:ring-primary/40"
           onChange={(event) => onChange({ is_default: event.target.checked })}
           type="checkbox"
         />
@@ -488,7 +488,7 @@ function AddressModal({
                     </div>
 
                     {editingThis ? (
-                      <div className="mt-4 rounded-2xl border border-white/10 bg-[#0f172a]/70 p-4">
+                      <div className="mt-4 rounded-2xl border border-white/30 bg-surface-dark/70 p-4">
                         <AddressFields
                           draft={draft}
                           onChange={(patch) => onEditDraftChange(address.id, patch)}
@@ -500,7 +500,7 @@ function AddressModal({
                             onClick={() => onSaveEdit(address.id)}
                             type="button"
                           >
-                            {savingThis ? 'Salvando...' : 'Salvar alteracoes'}
+                            {savingThis ? 'Salvando...' : 'Salvar alterações'}
                           </button>
                         </div>
                       </div>
@@ -566,7 +566,7 @@ export default function AdminUsersPage() {
         setPageError(null)
       } catch (error) {
         if (signal?.aborted) return
-        setPageError(getErrorMessage(error, 'Nao foi possivel carregar os usuarios.'))
+        setPageError(getErrorMessage(error, 'Não foi possível carregar os usuários.'))
       } finally {
         if (!signal?.aborted) {
           setLoading(false)
@@ -617,7 +617,7 @@ export default function AdminUsersPage() {
       } catch (error) {
         setRowErrors((current) => ({
           ...current,
-          [userId]: getErrorMessage(error, 'Nao foi possivel salvar esta linha.'),
+          [userId]: getErrorMessage(error, 'Não foi possível salvar esta linha.'),
         }))
       } finally {
         setSavingById((current) => ({ ...current, [userId]: false }))
@@ -760,7 +760,7 @@ export default function AdminUsersPage() {
                   Aprovar, classificar e acompanhar acessos
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm text-[#dbe7ff]">
-                  Pendentes aparecem primeiro. Filtros, busca e acoes por linha atualizam sem travar a tela.
+                  Pendentes aparecem primeiro. Filtros, busca e ações por linha atualizam sem travar a tela.
                 </p>
               </div>
 
@@ -789,7 +789,7 @@ export default function AdminUsersPage() {
                 }}
                 type="button"
               >
-                Solicitacoes
+                Solicitações
                 <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-background-dark">
                   {pendingCount}
                 </span>
@@ -829,7 +829,7 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-white">Aprovações pendentes</h2>
-                <p className="text-sm text-slate-400">Atalhos para as solicitacoes mais recentes.</p>
+                <p className="text-sm text-slate-400">Atalhos para as solicitações mais recentes.</p>
               </div>
               {filters.status !== 'pending' ? (
                 <button
@@ -878,7 +878,7 @@ export default function AdminUsersPage() {
 
                     <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-slate-200">
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Role</p>
+                        <p className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Perfil</p>
                         <p className="mt-2 font-semibold">{formatRole(user.role)}</p>
                       </div>
                       <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
@@ -937,7 +937,7 @@ export default function AdminUsersPage() {
                   search
                 </span>
                 <input
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-[#0f172a] pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-primary/40"
+                  className="h-12 w-full rounded-2xl border border-white/30 bg-surface-dark pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-primary/40"
                   onChange={(event) => setSearchInput(event.target.value)}
                   placeholder="Buscar por nome ou email"
                   type="search"
@@ -946,7 +946,7 @@ export default function AdminUsersPage() {
               </label>
 
               <select
-                className="h-12 rounded-2xl border border-white/10 bg-[#0f172a] px-4 text-sm text-white outline-none transition focus:border-primary/40"
+                className="h-12 rounded-2xl border border-white/30 bg-surface-dark px-4 text-sm text-white outline-none transition focus:border-primary/40"
                 onChange={(event) => {
                   setFilters((current) => ({
                     ...current,
@@ -962,7 +962,7 @@ export default function AdminUsersPage() {
               </select>
 
               <select
-                className="h-12 rounded-2xl border border-white/10 bg-[#0f172a] px-4 text-sm text-white outline-none transition focus:border-primary/40"
+                className="h-12 rounded-2xl border border-white/30 bg-surface-dark px-4 text-sm text-white outline-none transition focus:border-primary/40"
                 onChange={(event) => {
                   setFilters((current) => ({
                     ...current,
@@ -991,11 +991,11 @@ export default function AdminUsersPage() {
             <div className="lg:min-w-[1160px]">
               <div className="hidden grid-cols-[minmax(180px,1.4fr)_minmax(220px,1.6fr)_120px_120px_120px_340px] gap-4 bg-[#0f172a] px-5 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-[#9fb7e8] lg:grid">
                 <span>Nome</span>
-                <span>Email</span>
-                <span>Role</span>
+                <span>E-mail</span>
+                <span>Perfil</span>
                 <span>Status</span>
                 <span>Último login</span>
-                <span>Acoes</span>
+                <span>Ações</span>
               </div>
 
               {loading ? (
@@ -1037,7 +1037,7 @@ export default function AdminUsersPage() {
 
                           <div>
                             <select
-                              className="h-10 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+                              className="h-10 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
                               disabled={saving}
                               onChange={(event) => {
                                 void updateUser(
@@ -1178,7 +1178,7 @@ export default function AdminUsersPage() {
             <div className="flex h-7 items-center justify-center transition-transform group-active:scale-95">
               <span className="material-symbols-outlined text-[26px]">monitoring</span>
             </div>
-            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Dashboard</p>
+            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Home</p>
           </Link>
           <Link
             className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200"

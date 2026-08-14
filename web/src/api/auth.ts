@@ -47,7 +47,7 @@ function pickPrimaryAddress(addresses: RegisterAddressInput[]) {
     return tower && apartment
   })
   if (!primary) {
-    throw new Error('Informe ao menos um endereco com torre e apartamento.')
+    throw new Error('Informe ao menos um endereço com torre e apartamento.')
   }
   return primary
 }

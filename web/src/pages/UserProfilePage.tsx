@@ -188,7 +188,7 @@ export default function UserProfilePage() {
       const response = await apiFetch<AddressesResponse>('/api/my/addresses')
       setAddresses(response.addresses ?? [])
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Nao foi possivel carregar suas unidades.'))
+      setErrorMessage(getErrorMessage(error, 'Não foi possível carregar suas unidades.'))
     } finally {
       setLoading(false)
     }
@@ -232,7 +232,7 @@ export default function UserProfilePage() {
       await refreshMe()
       setMessage('Perfil atualizado.')
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Nao foi possivel salvar seu perfil.'))
+      setErrorMessage(getErrorMessage(error, 'Não foi possível salvar seu perfil.'))
     } finally {
       setSavingProfile(false)
     }
@@ -270,7 +270,7 @@ export default function UserProfilePage() {
       setShowAddressForm(false)
       await loadAddresses()
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Nao foi possivel salvar a unidade.'))
+      setErrorMessage(getErrorMessage(error, 'Não foi possível salvar a unidade.'))
     } finally {
       setSavingAddress(false)
     }
@@ -293,7 +293,7 @@ export default function UserProfilePage() {
       await loadAddresses()
       setMessage('Unidade removida.')
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Nao foi possivel remover a unidade.'))
+      setErrorMessage(getErrorMessage(error, 'Não foi possível remover a unidade.'))
     }
   }
 
@@ -308,7 +308,7 @@ export default function UserProfilePage() {
       await loadAddresses()
       setMessage('Unidade principal atualizada.')
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Nao foi possivel definir a unidade principal.'))
+      setErrorMessage(getErrorMessage(error, 'Não foi possível definir a unidade principal.'))
     }
   }
 
@@ -320,7 +320,7 @@ export default function UserProfilePage() {
       return
     }
     if (passwordDraft.new_password !== passwordDraft.confirm_password) {
-      setErrorMessage('Confirmacao de senha nao confere.')
+      setErrorMessage('Confirmação de senha não confere.')
       return
     }
 
@@ -338,7 +338,7 @@ export default function UserProfilePage() {
       setPasswordDraft(emptyPasswordDraft)
       setMessage(response.message || 'Senha atualizada.')
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Nao foi possivel alterar sua senha.'))
+      setErrorMessage(getErrorMessage(error, 'Não foi possível alterar sua senha.'))
     } finally {
       setSavingPassword(false)
     }
@@ -414,15 +414,15 @@ export default function UserProfilePage() {
             <label className="flex flex-col gap-1">
               <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Nome Completo</span>
               <input
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setProfileDraft((draft) => ({ ...draft, name: event.target.value }))}
                 value={profileDraft.name}
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Email</span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">E-mail</span>
               <input
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setProfileDraft((draft) => ({ ...draft, email: event.target.value }))}
                 type="email"
                 value={profileDraft.email}
@@ -431,7 +431,7 @@ export default function UserProfilePage() {
             <label className="flex flex-col gap-1">
               <span className="text-xs font-medium text-slate-500 dark:text-slate-400">CPF</span>
               <input
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 inputMode="numeric"
                 onChange={(event) => setProfileDraft((draft) => ({ ...draft, cpf: formatCpf(event.target.value) }))}
                 value={profileDraft.cpf}
@@ -441,7 +441,7 @@ export default function UserProfilePage() {
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Torre principal</span>
                 <input
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                   onChange={(event) => setProfileDraft((draft) => ({ ...draft, tower: event.target.value }))}
                   value={profileDraft.tower}
                 />
@@ -449,7 +449,7 @@ export default function UserProfilePage() {
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Apartamento</span>
                 <input
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none transition-all focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                   onChange={(event) => setProfileDraft((draft) => ({ ...draft, apartment: event.target.value }))}
                   value={profileDraft.apartment}
                 />
@@ -557,40 +557,40 @@ export default function UserProfilePage() {
             </div>
             <div className="space-y-3 rounded-xl border border-primary/30 bg-white p-4 shadow-sm dark:border-primary/20 dark:bg-surface-dark">
               <input
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setAddressDraft((draft) => ({ ...draft, label: event.target.value }))}
                 placeholder="Nome da unidade. Ex: Principal"
                 value={addressDraft.label}
               />
               <div className="grid grid-cols-2 gap-3">
                 <input
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                   onChange={(event) => setAddressDraft((draft) => ({ ...draft, street: event.target.value }))}
                   placeholder="Torre / Rua"
                   value={addressDraft.street}
                 />
                 <input
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                   onChange={(event) => setAddressDraft((draft) => ({ ...draft, number: event.target.value }))}
                   placeholder="Apartamento"
                   value={addressDraft.number}
                 />
               </div>
               <input
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setAddressDraft((draft) => ({ ...draft, complement: event.target.value }))}
                 placeholder="Complemento"
                 value={addressDraft.complement}
               />
               <div className="grid grid-cols-2 gap-3">
                 <input
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                   onChange={(event) => setAddressDraft((draft) => ({ ...draft, city: event.target.value }))}
                   placeholder="Cidade"
                   value={addressDraft.city}
                 />
                 <input
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                   onChange={(event) => setAddressDraft((draft) => ({ ...draft, state: event.target.value }))}
                   placeholder="UF"
                   value={addressDraft.state}
@@ -626,7 +626,7 @@ export default function UserProfilePage() {
         ) : null}
 
         <section className="space-y-4">
-          <h3 className="ml-1 text-sm font-semibold uppercase tracking-wider text-primary">Seguranca</h3>
+          <h3 className="ml-1 text-sm font-semibold uppercase tracking-wider text-primary">Segurança</h3>
           <button
             className="w-full rounded-xl border border-slate-100 bg-white p-4 text-left shadow-sm transition-colors hover:border-primary/50 dark:border-white/5 dark:bg-surface-dark"
             onClick={() => setShowPasswordForm((current) => !current)}
@@ -660,21 +660,21 @@ export default function UserProfilePage() {
                 Fechar
               </button>
               <input
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setPasswordDraft((draft) => ({ ...draft, current_password: event.target.value }))}
                 placeholder="Senha atual"
                 type="password"
                 value={passwordDraft.current_password}
               />
               <input
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setPasswordDraft((draft) => ({ ...draft, new_password: event.target.value }))}
                 placeholder="Nova senha"
                 type="password"
                 value={passwordDraft.new_password}
               />
               <input
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-background-dark/50 dark:text-white"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setPasswordDraft((draft) => ({ ...draft, confirm_password: event.target.value }))}
                 placeholder="Confirmar nova senha"
                 type="password"
@@ -701,10 +701,10 @@ export default function UserProfilePage() {
             type="button"
           >
             <span className="material-symbols-outlined">logout</span>
-            {loggingOut ? 'Saindo...' : 'Sair da Conta'}
+            {loggingOut ? 'Saindo...' : 'Sair da conta'}
           </button>
           <p className="mt-4 text-center text-xs text-slate-400 opacity-60">
-            Unidade principal: {defaultAddress ? formatAddressTitle(defaultAddress) : 'nao definida'}
+            Unidade principal: {defaultAddress ? formatAddressTitle(defaultAddress) : 'não definida'}
           </p>
         </section>
       </main>
@@ -713,14 +713,14 @@ export default function UserProfilePage() {
         <div className="mx-auto flex w-full max-w-md items-end justify-between">
           <Link className="flex w-16 flex-col items-center gap-1 text-slate-400 transition-colors hover:text-primary" to="/app/home">
             <span className="material-symbols-outlined">home</span>
-            <span className="text-[10px] font-medium">Inicio</span>
+            <span className="text-[10px] font-medium">Início</span>
           </Link>
           <Link className="flex w-16 flex-col items-center gap-1 text-slate-400 transition-colors hover:text-primary" to="/app/history">
             <span className="material-symbols-outlined">history</span>
-            <span className="text-[10px] font-medium">Historico</span>
+            <span className="text-[10px] font-medium">Histórico</span>
           </Link>
           <Link className="relative flex w-16 flex-col items-center gap-1 text-primary" to="/app/profile">
-            <div className="absolute -top-3 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_2px_rgba(13,242,89,0.5)]" />
+            <div className="absolute -top-3 h-1 w-1 rounded-full bg-primary shadow-[0_0_8px_2px_rgba(37,89,244,0.35)]" />
             <span className="material-symbols-outlined filled">person</span>
             <span className="text-[10px] font-medium">Perfil</span>
           </Link>

@@ -122,10 +122,18 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen justify-center bg-background-light px-4 py-8 font-display text-slate-900 dark:bg-background-dark dark:text-slate-100">
       <div className="w-full max-w-2xl space-y-6">
+        <Link
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/30 dark:bg-surface-dark dark:text-slate-100 dark:hover:bg-[#1f2f4d]"
+          to="/login"
+        >
+          <span className="material-symbols-outlined text-base">arrow_back</span>
+          Voltar para login
+        </Link>
+
         <header className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Criar Conta</h1>
-          <p className="text-sm text-slate-500 dark:text-[#90cba4]">
-            Cadastre-se para acessar o painel do carregador.
+          <h1 className="text-3xl font-bold tracking-tight">Criar conta</h1>
+          <p className="text-sm text-slate-500 dark:text-[#9fb7e8]">
+            Cadastre-se para acessar a home do carregador.
           </p>
         </header>
 
@@ -134,7 +142,7 @@ export default function RegisterPage() {
             <label className="block space-y-2 md:col-span-2">
               <span className="text-sm font-medium">Nome completo</span>
               <input
-                className="h-12 w-full rounded-xl border-slate-300 bg-white px-4 text-base placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary dark:border-[#316843] dark:bg-[#183422] dark:text-white"
+                className="h-12 w-full rounded-xl border-slate-300 bg-white px-4 text-base placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Seu nome"
                 required
@@ -146,7 +154,7 @@ export default function RegisterPage() {
             <label className="block space-y-2">
               <span className="text-sm font-medium">CPF</span>
               <input
-                className="h-12 w-full rounded-xl border-slate-300 bg-white px-4 text-base placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary dark:border-[#316843] dark:bg-[#183422] dark:text-white"
+                className="h-12 w-full rounded-xl border-slate-300 bg-white px-4 text-base placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setCpf(event.target.value)}
                 placeholder="00000000000"
                 required
@@ -156,11 +164,11 @@ export default function RegisterPage() {
             </label>
 
             <label className="block space-y-2">
-              <span className="text-sm font-medium">Email</span>
+              <span className="text-sm font-medium">E-mail</span>
               <input
-                className="h-12 w-full rounded-xl border-slate-300 bg-white px-4 text-base placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary dark:border-[#316843] dark:bg-[#183422] dark:text-white"
+                className="h-12 w-full rounded-xl border-slate-300 bg-white px-4 text-base placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="name@example.com"
+                placeholder="nome@exemplo.com"
                 required
                 type="email"
                 value={email}
@@ -172,9 +180,9 @@ export default function RegisterPage() {
             <label className="block space-y-2">
               <span className="text-sm font-medium">Senha</span>
               <input
-                className="h-12 w-full rounded-xl border-slate-300 bg-white px-4 text-base placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary dark:border-[#316843] dark:bg-[#183422] dark:text-white"
+                className="h-12 w-full rounded-xl border-slate-300 bg-white px-4 text-base placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Minimo 8 caracteres"
+                placeholder="Mínimo de 8 caracteres"
                 required
                 type="password"
                 value={password}
@@ -183,7 +191,7 @@ export default function RegisterPage() {
 
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Tipo</legend>
-              <div className="flex h-12 items-center rounded-xl border border-[#316843] bg-[#1a3826] p-1">
+              <div className="flex h-12 items-center rounded-xl border border-white/30 bg-surface-dark p-1">
                 <label className="relative flex h-full flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-lg text-sm font-semibold">
                   <input
                     checked={role === 'morador'}
@@ -194,7 +202,7 @@ export default function RegisterPage() {
                     value="morador"
                   />
                   <span className="absolute inset-0 rounded-lg bg-transparent transition-all peer-checked:bg-background-dark" />
-                  <span className="relative z-10 text-[#90cba4] peer-checked:text-primary">Morador</span>
+                  <span className="relative z-10 text-[#9fb7e8] peer-checked:text-primary">Morador</span>
                 </label>
                 <label className="relative flex h-full flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-lg text-sm font-semibold">
                   <input
@@ -206,15 +214,15 @@ export default function RegisterPage() {
                     value="visitante"
                   />
                   <span className="absolute inset-0 rounded-lg bg-transparent transition-all peer-checked:bg-background-dark" />
-                  <span className="relative z-10 text-[#90cba4] peer-checked:text-primary">Visitante</span>
+                  <span className="relative z-10 text-[#9fb7e8] peer-checked:text-primary">Visitante</span>
                 </label>
               </div>
             </fieldset>
           </div>
 
-          <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-100 p-4 dark:border-[#316843] dark:bg-[#183422]">
+          <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-100 p-4 dark:border-white/30 dark:bg-surface-dark">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-[#90cba4]">Endereços</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[#9fb7e8]">Endereços</h2>
               {role === 'morador' ? (
                 <button
                   className="rounded-lg border border-primary/50 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/10"
@@ -228,7 +236,7 @@ export default function RegisterPage() {
 
             {visibleAddresses.map((address, index) => (
               <div
-                className="space-y-3 rounded-xl border border-slate-300 bg-white p-3 dark:border-[#316843] dark:bg-[#102216]"
+                className="space-y-3 rounded-xl border border-slate-300 bg-white p-3 dark:border-white/30 dark:bg-surface-dark"
                 key={address.id}
               >
                 <div className="flex items-center justify-between">
@@ -247,9 +255,9 @@ export default function RegisterPage() {
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="space-y-1">
-                    <span className="text-xs uppercase tracking-wide text-[#90cba4]">Torre</span>
+                    <span className="text-xs uppercase tracking-wide text-[#9fb7e8]">Torre</span>
                     <select
-                      className="h-10 w-full rounded-lg border-slate-300 bg-white px-3 text-sm focus:border-primary focus:ring-primary dark:border-[#316843] dark:bg-[#102216]"
+                      className="h-10 w-full rounded-lg border-slate-300 bg-white px-3 text-sm focus:border-primary focus:ring-primary dark:border-white/30 dark:bg-surface-dark"
                       onChange={(event) => updateAddress(address.id, { tower: event.target.value })}
                       value={address.tower}
                     >
@@ -258,9 +266,9 @@ export default function RegisterPage() {
                     </select>
                   </label>
                   <label className="space-y-1">
-                    <span className="text-xs uppercase tracking-wide text-[#90cba4]">Apartamento</span>
+                    <span className="text-xs uppercase tracking-wide text-[#9fb7e8]">Apartamento</span>
                     <input
-                      className="h-10 w-full rounded-lg border-slate-300 bg-white px-3 text-sm focus:border-primary focus:ring-primary dark:border-[#316843] dark:bg-[#102216] dark:text-white"
+                      className="h-10 w-full rounded-lg border-slate-300 bg-white px-3 text-sm focus:border-primary focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-white"
                       onChange={(event) => updateAddress(address.id, { apartment: event.target.value })}
                       placeholder="Ex.: 301"
                       required
@@ -280,18 +288,18 @@ export default function RegisterPage() {
           ) : null}
 
           <button
-            className="w-full rounded-xl bg-primary py-4 text-lg font-bold text-background-dark shadow-[0_0_15px_rgba(13,242,89,0.3)] transition hover:bg-[#0be050] disabled:cursor-not-allowed disabled:opacity-70"
+            className="w-full rounded-xl bg-primary py-4 text-lg font-bold text-white shadow-[0_12px_30px_rgba(37,89,244,0.24)] transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
             disabled={submitting}
             type="submit"
           >
-            {submitting ? 'Cadastrando...' : 'Register Account'}
+            {submitting ? 'Cadastrando...' : 'Criar conta'}
           </button>
 
           <Link
             className="block text-center text-sm font-medium text-primary hover:text-primary/80"
             to="/login"
           >
-            Ja tenho conta
+            Já tenho conta
           </Link>
         </form>
       </div>

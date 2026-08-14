@@ -140,7 +140,7 @@ function getStationShortLabel(station: AdminStation) {
 function getChargerStateMeta(live: LiveResponse | null) {
   if (!live || live.telemetry_unavailable) {
     return {
-      label: 'Offline',
+      label: 'Desconectado',
       className: 'bg-red-500/10 text-red-400 ring-red-400/20',
       accentClassName: 'text-red-400',
     }
@@ -151,22 +151,22 @@ function getChargerStateMeta(live: LiveResponse | null) {
 
   if (live.charging === true || workState === 'charger_charging') {
     return {
-      label: 'Charging',
-      className: 'bg-green-400/10 text-green-400 ring-green-400/20',
-      accentClassName: 'text-green-400',
+      label: 'Carregando',
+      className: 'bg-primary/10 text-primary ring-primary/20',
+      accentClassName: 'text-primary',
     }
   }
 
   if (stateLabel.includes('finalizado') || workState === 'charger_end') {
     return {
-      label: 'Finished',
+      label: 'Finalizado',
       className: 'bg-yellow-400/10 text-yellow-400 ring-yellow-400/20',
       accentClassName: 'text-yellow-400',
     }
   }
 
   return {
-    label: 'Online',
+    label: 'Conectado',
     className: 'bg-blue-400/10 text-blue-400 ring-blue-400/20',
     accentClassName: 'text-blue-400',
   }
@@ -305,7 +305,7 @@ export default function AdminDashboardPage() {
       setLastUpdatedAt(new Date().toLocaleTimeString('pt-BR'))
       setErrorMessage(null)
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Nao foi possivel atualizar o dashboard em tempo real.'))
+      setErrorMessage(getErrorMessage(error, 'Não foi possível atualizar o painel em tempo real.'))
     } finally {
       refreshBusyRef.current = false
       setIsLoading(false)
@@ -349,7 +349,7 @@ export default function AdminDashboardPage() {
         await reloadStationsAndDashboard()
       } catch (error) {
         if (cancelled) return
-        setErrorMessage(getErrorMessage(error, 'Nao foi possivel carregar as estacoes.'))
+        setErrorMessage(getErrorMessage(error, 'Não foi possível carregar as estações.'))
         setIsLoading(false)
       }
     }
@@ -406,7 +406,7 @@ export default function AdminDashboardPage() {
     if (users.length > 0 || loadingUsers) return
 
     void loadUsers().catch((error: unknown) => {
-      setStartModalError(getErrorMessage(error, 'Nao foi possivel carregar os usuarios.'))
+      setStartModalError(getErrorMessage(error, 'Não foi possível carregar os usuários.'))
     })
   }, [loadUsers, loadingUsers, startStationId, users.length])
 
@@ -471,7 +471,7 @@ export default function AdminDashboardPage() {
       return
     }
     if (selectedUserId == null) {
-      setStartModalError('Selecione um usuario valido.')
+      setStartModalError('Selecione um usuário válido.')
       return
     }
     if (selectedAddressId == null) {
@@ -508,7 +508,7 @@ export default function AdminDashboardPage() {
       setStartModalError(null)
       await reloadStationsAndDashboard()
     } catch (error) {
-      setStartModalError(getErrorMessage(error, 'Nao foi possivel iniciar o carregamento.'))
+      setStartModalError(getErrorMessage(error, 'Não foi possível iniciar o carregamento.'))
     } finally {
       setStartingStationId(null)
     }
@@ -536,7 +536,7 @@ export default function AdminDashboardPage() {
       setStopStationId(null)
       await reloadStationsAndDashboard()
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Nao foi possivel encerrar o carregamento.'))
+      setErrorMessage(getErrorMessage(error, 'Não foi possível encerrar o carregamento.'))
     } finally {
       setStoppingStationId(null)
     }
@@ -587,14 +587,14 @@ export default function AdminDashboardPage() {
             <div>
               <h2 className="text-xl font-bold">Resumo em Tempo Real</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {lastUpdatedAt ? `Atualizado as ${lastUpdatedAt}` : 'Aguardando telemetria'}
+                {lastUpdatedAt ? `Atualizado às ${lastUpdatedAt}` : 'Aguardando telemetria'}
               </p>
             </div>
             <button
               className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
               onClick={() => {
                 void reloadStationsAndDashboard().catch((error: unknown) => {
-                  setErrorMessage(getErrorMessage(error, 'Nao foi possivel atualizar as estacoes.'))
+                  setErrorMessage(getErrorMessage(error, 'Não foi possível atualizar as estações.'))
                 })
               }}
               type="button"
@@ -609,7 +609,7 @@ export default function AdminDashboardPage() {
                 <span className="material-symbols-outlined text-6xl text-primary">ev_station</span>
               </div>
               <div className="relative z-10">
-                <p className="text-sm font-medium text-slate-400">Carregadores Ativos</p>
+                <p className="text-sm font-medium text-slate-400">Carregadores ativos</p>
                 <div className="mt-2 flex items-end gap-3">
                   <h3 className="text-3xl font-bold text-white">
                     {activeChargersCount}{' '}
@@ -647,7 +647,7 @@ export default function AdminDashboardPage() {
                   </span>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-400">Consumo Atual</p>
+                  <p className="text-xs font-medium text-slate-400">Consumo atual</p>
                   <h3 className="mt-1 text-xl font-bold text-white">
                     {formatNumber(currentPowerSumKw, 'kW', 1)}
                   </h3>
@@ -664,7 +664,7 @@ export default function AdminDashboardPage() {
                   </span>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-400">Energia em Sessões</p>
+                  <p className="text-xs font-medium text-slate-400">Energia em sessões</p>
                   <h3 className="mt-1 text-xl font-bold text-white">
                     {formatNumber(sessionEnergySumKwh, 'kWh', 2)}
                   </h3>
@@ -676,7 +676,7 @@ export default function AdminDashboardPage() {
 
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold">Sessões Ativas</h2>
+            <h2 className="text-xl font-bold">Sessões ativas</h2>
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
               <span className="text-xs text-slate-400">
@@ -730,13 +730,13 @@ export default function AdminDashboardPage() {
                     <p className="text-slate-300">
                       Usuário:{' '}
                       <span className="font-semibold text-slate-100">
-                        {session?.user_name || 'Nenhuma sessao running'}
+                        {session?.user_name || 'Nenhuma sessão em andamento'}
                       </span>
                     </p>
                     <p className="text-slate-400">
                       {session?.user_email || station.max_current_a == null
                         ? session?.user_email || 'Sem usuário associado'
-                        : `Corrente maxima ${station.max_current_a} A`}
+                        : `Corrente máxima ${station.max_current_a} A`}
                     </p>
                     <p className="text-slate-500">
                       {session?.address_label
@@ -759,7 +759,7 @@ export default function AdminDashboardPage() {
                       </p>
                     </div>
                     <div className="border-l border-secondary/50 text-center">
-                      <p className="text-[10px] uppercase tracking-wider text-slate-500">Potencia</p>
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500">Potência</p>
                       <p className="text-sm font-medium text-primary">
                         {formatNumber(live?.powerKw ?? null, 'kW', 1)}
                       </p>
@@ -882,7 +882,7 @@ export default function AdminDashboardPage() {
                 monitoring
               </span>
             </div>
-            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Dashboard</p>
+            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Home</p>
           </Link>
           <Link
             className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200"

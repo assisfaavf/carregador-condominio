@@ -103,7 +103,7 @@ function StationFields({
       <label className="space-y-1">
         <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Nome</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ name: event.target.value })}
           value={draft.name}
         />
@@ -111,7 +111,7 @@ function StationFields({
       <label className="space-y-1">
         <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Local</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ location_label: event.target.value })}
           value={draft.location_label}
         />
@@ -119,15 +119,15 @@ function StationFields({
       <label className="space-y-1 md:col-span-2">
         <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Tuya Device ID</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           onChange={(event) => onChange({ tuya_device_id: event.target.value })}
           value={draft.tuya_device_id}
         />
       </label>
       <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Corrente maxima (A)</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-[#9fb7e8]">Corrente máxima (A)</span>
         <input
-          className="h-11 w-full rounded-xl border border-white/10 bg-[#0f172a] px-3 text-sm text-white outline-none transition focus:border-primary/40"
+          className="h-11 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-white outline-none transition focus:border-primary/40"
           inputMode="numeric"
           onChange={(event) => onChange({ max_current_a: event.target.value })}
           value={draft.max_current_a}
@@ -136,7 +136,7 @@ function StationFields({
       <label className="flex items-center gap-2 text-sm text-white">
         <input
           checked={draft.is_active}
-          className="h-4 w-4 rounded border-white/10 bg-[#0f172a] text-primary focus:ring-primary/40"
+          className="h-4 w-4 rounded border-white/30 bg-surface-dark text-primary focus:ring-primary/40"
           onChange={(event) => onChange({ is_active: event.target.checked })}
           type="checkbox"
         />
@@ -203,7 +203,7 @@ export default function AdminSettingsPage() {
       syncStationDrafts(nextStations)
       setStationsError(null)
     } catch (error) {
-      setStationsError(getErrorMessage(error, 'Nao foi possivel carregar as estacoes.'))
+      setStationsError(getErrorMessage(error, 'Não foi possível carregar as estações.'))
     } finally {
       setStationsLoading(false)
     }
@@ -274,7 +274,7 @@ export default function AdminSettingsPage() {
       setStationMessage('Estação criada.')
       await loadStations()
     } catch (error) {
-      setCreateStationError(getErrorMessage(error, 'Nao foi possivel criar a estacao.'))
+      setCreateStationError(getErrorMessage(error, 'Não foi possível criar a estação.'))
     } finally {
       setCreatingStation(false)
     }
@@ -305,7 +305,7 @@ export default function AdminSettingsPage() {
     } catch (error) {
       setStationRowErrors((current) => ({
         ...current,
-        [stationId]: getErrorMessage(error, 'Nao foi possivel atualizar a estacao.'),
+        [stationId]: getErrorMessage(error, 'Não foi possível atualizar a estação.'),
       }))
     } finally {
       setSavingStationId(null)
@@ -354,7 +354,7 @@ export default function AdminSettingsPage() {
             <label className="space-y-2">
               <span className="text-sm font-semibold text-white">Tarifa por kWh (R$)</span>
               <input
-                className="h-12 w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 text-sm text-white outline-none transition focus:border-primary/40"
+                className="h-12 w-full rounded-xl border border-white/30 bg-surface-dark px-4 text-sm text-white outline-none transition focus:border-primary/40"
                 disabled={settingsLoading || settingsSaving}
                 inputMode="decimal"
                 onChange={(event) => setPricePerKwh(event.target.value)}
@@ -362,9 +362,9 @@ export default function AdminSettingsPage() {
               />
             </label>
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-white">Corrente padrao (A)</span>
+              <span className="text-sm font-semibold text-white">Corrente padrão (A)</span>
               <input
-                className="h-12 w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 text-sm text-white outline-none transition focus:border-primary/40"
+                className="h-12 w-full rounded-xl border border-white/30 bg-surface-dark px-4 text-sm text-white outline-none transition focus:border-primary/40"
                 disabled={settingsLoading || settingsSaving}
                 inputMode="numeric"
                 onChange={(event) => setDefaultChargeCurrentA(event.target.value)}
@@ -375,7 +375,7 @@ export default function AdminSettingsPage() {
 
           {settings ? (
             <p className="mt-4 text-xs text-slate-400">
-              Em uso agora: R$ {settings.price_per_kwh.toFixed(2)} por kWh e corrente padrao de{' '}
+              Em uso agora: R$ {settings.price_per_kwh.toFixed(2)} por kWh e corrente padrão de{' '}
               {settings.default_charge_current_a} A.
             </p>
           ) : null}
@@ -421,7 +421,7 @@ export default function AdminSettingsPage() {
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-white">Nova estação</h3>
-                <p className="text-xs text-[#9fb7e8]">Tuya Device ID deve ser unico.</p>
+                <p className="text-xs text-[#9fb7e8]">Tuya Device ID deve ser único.</p>
               </div>
               <button
                 className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-background-dark transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
@@ -514,7 +514,7 @@ export default function AdminSettingsPage() {
                         }}
                         type="button"
                       >
-                        {saving ? 'Salvando...' : 'Salvar alteracoes'}
+                        {saving ? 'Salvando...' : 'Salvar alterações'}
                       </button>
                     </div>
                   </article>
@@ -533,7 +533,7 @@ export default function AdminSettingsPage() {
             <div className="flex h-7 items-center justify-center transition-transform group-active:scale-95">
               <span className="material-symbols-outlined text-[26px]">monitoring</span>
             </div>
-            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Dashboard</p>
+            <p className="text-[10px] font-medium leading-normal tracking-[0.015em]">Home</p>
           </Link>
           <Link
             className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200"

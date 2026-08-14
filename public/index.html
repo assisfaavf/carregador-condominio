@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Painel do Carregador</title>
+  <title>Home do Carregador</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 0 16px; }
     h1 { margin-bottom: 8px; }
@@ -20,7 +20,7 @@
   </style>
 </head>
 <body>
-  <h1>Painel do Carregador</h1>
+  <h1>Home do Carregador</h1>
   <p class="muted">Esta página conversa com seu backend (Express) via HTTP.</p>
 
   <div class="card">
@@ -40,12 +40,12 @@
   </div>
 
   <div class="card">
-  <h2>Controle do Carregador</h2>
+  <h2>Controle do carregador</h2>
   <p class="muted">Esses botões chamam seu backend, que chama a Tuya.</p>
 
   <button onclick="refreshTuyaStatus()">Atualizar status</button>
   <button onclick="startSession()">Iniciar (criar sessão)</button>
-  <button onclick="stopSession()">Parar e finalizar finalizar sessão</button>
+  <button onclick="stopSession()">Parar e finalizar sessão</button>
 
   <h3>Status (Tuya)</h3>
   <pre id="tuyaStatus">(clique em "Atualizar status")</pre>
@@ -186,7 +186,7 @@
         await refreshTuyaStatus();
         await loadSessions();
       } catch (error) {
-        alert("Erro no startSession: " + error.message);
+        alert("Erro ao iniciar sessão: " + error.message);
       }
     }
 

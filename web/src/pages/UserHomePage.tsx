@@ -408,7 +408,7 @@ export default function UserHomePage() {
         await refreshSessionState()
       } catch (error) {
         if (cancelled) return
-        setActionError(getErrorMessage(error, 'Nao foi possivel consultar a sessao atual.'))
+        setActionError(getErrorMessage(error, 'Não foi possível consultar a sessão atual.'))
       }
     }
 
@@ -447,7 +447,7 @@ export default function UserHomePage() {
       } else if (!nextLiveError) {
         nextLiveError = getErrorMessage(
           sessionResult.reason,
-          'Falha ao atualizar o estado da sessao atual.',
+          'Falha ao atualizar o estado da sessão atual.',
         )
       }
 
@@ -505,7 +505,7 @@ export default function UserHomePage() {
     setStopSummary(null)
 
     if (!selectedStationId) {
-      setActionError('Selecione uma estacao para iniciar o carregamento.')
+      setActionError('Selecione uma estação para iniciar o carregamento.')
       return
     }
     if (!selectedAddressId) {
@@ -537,7 +537,7 @@ export default function UserHomePage() {
         setLiveError(getErrorMessage(error, 'Sessão iniciada, mas sem telemetria no momento.'))
       }
     } catch (error) {
-      setActionError(getErrorMessage(error, 'Nao foi possivel iniciar o carregamento.'))
+      setActionError(getErrorMessage(error, 'Não foi possível iniciar o carregamento.'))
     } finally {
       setOperationState('idle')
     }
@@ -549,7 +549,7 @@ export default function UserHomePage() {
     setSuccessMessage(null)
 
     if (!selectedStationId) {
-      setActionError('Selecione uma estacao para encerrar o carregamento.')
+      setActionError('Selecione uma estação para encerrar o carregamento.')
       return
     }
 
@@ -583,7 +583,7 @@ export default function UserHomePage() {
         setLiveError(getErrorMessage(error, 'Sessão encerrada, mas sem telemetria no momento.'))
       }
     } catch (error) {
-      setActionError(getErrorMessage(error, 'Nao foi possivel encerrar o carregamento.'))
+      setActionError(getErrorMessage(error, 'Não foi possível encerrar o carregamento.'))
     } finally {
       setOperationState('idle')
     }
@@ -605,8 +605,8 @@ export default function UserHomePage() {
       : operationState === 'stopping'
         ? 'Encerrando carregamento...'
         : isSessionActive
-          ? 'Encerrar Carregamento'
-          : 'Iniciar Carregamento'
+          ? 'Encerrar carregamento'
+          : 'Iniciar carregamento'
 
   const actionButtonIcon =
     operationState === 'starting' || operationState === 'stopping'
@@ -654,7 +654,7 @@ export default function UserHomePage() {
         {stopSummary ? (
           <section className="rounded-2xl border border-primary/20 bg-white p-4 dark:bg-slate-800/40">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Resumo da ultima sessao
+              Resumo da última sessão
             </h3>
             <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
               <div className="rounded-lg bg-slate-100 p-2 dark:bg-slate-800">
@@ -675,7 +675,7 @@ export default function UserHomePage() {
 
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight">Painel do Carregador</h2>
+            <h2 className="text-2xl font-bold tracking-tight">Home do carregador</h2>
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-bold ${panelBadge.className}`}
             >
@@ -688,7 +688,7 @@ export default function UserHomePage() {
             <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-primary/10 dark:bg-slate-800/50">
               {isBusy ? <div className="absolute inset-0 animate-pulse bg-primary/5" /> : null}
               <p className="relative z-10 mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Potencia
+                Potência
               </p>
               <p className="relative z-10 text-lg font-bold text-primary">
                 {formatNumber(currentPowerKw, 'kW', 1)}
@@ -759,7 +759,7 @@ export default function UserHomePage() {
               </label>
               <div className="relative">
                 <select
-                  className="h-14 w-full appearance-none rounded-xl border-slate-200 bg-slate-100 pl-4 pr-10 font-medium text-slate-900 focus:border-primary focus:ring-primary dark:border-primary/20 dark:bg-background-dark dark:text-slate-100"
+                  className="h-14 w-full appearance-none rounded-xl border-slate-200 bg-slate-100 pl-4 pr-10 font-medium text-slate-900 focus:border-primary focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-slate-100"
                   disabled={isLoadingOptions || controlsLocked}
                   onChange={(event) => handleAddressChange(event.target.value)}
                   value={selectedAddressId ?? ''}
@@ -786,7 +786,7 @@ export default function UserHomePage() {
               </label>
               <div className="relative">
                 <select
-                  className="h-14 w-full appearance-none rounded-xl border-slate-200 bg-slate-100 pl-4 pr-10 font-medium text-slate-900 focus:border-primary focus:ring-primary dark:border-primary/20 dark:bg-background-dark dark:text-slate-100"
+                  className="h-14 w-full appearance-none rounded-xl border-slate-200 bg-slate-100 pl-4 pr-10 font-medium text-slate-900 focus:border-primary focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-slate-100"
                   disabled={isLoadingOptions || controlsLocked}
                   onChange={(event) => handleStationChange(event.target.value)}
                   value={selectedStationId ?? ''}
@@ -812,9 +812,9 @@ export default function UserHomePage() {
 
           <div className="space-y-3">
             <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Modo de Carregamento
+              Modo de carregamento
             </label>
-            <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-primary/20 dark:bg-background-dark">
+            <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-white/30 dark:bg-surface-dark">
               <button
                 className={`flex-1 rounded-lg px-4 py-3 text-sm font-bold transition-all ${
                   chargeMode === 'until_complete'
@@ -850,7 +850,7 @@ export default function UserHomePage() {
               <div className="relative">
                 <span className="absolute left-4 top-4 text-slate-500">R$</span>
                 <input
-                  className="h-14 w-full rounded-xl border-slate-200 bg-slate-100 pl-12 pr-4 font-medium text-slate-900 focus:border-primary focus:ring-primary dark:border-primary/20 dark:bg-background-dark dark:text-slate-100"
+                  className="h-14 w-full rounded-xl border-slate-200 bg-slate-100 pl-12 pr-4 font-medium text-slate-900 focus:border-primary focus:ring-primary dark:border-white/30 dark:bg-surface-dark dark:text-slate-100"
                   disabled={controlsLocked}
                   min={0}
                   onChange={(event) => setLimitValue(event.target.value)}
@@ -941,7 +941,7 @@ export default function UserHomePage() {
       <ConfirmModal
         cancelText="Cancelar"
         confirmText="Encerrar"
-        message="Deseja realmente encerrar o carregamento desta estacao agora?"
+        message="Deseja realmente encerrar o carregamento desta estação agora?"
         onCancel={() => setShowStopConfirm(false)}
         onConfirm={() => {
           void handleStopSession()

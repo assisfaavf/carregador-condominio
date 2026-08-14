@@ -61,7 +61,7 @@
       <div class="footer-stats">
         <div class="stat">
           <div class="stat-label">Rede</div>
-          <div class="stat-value">ONLINE</div>
+          <div class="stat-value">Ativa</div>
         </div>
         <div class="stat">
           <div class="stat-label">Criptografia</div>
@@ -107,7 +107,7 @@
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-          msg.textContent = data.message || "Falha no login.";
+          msg.textContent = data.message || "Falha ao entrar.";
           msg.className = "message error";
           return;
         }

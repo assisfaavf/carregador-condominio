@@ -15,7 +15,7 @@ export default function AdminLayout() {
       await signOut()
       navigate('/login', { replace: true })
     } catch (error) {
-      const nextMessage = error instanceof Error ? error.message : 'Nao foi possivel sair da sessao.'
+      const nextMessage = error instanceof Error ? error.message : 'Não foi possível sair da sessão.'
       setMessage(nextMessage)
       navigate('/login', { replace: true })
     } finally {
@@ -41,7 +41,7 @@ export default function AdminLayout() {
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               to="/app/home"
             >
-              Painel do usuário
+              Home do usuário
             </Link>
           </div>
           <button

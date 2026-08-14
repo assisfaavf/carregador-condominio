@@ -88,7 +88,7 @@ export default function PendingApprovalPage() {
 
         <p className="mb-4 text-center text-base text-slate-600 dark:text-slate-400">
           Ola, {user.name}. Recebemos seus dados com sucesso. Agora nossa equipe administrativa
-          esta revisando suas informacoes para liberar seu acesso total.
+          está revisando suas informações para liberar seu acesso total.
         </p>
 
         <p className="mb-10 text-center text-lg leading-relaxed text-slate-600 dark:text-slate-400">
@@ -105,7 +105,7 @@ export default function PendingApprovalPage() {
           </div>
           <div className="h-3 w-full overflow-hidden rounded-full bg-slate-300 dark:bg-slate-700">
             <div
-              className="h-full bg-primary shadow-[0_0_15px_rgba(13,242,89,0.5)]"
+              className="h-full bg-primary shadow-[0_0_15px_rgba(37,89,244,0.35)]"
               style={{ width: '75%' }}
             />
           </div>
@@ -122,7 +122,7 @@ export default function PendingApprovalPage() {
             title="Notificacao por e-mail"
           />
           <PendingStep
-            description="Use a seta no topo esquerdo para sair da sessao enquanto aguarda."
+            description="Use a seta no topo esquerdo para sair da sessão enquanto aguarda."
             icon="logout"
             title="Sair com seguranca"
           />

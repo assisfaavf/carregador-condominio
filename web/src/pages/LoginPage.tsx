@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthProvider'
 
 function errorMessage(error: unknown) {
   if (error instanceof ApiError) {
-    if (error.code === 'unauthorized') return 'Credenciais invalidas.'
+    if (error.code === 'unauthorized') return 'Credenciais inválidas.'
     return error.message || 'Falha ao entrar.'
   }
   if (error instanceof Error) return error.message
@@ -152,7 +152,7 @@ export default function LoginPage() {
 
         <div className="mt-8 flex flex-wrap justify-center gap-6 pb-2 pt-4 text-center text-slate-500 dark:text-slate-300">
           {[
-            ['Rede', 'ONLINE'],
+            ['Rede', 'Ativa'],
             ['Criptografia', 'AES-256'],
             ['Versão', 'v4.2.0'],
           ].map(([label, value]) => (

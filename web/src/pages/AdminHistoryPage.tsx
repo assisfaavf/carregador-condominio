@@ -157,8 +157,8 @@ function sessionUserLabel(session: AdminSession) {
 }
 
 function sessionBadge(status: string | null) {
-  if (status === 'done') return ['Concluida', 'bg-green-500/10 text-green-400', 'ev_station'] as const
-  if (status === 'running') return ['Running', 'bg-blue-500/10 text-blue-300', 'bolt'] as const
+  if (status === 'done') return ['Concluída', 'bg-primary/10 text-primary', 'ev_station'] as const
+  if (status === 'running') return ['Em andamento', 'bg-blue-500/10 text-blue-300', 'bolt'] as const
   if (status === 'failed') return ['Falha', 'bg-red-500/10 text-red-400', 'error'] as const
   return [status || 'Sessão', 'bg-slate-500/10 text-slate-300', 'history'] as const
 }
@@ -302,7 +302,7 @@ export default function AdminHistoryPage() {
         setHasMore(page.length === PAGE_SIZE)
       } catch (error) {
         if (requestId !== requestIdRef.current) return
-        setErrorMessage(getErrorMessage(error, 'Nao foi possivel carregar o historico global.'))
+        setErrorMessage(getErrorMessage(error, 'Não foi possível carregar o histórico global.'))
       } finally {
         if (requestId !== requestIdRef.current) return
         append ? setLoadingMore(false) : setLoadingInitial(false)
@@ -317,7 +317,7 @@ export default function AdminHistoryPage() {
         setStations(Array.isArray(response.stations) ? response.stations : [])
       })
       .catch((error: unknown) => {
-        setErrorMessage(getErrorMessage(error, 'Nao foi possivel carregar as estacoes.'))
+        setErrorMessage(getErrorMessage(error, 'Não foi possível carregar as estações.'))
       })
   }, [])
 
@@ -381,7 +381,7 @@ export default function AdminHistoryPage() {
       if (!session || !draft) return
       const parsed = parsePrice(draft.price_override_input)
       if (parsed === 'invalid') {
-        setRowErrors((current) => ({ ...current, [id]: 'Valor invalido. Use numero >= 0 ou deixe vazio.' }))
+        setRowErrors((current) => ({ ...current, [id]: 'Valor inválido. Use número >= 0 ou deixe vazio.' }))
         return
       }
       setRowErrors((current) => ({ ...current, [id]: null }))
@@ -418,17 +418,17 @@ export default function AdminHistoryPage() {
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-white/5 dark:bg-surface-dark">
-            <div className="flex h-12 items-center rounded-xl bg-slate-100 px-4 focus-within:ring-2 focus-within:ring-primary/50 dark:bg-background-dark">
+            <div className="flex h-12 items-center rounded-xl border border-slate-200 bg-slate-100 px-4 focus-within:ring-2 focus-within:ring-primary/50 dark:border-white/30 dark:bg-surface-dark">
               <span className="material-symbols-outlined text-slate-500 dark:text-text-secondary">search</span>
               <input className="flex-1 border-none bg-transparent px-3 text-sm font-medium outline-none placeholder:text-slate-500 dark:text-white" onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por cliente, usuário, estação ou unidade" value={search} />
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <input className="h-11 rounded-full bg-slate-100 px-4 text-sm font-medium outline-none dark:bg-background-dark dark:text-white" onChange={(event) => setMonth(event.target.value || currentMonthInputValue())} type="month" value={month} />
-              <select className="h-11 rounded-full bg-slate-100 px-4 text-sm font-medium outline-none dark:bg-background-dark dark:text-white" onChange={(event) => setStationId(event.target.value)} value={stationId}>
+              <input className="h-11 rounded-full border border-slate-200 bg-slate-100 px-4 text-sm font-medium outline-none dark:border-white/30 dark:bg-surface-dark dark:text-white" onChange={(event) => setMonth(event.target.value || currentMonthInputValue())} type="month" value={month} />
+              <select className="h-11 rounded-full border border-slate-200 bg-slate-100 px-4 text-sm font-medium outline-none dark:border-white/30 dark:bg-surface-dark dark:text-white" onChange={(event) => setStationId(event.target.value)} value={stationId}>
                 <option value="">Todas as estações</option>
                 {stations.map((station) => <option key={station.id} value={String(station.id)}>{station.name}</option>)}
               </select>
-              <select className="h-11 rounded-full bg-slate-100 px-4 text-sm font-medium outline-none dark:bg-background-dark dark:text-white" onChange={(event) => setPaymentStatus(event.target.value)} value={paymentStatus}>
+              <select className="h-11 rounded-full border border-slate-200 bg-slate-100 px-4 text-sm font-medium outline-none dark:border-white/30 dark:bg-surface-dark dark:text-white" onChange={(event) => setPaymentStatus(event.target.value)} value={paymentStatus}>
                 <option value="">Todos os pagamentos</option>
                 {PAYMENT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
@@ -542,7 +542,7 @@ export default function AdminHistoryPage() {
                   </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Data/hora</p><p className="mt-2 text-sm font-semibold">{formatDateTime(session.start_time)}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">Duracao: {formatDuration(session.duration_seconds)}</p></div>
+                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Data/hora</p><p className="mt-2 text-sm font-semibold">{formatDateTime(session.start_time)}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">Duração: {formatDuration(session.duration_seconds)}</p></div>
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Usuário</p><p className="mt-2 text-sm font-semibold">{displayText(session.user_name)}</p>{session.user_email && session.user_email.trim() ? <p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.user_email}</p> : null}</div>
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Estação</p><p className="mt-2 text-sm font-semibold">{session.station_name ?? 'Sem estação'}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.address_label ?? 'Unidade não informada'}</p></div>
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Energia</p><p className="mt-2 text-sm font-semibold">{formatKwh(session.energy_kwh)}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">Tarifa: {formatMoney(session.tariff_per_kwh)}</p></div>
@@ -550,13 +550,13 @@ export default function AdminHistoryPage() {
                   </div>
 
                   <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,220px)_minmax(0,220px)_auto] lg:items-end">
-                    <div><p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Pagamento</p><select className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 dark:border-white/10 dark:bg-background-dark dark:text-white" disabled={savingField != null} onChange={(event) => void savePayment(session.id, event.target.value as PaymentStatus)} value={draft.payment_status}>{PAYMENT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
-                    <div><p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Price override</p><input className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 dark:border-white/10 dark:bg-background-dark dark:text-white" disabled={savingField === 'price_override'} inputMode="decimal" onChange={(event) => { updateDraft(session.id, { price_override_input: event.target.value }); setRowErrors((current) => ({ ...current, [session.id]: null })) }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void savePrice(session.id) } }} placeholder="Vazio para limpar" value={draft.price_override_input} /></div>
+                    <div><p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Pagamento</p><select className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 dark:border-white/30 dark:bg-surface-dark dark:text-white" disabled={savingField != null} onChange={(event) => void savePayment(session.id, event.target.value as PaymentStatus)} value={draft.payment_status}>{PAYMENT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
+                    <div><p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Valor manual</p><input className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-primary focus:ring-2 focus:ring-primary/30 dark:border-white/30 dark:bg-surface-dark dark:text-white" disabled={savingField === 'price_override'} inputMode="decimal" onChange={(event) => { updateDraft(session.id, { price_override_input: event.target.value }); setRowErrors((current) => ({ ...current, [session.id]: null })) }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void savePrice(session.id) } }} placeholder="Vazio para limpar" value={draft.price_override_input} /></div>
                     <button className="h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-background-dark transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70" disabled={savingField != null} onClick={() => void savePrice(session.id)} type="button">{savingField === 'price_override' ? 'Salvando...' : 'Salvar valor'}</button>
                   </div>
 
                   <div className="mt-3 flex flex-col gap-2 text-xs md:flex-row md:items-center md:justify-between">
-                    <div className="text-slate-500 dark:text-text-secondary">{savingField ? 'Salvando alteracoes da linha...' : `Fim: ${formatDateTime(session.end_time)}`}</div>
+                    <div className="text-slate-500 dark:text-text-secondary">{savingField ? 'Salvando alterações da linha...' : `Fim: ${formatDateTime(session.end_time)}`}</div>
                     {rowErrors[session.id] ? <div className="font-medium text-red-400">{rowErrors[session.id]}</div> : session.notes ? <div className="text-slate-500 dark:text-text-secondary">{session.notes}</div> : null}
                   </div>
                 </article>
@@ -570,7 +570,7 @@ export default function AdminHistoryPage() {
 
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-secondary bg-surface-dark px-4 pb-6 pt-3">
         <div className="mx-auto flex w-full max-w-6xl justify-between items-end">
-          <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200" to="/admin/dashboard"><div className="flex h-7 items-center justify-center transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]">monitoring</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Dashboard</p></Link>
+          <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200" to="/admin/dashboard"><div className="flex h-7 items-center justify-center transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]">monitoring</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Home</p></Link>
           <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-primary" to="/admin/history"><div className="flex h-7 items-center justify-center rounded-2xl bg-primary/20 px-4 transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>history</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Histórico</p></Link>
           <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200" to="/admin/users"><div className="flex h-7 items-center justify-center transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]">group</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Usuários</p></Link>
           <Link className="group flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 transition-colors hover:text-slate-200" to="/admin/settings"><div className="flex h-7 items-center justify-center transition-transform group-active:scale-95"><span className="material-symbols-outlined text-[26px]">settings</span></div><p className="text-[10px] font-medium tracking-[0.015em]">Configurações</p></Link>

@@ -32,7 +32,7 @@ type MySessionsResponse = {
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError && error.message.trim()) return error.message
   if (error instanceof Error && error.message.trim()) return error.message
-  return 'Nao foi possivel carregar seu historico.'
+  return 'Não foi possível carregar seu histórico.'
 }
 
 function formatDateTime(value: string | null) {
@@ -96,7 +96,7 @@ function getMonthRange(monthValue: string) {
 function formatMonthLabel(monthValue: string) {
   const [yearText, monthText] = monthValue.split('-')
   const date = new Date(Number(yearText), Number(monthText) - 1, 1)
-  if (Number.isNaN(date.getTime())) return 'mes selecionado'
+  if (Number.isNaN(date.getTime())) return 'mês selecionado'
   return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
 }
 
@@ -228,11 +228,11 @@ export default function UserHistoryPage() {
           <p className="text-sm text-slate-300">Acompanhe suas sessões e pagamentos por mês.</p>
         </section>
 
-        <section className="rounded-2xl border border-primary/20 bg-[#1a3523] p-4">
+        <section className="rounded-2xl border border-white/30 bg-surface-dark p-4">
           <label className="flex flex-col gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Filtrar por mês</span>
             <input
-              className="h-12 rounded-xl border border-primary/20 bg-slate-900/35 px-4 text-sm font-semibold text-slate-100 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+              className="h-12 rounded-xl border border-white/30 bg-[#1f2f4d] px-4 text-sm font-semibold text-slate-100 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
               onChange={(event) => {
                 setSelectedMonth(event.target.value || getCurrentMonthValue())
               }}
@@ -243,15 +243,15 @@ export default function UserHistoryPage() {
         </section>
 
         <section className="grid grid-cols-3 gap-3">
-          <div className="rounded-xl border border-primary/20 bg-[#1a3523] p-3">
+          <div className="rounded-xl border border-white/30 bg-surface-dark p-3">
             <p className="text-[10px] uppercase tracking-wider text-slate-300">Carregamentos</p>
             <p className="mt-1 text-lg font-bold text-primary">{sessions.length}</p>
           </div>
-          <div className="rounded-xl border border-primary/20 bg-[#1a3523] p-3">
+          <div className="rounded-xl border border-white/30 bg-surface-dark p-3">
             <p className="text-[10px] uppercase tracking-wider text-slate-300">Energia</p>
             <p className="mt-1 text-lg font-bold text-primary">{formatKwh(summary.totalKwh)}</p>
           </div>
-          <div className="rounded-xl border border-primary/20 bg-[#1a3523] p-3">
+          <div className="rounded-xl border border-white/30 bg-surface-dark p-3">
             <p className="text-[10px] uppercase tracking-wider text-slate-300">Valor</p>
             <p className="mt-1 text-lg font-bold text-primary">{formatCurrency(summary.totalValue)}</p>
           </div>
@@ -276,7 +276,7 @@ export default function UserHistoryPage() {
           <section className="space-y-3">
             {[1, 2, 3].map((item) => (
               <div
-                className="animate-pulse rounded-2xl border border-primary/10 bg-[#1a3523] p-4"
+                className="animate-pulse rounded-2xl border border-white/30 bg-surface-dark p-4"
                 key={`skeleton-${item}`}
               >
                 <div className="h-4 w-1/2 rounded bg-primary/20" />
@@ -288,9 +288,9 @@ export default function UserHistoryPage() {
         ) : null}
 
         {!loadingInitial && !errorMessage && sessions.length === 0 ? (
-          <section className="rounded-2xl border border-primary/20 bg-[#1a3523] p-6 text-center">
-            <p className="text-base font-semibold text-slate-100">Nenhuma sessao encontrada</p>
-            <p className="mt-1 text-sm text-slate-300">Nao ha recargas em {monthLabel}.</p>
+          <section className="rounded-2xl border border-white/30 bg-surface-dark p-6 text-center">
+            <p className="text-base font-semibold text-slate-100">Nenhuma sessão encontrada</p>
+            <p className="mt-1 text-sm text-slate-300">Não há recargas em {monthLabel}.</p>
           </section>
         ) : null}
 
@@ -299,11 +299,11 @@ export default function UserHistoryPage() {
             {sessions.map((session) => {
               const paymentBadge = getPaymentBadge(session.payment_status)
               const stationName = session.station_name ?? (session.station_id ? `Carregador ${session.station_id}` : 'Carregador')
-              const addressLabel = session.address_label ?? (session.address_id ? `Unidade ${session.address_id}` : 'Unidade nao informada')
+              const addressLabel = session.address_label ?? (session.address_id ? `Unidade ${session.address_id}` : 'Unidade não informada')
 
               return (
                 <article
-                  className="rounded-2xl border border-primary/20 bg-[#1a3523] p-4 shadow-sm"
+                  className="rounded-2xl border border-white/30 bg-surface-dark p-4 shadow-sm"
                   key={session.id}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -318,23 +318,23 @@ export default function UserHistoryPage() {
                   <p className="mt-2 text-xs text-slate-300">{formatDateTime(session.start_time)}</p>
 
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg bg-slate-900/35 p-2">
+                    <div className="rounded-lg bg-[#1f2f4d] p-2">
                       <p className="text-slate-400">Estação</p>
                       <p className="font-semibold text-slate-100">{stationName}</p>
                       {session.station_location_label ? (
                         <p className="text-[11px] text-slate-300">{session.station_location_label}</p>
                       ) : null}
                     </div>
-                    <div className="rounded-lg bg-slate-900/35 p-2">
+                    <div className="rounded-lg bg-[#1f2f4d] p-2">
                       <p className="text-slate-400">Unidade</p>
                       <p className="font-semibold text-slate-100">{addressLabel}</p>
                     </div>
-                    <div className="rounded-lg bg-slate-900/35 p-2">
+                    <div className="rounded-lg bg-[#1f2f4d] p-2">
                       <p className="text-slate-400">Energia</p>
                       <p className="font-semibold text-primary">{formatKwh(getEffectiveKwh(session))}</p>
                     </div>
-                    <div className="rounded-lg bg-slate-900/35 p-2">
-                      <p className="text-slate-400">Duracao</p>
+                    <div className="rounded-lg bg-[#1f2f4d] p-2">
+                      <p className="text-slate-400">Duração</p>
                       <p className="font-semibold text-slate-100">{formatDuration(session.duration_seconds)}</p>
                     </div>
                   </div>
@@ -379,36 +379,36 @@ export default function UserHistoryPage() {
           </button>
         ) : null}
 
-        <section className="space-y-4 rounded-2xl border border-primary/20 bg-[#1a3523] p-4">
+        <section className="space-y-4 rounded-2xl border border-white/30 bg-surface-dark p-4">
           <div>
-            <h2 className="text-lg font-bold text-slate-100">Dashboard do mês</h2>
+            <h2 className="text-lg font-bold text-slate-100">Home do mês</h2>
             <p className="mt-1 text-sm text-slate-300">
               Resumo de {monthLabel} com os carregamentos carregados na tela.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-slate-900/35 p-3">
+            <div className="rounded-xl bg-[#1f2f4d] p-3">
               <p className="text-[10px] uppercase tracking-wider text-slate-400">Valor total</p>
               <p className="mt-1 text-lg font-bold text-primary">{formatCurrency(summary.totalValue)}</p>
             </div>
-            <div className="rounded-xl bg-slate-900/35 p-3">
+            <div className="rounded-xl bg-[#1f2f4d] p-3">
               <p className="text-[10px] uppercase tracking-wider text-slate-400">Energia total</p>
               <p className="mt-1 text-lg font-bold text-primary">{formatKwh(summary.totalKwh)}</p>
             </div>
-            <div className="rounded-xl bg-slate-900/35 p-3">
+            <div className="rounded-xl bg-[#1f2f4d] p-3">
               <p className="text-[10px] uppercase tracking-wider text-slate-400">Carregamentos</p>
               <p className="mt-1 text-lg font-bold text-slate-100">{sessions.length}</p>
             </div>
-            <div className="rounded-xl bg-slate-900/35 p-3">
+            <div className="rounded-xl bg-[#1f2f4d] p-3">
               <p className="text-[10px] uppercase tracking-wider text-slate-400">Usuário</p>
               <p className="mt-1 truncate text-sm font-bold text-slate-100">{user?.name || '--'}</p>
             </div>
-            <div className="rounded-xl bg-slate-900/35 p-3">
+            <div className="rounded-xl bg-[#1f2f4d] p-3">
               <p className="text-[10px] uppercase tracking-wider text-slate-400">Unidades usadas</p>
               <p className="mt-1 text-lg font-bold text-slate-100">{summary.addressKeys.size}</p>
             </div>
-            <div className="rounded-xl bg-slate-900/35 p-3">
+            <div className="rounded-xl bg-[#1f2f4d] p-3">
               <p className="text-[10px] uppercase tracking-wider text-slate-400">Tempo total</p>
               <p className="mt-1 text-lg font-bold text-slate-100">{formatDuration(summary.totalSeconds)}</p>
             </div>
@@ -429,7 +429,7 @@ export default function UserHistoryPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-primary/10 bg-slate-900/30 p-3 text-sm text-slate-300">
+          <div className="rounded-xl border border-white/30 bg-surface-dark p-3 text-sm text-slate-300">
             <div className="flex items-center justify-between gap-3">
               <span>Média por carregamento</span>
               <strong className="text-primary">{formatKwh(averageKwh)}</strong>

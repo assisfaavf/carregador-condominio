@@ -23,7 +23,7 @@
       <div class="hero"></div>
 
       <div class="section-intro">
-        <h1 class="page-title">Painel Admin</h1>
+        <h1 class="page-title">Home Admin</h1>
         <p class="page-subtitle">Operacao do carregador em tempo real.</p>
       </div>
 
@@ -31,56 +31,56 @@
         <div id="chargerState" class="status-main">Status: ...</div>
 
         <div class="metrics mt-16">
-          <p>Potencia agora: <b id="powerKw">--</b> kW</p>
-          <p>Potencia por fase: <b id="phasePowerKw">--</b> kW</p>
-          <p>Tensao fase A: <b id="voltageV">--</b> V</p>
+          <p>Potência agora: <b id="powerKw">--</b> kW</p>
+          <p>Potência por fase: <b id="phasePowerKw">--</b> kW</p>
+          <p>Tensão fase A: <b id="voltageV">--</b> V</p>
           <p>Corrente fase A: <b id="currentA">--</b> A</p>
           <p>Fases detectadas: <b id="phaseCount">--</b></p>
           <p><span id="deviceSessionEnergyLabel">Energia da carga</span>: <b id="deviceSessionEnergyKwh">--</b> kWh</p>
-          <p>Sessao ativa: <b id="hasRunning">Nao</b></p>
+          <p>Sessão ativa: <b id="hasRunning">Não</b></p>
         </div>
       </section>
 
       <section class="panel">
-        <h2 class="section-title">Sessao em andamento</h2>
+        <h2 class="section-title">Sessão em andamento</h2>
         <div class="metrics">
-          <p>Usuario: <b id="runUser">--</b></p>
-          <p>Inicio: <b id="runStart">--</b></p>
+          <p>Usuário: <b id="runUser">--</b></p>
+          <p>Início: <b id="runStart">--</b></p>
           <p>Tempo: <b id="runElapsed">00:00</b></p>
           <p>kWh estimado: <b id="runKwh">0.00</b></p>
-          <p>Preco estimado: <b id="runPrice">--</b></p>
-          <p>ID sessao: <b id="runId">--</b></p>
+          <p>Preço estimado: <b id="runPrice">--</b></p>
+          <p>ID da sessão: <b id="runId">--</b></p>
         </div>
       </section>
 
       <section class="panel">
         <h2 class="section-title">Controle</h2>
-        <p id="controlStationLabel" class="mini-note">Estacao selecionada: --</p>
+        <p id="controlStationLabel" class="mini-note">Estação selecionada: --</p>
 
         <div class="field mt-16">
-          <label for="controlStationSelect">Estacao</label>
+          <label for="controlStationSelect">Estação</label>
           <select id="controlStationSelect" class="select">
-            <option value="">Selecione uma estacao...</option>
+            <option value="">Selecione uma estação...</option>
           </select>
         </div>
 
         <div id="startUserField" class="field mt-16">
-          <label for="userSelect">Iniciar para usuario</label>
+          <label for="userSelect">Iniciar para usuário</label>
           <select id="userSelect" class="select">
-            <option value="">Carregando usuarios...</option>
+            <option value="">Carregando usuários...</option>
           </select>
         </div>
 
         <div id="startAddressField" class="field mt-16">
-          <label for="userAddressSelect">Endereco do usuario</label>
+          <label for="userAddressSelect">Endereço do usuário</label>
           <select id="userAddressSelect" class="select">
-            <option value="">Selecione um usuario...</option>
+            <option value="">Selecione um usuário...</option>
           </select>
         </div>
 
         <div id="runningSummary" class="metrics mt-16 hidden">
           <p>Carregando agora: <b id="runningUserInline">--</b></p>
-          <p>Sessao ativa: <b id="runningSessionInline">--</b></p>
+          <p>Sessão ativa: <b id="runningSessionInline">--</b></p>
         </div>
 
         <div class="actions-two mt-16">
@@ -92,7 +92,7 @@
       </section>
 
       <section class="panel">
-        <h2 class="section-title">Gerenciar Estacoes</h2>
+        <h2 class="section-title">Gerenciar estações</h2>
 
         <form id="stationForm" class="form">
           <input id="stationId" type="hidden" />
@@ -114,18 +114,18 @@
               <input id="stationDevice" class="input" required />
             </div>
             <div class="field">
-              <label for="stationCurrent">Corrente maxima (A)</label>
+              <label for="stationCurrent">Corrente máxima (A)</label>
               <input id="stationCurrent" type="number" min="1" class="input" value="32" />
             </div>
           </div>
 
           <label class="checkline">
             <input id="stationActive" type="checkbox" checked />
-            Estacao ativa
+            Estação ativa
           </label>
 
           <div class="actions-two">
-            <button type="submit" class="btn btn-primary">Salvar estacao</button>
+            <button type="submit" class="btn btn-primary">Salvar estação</button>
             <button type="button" id="stationResetBtn" class="btn btn-secondary">Limpar</button>
           </div>
         </form>
@@ -142,7 +142,7 @@
                 <th>Tuya Device</th>
                 <th>A max</th>
                 <th>Status</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody id="stationsTableBody">
@@ -156,7 +156,7 @@
         <div class="section-header">
           <div>
             <h2 class="section-title">Carregamentos</h2>
-            <p class="mini-note">Ultimos carregamentos registrados pelo sistema.</p>
+            <p class="mini-note">Últimos carregamentos registrados pelo sistema.</p>
           </div>
           <button id="sessionsRefreshBtn" class="btn btn-secondary btn-inline" type="button">Atualizar</button>
         </div>
@@ -188,7 +188,7 @@
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Inicio</th>
+                <th>Início</th>
                 <th>Final</th>
                 <th>Energia usada</th>
                 <th>Cliente</th>
@@ -205,8 +205,8 @@
       <section class="panel">
         <div class="section-header">
           <div>
-            <h2 class="section-title">Dashboard mensal por cliente</h2>
-            <p class="mini-note">Filtre por mes e abra um cliente para ver os carregamentos vinculados.</p>
+            <h2 class="section-title">Home mensal por cliente</h2>
+            <p class="mini-note">Filtre por mês e abra um cliente para ver os carregamentos vinculados.</p>
           </div>
           <div class="dashboard-filter">
             <input id="clientDashboardMonth" class="input month-input" type="month" />
@@ -224,8 +224,8 @@
                 <th>Torre</th>
                 <th>Apartamento</th>
                 <th>Carregamentos</th>
-                <th>Energia no mes</th>
-                <th>Acoes</th>
+                <th>Energia no mês</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody id="clientDashboardTableBody">
@@ -238,7 +238,7 @@
       <section class="panel">
         <h2 class="section-title">Debug</h2>
         <div class="actions-three">
-          <button onclick="loadSessions()" class="btn btn-secondary">Ver sessoes</button>
+          <button onclick="loadSessions()" class="btn btn-secondary">Ver sessões</button>
           <button onclick="loadTuya()" class="btn btn-secondary">Ver status Tuya</button>
           <button onclick="clearOutput()" class="btn btn-secondary">Limpar saida</button>
         </div>

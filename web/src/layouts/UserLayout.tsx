@@ -15,7 +15,7 @@ export default function UserLayout() {
       await signOut()
       navigate('/login', { replace: true })
     } catch (error) {
-      const nextMessage = error instanceof Error ? error.message : 'Nao foi possivel sair da sessao.'
+      const nextMessage = error instanceof Error ? error.message : 'Não foi possível sair da sessão.'
       setMessage(nextMessage)
       navigate('/login', { replace: true })
     } finally {

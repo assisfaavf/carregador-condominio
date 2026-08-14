@@ -193,7 +193,7 @@ function hasActiveSession() {
 function updateControlStationLabel() {
   const station = getSelectedStation();
   const label = station ? `${station.name} (${station.location_label || "sem local"})` : "Nenhuma";
-  document.getElementById("controlStationLabel").textContent = `Estacao selecionada: ${label}`;
+  document.getElementById("controlStationLabel").textContent = `Estação selecionada: ${label}`;
 }
 
 function resetStationForm() {
@@ -224,7 +224,7 @@ function fillControlStationSelect() {
 
   select.innerHTML = "";
   if (adminState.stations.length === 0) {
-    select.innerHTML = '<option value="">Nenhuma estacao</option>';
+    select.innerHTML = '<option value="">Nenhuma estação</option>';
     localStorage.removeItem(STATION_STORAGE_KEY);
     updateControlStationLabel();
     renderActionButton();
@@ -251,14 +251,14 @@ function fillAddressSelect() {
   const select = document.getElementById("userAddressSelect");
   select.innerHTML = "";
   if (adminState.userAddresses.length === 0) {
-    select.innerHTML = '<option value="">Sem endereco</option>';
+    select.innerHTML = '<option value="">Sem endereço</option>';
     return;
   }
 
   for (const address of adminState.userAddresses) {
     const option = document.createElement("option");
     option.value = String(address.id);
-    option.textContent = `${address.label}${address.is_default ? " [padrao]" : ""}`;
+    option.textContent = `${address.label}${address.is_default ? " [padrão]" : ""}`;
     select.appendChild(option);
   }
 }
@@ -285,14 +285,14 @@ async function loadUsers() {
   if (!res.ok || !data.success || !Array.isArray(data.users)) {
     adminState.users = [];
     adminState.userAddresses = [];
-    select.innerHTML = '<option value="">Erro ao carregar usuarios</option>';
+    select.innerHTML = '<option value="">Erro ao carregar usuários</option>';
     fillAddressSelect();
     renderActionButton();
     return;
   }
 
   adminState.users = data.users;
-  select.innerHTML = '<option value="">Selecione um usuario...</option>';
+  select.innerHTML = '<option value="">Selecione um usuário...</option>';
   for (const user of adminState.users) {
     const option = document.createElement("option");
     option.value = String(user.id);
@@ -320,7 +320,7 @@ function renderStationsTable() {
   tbody.innerHTML = "";
 
   if (!Array.isArray(adminState.stations) || adminState.stations.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7">Nenhuma estacao cadastrada.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7">Nenhuma estação cadastrada.</td></tr>';
     return;
   }
 
@@ -352,7 +352,7 @@ async function loadStationsAdmin() {
     adminState.stations = [];
     renderStationsTable();
     fillControlStationSelect();
-    setStationMsg("Erro ao carregar estacoes.", "error");
+    setStationMsg("Erro ao carregar estações.", "error");
     return;
   }
 
@@ -537,7 +537,7 @@ function renderClientSessionDetails(client, sessions) {
 
   const tbody = document.createElement("tbody");
   if (sessions.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="3">Nenhum carregamento vinculado a este cliente no mes selecionado.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3">Nenhum carregamento vinculado a este cliente no mês selecionado.</td></tr>';
   } else {
     for (const session of sessions) {
       const detailTr = document.createElement("tr");
@@ -648,7 +648,7 @@ async function loadClientDashboard() {
     adminState.chargingClients = clientsData.clients;
     adminState.clientDashboardSessions = [];
     renderClientDashboard();
-    setClientDashboardMsg(sessionsData.message || "Erro ao carregar carregamentos do mes.", "error");
+    setClientDashboardMsg(sessionsData.message || "Erro ao carregar carregamentos do mês.", "error");
     return;
   }
 
@@ -689,7 +689,7 @@ function renderActionMode() {
 
   if (active && running) {
     const user = running.user;
-    const who = user ? `${user.name || "-"} (${user.email || "sem-email"})` : `User ${running.user_id || "-"}`;
+    const who = user ? `${user.name || "-"} (${user.email || "sem e-mail"})` : `Usuário ${running.user_id || "-"}`;
     document.getElementById("runningUserInline").textContent = who;
     document.getElementById("runningSessionInline").textContent = String(running.session_id || "--");
   } else {
@@ -730,7 +730,7 @@ async function refreshState() {
     const stationId = getSelectedStationId();
     if (!stationId) {
       adminState.live = null;
-      document.getElementById("chargerState").textContent = "Status: selecione uma estacao";
+      document.getElementById("chargerState").textContent = "Status: selecione uma estação";
       document.getElementById("powerKw").textContent = "--";
       document.getElementById("phasePowerKw").textContent = "--";
       document.getElementById("voltageV").textContent = "--";
@@ -738,7 +738,7 @@ async function refreshState() {
       document.getElementById("phaseCount").textContent = "--";
       document.getElementById("deviceSessionEnergyLabel").textContent = "Energia da carga";
       document.getElementById("deviceSessionEnergyKwh").textContent = "--";
-      document.getElementById("hasRunning").textContent = "Nao";
+      document.getElementById("hasRunning").textContent = "Não";
       document.getElementById("runUser").textContent = "--";
       document.getElementById("runStart").textContent = "--";
       document.getElementById("runElapsed").textContent = "00:00";
@@ -755,7 +755,7 @@ async function refreshState() {
 
     const liveData = await liveRes.json().catch(() => ({}));
     if (!liveRes.ok || !liveData.success) {
-      setMsg(liveData.message || "Falha ao atualizar live.", "error");
+      setMsg(liveData.message || "Falha ao atualizar telemetria.", "error");
       return;
     }
 
@@ -770,11 +770,11 @@ async function refreshState() {
     document.getElementById("phaseCount").textContent = String(liveData.phaseCount || "--");
     document.getElementById("deviceSessionEnergyLabel").textContent = liveData.deviceSessionEnergyLabel || "Energia da carga";
     document.getElementById("deviceSessionEnergyKwh").textContent = fmt(liveData.deviceSessionEnergyKwh);
-    document.getElementById("hasRunning").textContent = running ? "Sim" : "Nao";
+    document.getElementById("hasRunning").textContent = running ? "Sim" : "Não";
 
     if (liveData.telemetry_unavailable) {
       setMsg(
-        `Telemetria Tuya indisponivel no momento. Exibindo apenas sessoes em andamento.${formatTelemetryError(liveData.telemetry_error)}`,
+        `Telemetria Tuya indisponível no momento. Exibindo apenas sessões em andamento.${formatTelemetryError(liveData.telemetry_error)}`,
         "error"
       );
     }
@@ -790,7 +790,7 @@ async function refreshState() {
     } else {
       const userLabel = running.user
         ? `${running.user.name || "-"} (${running.user.tower || "-"}/${running.user.apartment || "-"})`
-        : `User ${running.user_id || "-"}`;
+        : `Usuário ${running.user_id || "-"}`;
 
       document.getElementById("runUser").textContent = userLabel;
       document.getElementById("runStart").textContent = running.start_time || "--";
@@ -846,9 +846,9 @@ async function performStart() {
   const userId = getSelectedUserId();
   const addressId = getSelectedAddressId();
 
-  if (!stationId) return setMsg("Selecione uma estacao.", "error");
-  if (!userId) return setMsg("Selecione um usuario valido.", "error");
-  if (!addressId) return setMsg("Selecione um endereco do usuario.", "error");
+  if (!stationId) return setMsg("Selecione uma estação.", "error");
+  if (!userId) return setMsg("Selecione um usuário válido.", "error");
+  if (!addressId) return setMsg("Selecione um endereço do usuário.", "error");
 
   adminState.actionBusy = true;
   adminState.actionBusyLabel = "Iniciando...";
@@ -863,7 +863,7 @@ async function performStart() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return setMsg(data.message || `Falha ao iniciar (HTTP ${res.status})`, "error");
-    setMsg(data.message || "Sessao iniciada.", "ok");
+    setMsg(data.message || "Sessão iniciada.", "ok");
   } catch (error) {
     setMsg("Erro ao iniciar: " + error.message, "error");
   } finally {
@@ -875,7 +875,7 @@ async function performStart() {
 
 async function performStop() {
   const stationId = getSelectedStationId();
-  if (!stationId) return setMsg("Selecione uma estacao.", "error");
+  if (!stationId) return setMsg("Selecione uma estação.", "error");
 
   adminState.actionBusy = true;
   adminState.actionBusyLabel = "Encerrando...";
@@ -891,7 +891,7 @@ async function performStop() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return setMsg(data.message || `Falha ao encerrar (HTTP ${res.status})`, "error");
-    setMsg(data.message || "Sessao encerrada.", "ok");
+    setMsg(data.message || "Sessão encerrada.", "ok");
   } catch (error) {
     setMsg("Erro ao encerrar: " + error.message, "error");
   } finally {
@@ -921,10 +921,10 @@ async function submitStationForm(event) {
     is_active: document.getElementById("stationActive").checked,
   };
 
-  if (!payload.name) return setStationMsg("Informe o nome da estacao.", "error");
+  if (!payload.name) return setStationMsg("Informe o nome da estação.", "error");
   if (!payload.tuya_device_id) return setStationMsg("Informe o tuya_device_id.", "error");
   if (!Number.isInteger(payload.max_current_a) || payload.max_current_a <= 0) {
-    return setStationMsg("Corrente maxima invalida.", "error");
+    return setStationMsg("Corrente máxima inválida.", "error");
   }
 
   const isEdit = Number.isInteger(stationId) && stationId > 0;
@@ -934,9 +934,9 @@ async function submitStationForm(event) {
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) return setStationMsg(data.message || `Falha ao salvar estacao (HTTP ${res.status})`, "error");
+  if (!res.ok) return setStationMsg(data.message || `Falha ao salvar estação (HTTP ${res.status})`, "error");
 
-  setStationMsg(isEdit ? "Estacao atualizada." : "Estacao criada.", "ok");
+  setStationMsg(isEdit ? "Estação atualizada." : "Estação criada.", "ok");
   resetStationForm();
   await loadStationsAdmin();
   await refreshState();
@@ -950,7 +950,7 @@ async function toggleStationActive(station) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return setStationMsg(data.message || `Falha ao alterar status (HTTP ${res.status})`, "error");
-  setStationMsg("Status da estacao atualizado.", "ok");
+  setStationMsg("Status da estação atualizado.", "ok");
   await loadStationsAdmin();
   await refreshState();
 }
@@ -1049,7 +1049,7 @@ function setupEvents() {
 
     if (action === "edit") {
       fillStationForm(station);
-      setStationMsg(`Editando estacao #${station.id}`, "");
+      setStationMsg(`Editando estação #${station.id}`, "");
       return;
     }
 
@@ -1064,7 +1064,7 @@ function setupEvents() {
     const select = document.querySelector(`[data-session-client-select="${sessionId}"]`);
     const clientId = select?.value ? Number(select.value) : null;
     if (clientId != null && (!Number.isInteger(clientId) || clientId <= 0)) {
-      return setSessionsMsg("Cliente invalido.", "error");
+      return setSessionsMsg("Cliente inválido.", "error");
     }
 
     await linkClientToSession(sessionId, clientId);
@@ -1091,7 +1091,7 @@ function setupEvents() {
     const paymentStatus = String(event.target.value || "");
     if (!Number.isInteger(sessionId) || sessionId <= 0) return;
     if (!["pendente", "pago"].includes(paymentStatus)) {
-      return setClientDashboardMsg("Status invalido.", "error");
+      return setClientDashboardMsg("Status inválido.", "error");
     }
 
     event.target.disabled = true;

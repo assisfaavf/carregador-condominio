@@ -79,7 +79,7 @@ export default function AdminStartModal({
               Usuário
             </label>
             <select
-              className="h-12 w-full rounded-xl border border-secondary bg-background-dark px-3 text-sm text-slate-100 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-12 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-slate-100 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
               disabled={loadingUsers || submitting}
               id="admin-start-user"
               onChange={(event) => onUserChange(event.target.value)}
@@ -99,7 +99,7 @@ export default function AdminStartModal({
               Unidade
             </label>
             <select
-              className="h-12 w-full rounded-xl border border-secondary bg-background-dark px-3 text-sm text-slate-100 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-12 w-full rounded-xl border border-white/30 bg-surface-dark px-3 text-sm text-slate-100 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
               disabled={selectedUserId == null || loadingAddresses || submitting}
               id="admin-start-address"
               onChange={(event) => onAddressChange(event.target.value)}
@@ -115,7 +115,7 @@ export default function AdminStartModal({
               {addresses.map((address) => (
                 <option key={address.id} value={address.id}>
                   {address.label}
-                  {address.is_default ? ' [padrao]' : ''}
+                  {address.is_default ? ' [padrão]' : ''}
                 </option>
               ))}
             </select>

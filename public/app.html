@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Carregador - Usuario</title>
+  <title>Carregador - Usuário</title>
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -23,27 +23,27 @@
       <div class="hero"></div>
 
       <div class="section-intro">
-        <h1 class="page-title">Painel do Carregador</h1>
-        <p id="who" class="page-subtitle">(carregando usuario...)</p>
+        <h1 class="page-title">Home do Carregador</h1>
+        <p id="who" class="page-subtitle">(carregando usuário...)</p>
       </div>
 
       <section class="panel">
-        <h2 class="section-title">Endereco</h2>
+        <h2 class="section-title">Endereço</h2>
 
         <div class="field">
-          <label for="addressSelect">Selecione o endereco</label>
+          <label for="addressSelect">Selecione o endereço</label>
           <select id="addressSelect" class="select">
-            <option value="">Carregando enderecos...</option>
+            <option value="">Carregando endereços...</option>
           </select>
         </div>
 
         <div class="actions mt-16">
-          <button id="toggleAddressFormBtn" class="btn btn-secondary">+ Novo endereco</button>
+          <button id="toggleAddressFormBtn" class="btn btn-secondary">+ Novo endereço</button>
         </div>
 
         <form id="newAddressForm" class="form mt-16 hidden">
           <div class="field">
-            <label for="addressLabel">Rotulo</label>
+            <label for="addressLabel">Rótulo</label>
             <input id="addressLabel" class="input" placeholder="Principal" required />
           </div>
 
@@ -53,7 +53,7 @@
               <input id="addressStreet" class="input" placeholder="Rua Exemplo" />
             </div>
             <div class="field">
-              <label for="addressNumber">Numero</label>
+              <label for="addressNumber">Número</label>
               <input id="addressNumber" class="input" placeholder="123" />
             </div>
           </div>
@@ -87,24 +87,24 @@
             </div>
             <label class="checkline">
               <input id="addressDefault" type="checkbox" />
-              Marcar como endereco padrao
+              Marcar como endereço padrão
             </label>
           </div>
 
           <div class="actions-two">
-            <button type="submit" class="btn btn-primary">Salvar endereco</button>
+            <button type="submit" class="btn btn-primary">Salvar endereço</button>
             <button id="cancelAddressFormBtn" type="button" class="btn btn-secondary">Cancelar</button>
           </div>
         </form>
       </section>
 
       <section class="panel">
-        <h2 class="section-title">Estacao / Carregador</h2>
+        <h2 class="section-title">Estação / Carregador</h2>
 
         <div class="field">
-          <label for="stationSelect">Selecione a estacao</label>
+          <label for="stationSelect">Selecione a estação</label>
           <select id="stationSelect" class="select">
-            <option value="">Carregando estacoes...</option>
+            <option value="">Carregando estações...</option>
           </select>
         </div>
       </section>
@@ -114,11 +114,11 @@
 
         <div class="metrics">
           <p><span id="deviceSessionEnergyLabel">Energia da carga</span>: <b id="kwh">--</b> kWh</p>
-          <p>Preco estimado: <b id="price">--</b></p>
-          <p>Potencia agora: <b id="power">--</b> kW</p>
-          <p>Tensao fase A: <b id="voltage">--</b> V</p>
+          <p>Preço estimado: <b id="price">--</b></p>
+          <p>Potência agora: <b id="power">--</b> kW</p>
+          <p>Tensão fase A: <b id="voltage">--</b> V</p>
           <p>Corrente fase A: <b id="current">--</b> A</p>
-          <p>Tempo de sessao: <b id="elapsed">00:00</b></p>
+          <p>Tempo de sessão: <b id="elapsed">00:00</b></p>
         </div>
 
         <div class="actions mt-16">
@@ -257,14 +257,14 @@
 
       select.innerHTML = "";
       if (state.addresses.length === 0) {
-        select.innerHTML = '<option value="">Nenhum endereco cadastrado</option>';
+        select.innerHTML = '<option value="">Nenhum endereço cadastrado</option>';
         localStorage.removeItem(ADDRESS_STORAGE_KEY);
         renderActionButton();
         return;
       }
 
       for (const address of state.addresses) {
-        const suffix = address.is_default ? " [padrao]" : "";
+        const suffix = address.is_default ? " [padrão]" : "";
         const text = `${address.label}${suffix} - ${address.street || ""} ${address.number || ""}`.trim();
         const option = document.createElement("option");
         option.value = String(address.id);
@@ -288,7 +288,7 @@
 
       select.innerHTML = "";
       if (state.stations.length === 0) {
-        select.innerHTML = '<option value="">Nenhuma estacao ativa</option>';
+        select.innerHTML = '<option value="">Nenhuma estação ativa</option>';
         localStorage.removeItem(STATION_STORAGE_KEY);
         renderActionButton();
         return;
@@ -359,7 +359,7 @@
         if (!stationId) {
           state.current = null;
           state.live = null;
-          document.getElementById("state").textContent = "Status: selecione uma estacao";
+          document.getElementById("state").textContent = "Status: selecione uma estação";
           document.getElementById("deviceSessionEnergyLabel").textContent = "Energia da carga";
           document.getElementById("kwh").textContent = "--";
           document.getElementById("price").textContent = "--";
@@ -380,12 +380,12 @@
 
         if (!liveRes.ok || !liveData.success) {
           document.getElementById("state").textContent = "Status: erro";
-          setMsg(liveData.message || "Erro ao atualizar live.", "error");
+          setMsg(liveData.message || "Erro ao atualizar telemetria.", "error");
           return;
         }
         if (!currentRes.ok || !currentData.success) {
           document.getElementById("state").textContent = "Status: erro";
-          setMsg(currentData.message || "Erro ao consultar sessao atual.", "error");
+          setMsg(currentData.message || "Erro ao consultar sessão atual.", "error");
           return;
         }
 
@@ -421,7 +421,7 @@
           const extra = liveData.telemetry_unavailable
             ? ` Telemetria Tuya indisponivel.${formatTelemetryError(liveData.telemetry_error)}`
             : "";
-          setMsg(`Estacao ocupada por outro usuario.${extra}`, "error");
+          setMsg(`Estação ocupada por outro usuário.${extra}`, "error");
         } else if (liveData.telemetry_unavailable) {
           setMsg(
             `Telemetria Tuya indisponivel no momento. Mostrando apenas dados locais.${formatTelemetryError(liveData.telemetry_error)}`,
@@ -457,7 +457,7 @@
         is_default: document.getElementById("addressDefault").checked,
       };
 
-      if (!payload.label) return setMsg("Informe o rotulo do endereco.", "error");
+      if (!payload.label) return setMsg("Informe o rótulo do endereço.", "error");
 
       try {
         const res = await fetch("/api/my/addresses", {
@@ -467,16 +467,16 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.success) {
-          return setMsg(data.message || `Falha ao criar endereco (HTTP ${res.status})`, "error");
+          return setMsg(data.message || `Falha ao criar endereço (HTTP ${res.status})`, "error");
         }
 
         showAddressForm(false);
         await loadAddresses();
         document.getElementById("addressSelect").value = String(data.address.id);
         localStorage.setItem(ADDRESS_STORAGE_KEY, String(data.address.id));
-        setMsg("Endereco criado com sucesso.", "ok");
+        setMsg("Endereço criado com sucesso.", "ok");
       } catch (error) {
-        setMsg("Erro ao criar endereco: " + error.message, "error");
+        setMsg("Erro ao criar endereço: " + error.message, "error");
       }
     }
 
@@ -508,8 +508,8 @@
     async function performStart() {
       const addressId = getSelectedAddressId();
       const stationId = getSelectedStationId();
-      if (!addressId) return setMsg("Selecione um endereco antes de iniciar.", "error");
-      if (!stationId) return setMsg("Selecione uma estacao antes de iniciar.", "error");
+      if (!addressId) return setMsg("Selecione um endereço antes de iniciar.", "error");
+      if (!stationId) return setMsg("Selecione uma estação antes de iniciar.", "error");
 
       state.actionBusy = true;
       state.actionBusyLabel = "Iniciando...";
@@ -524,7 +524,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return setMsg(data.message || `Falha ao iniciar (HTTP ${res.status})`, "error");
-        setMsg(data.message || "Sessao iniciada.", "ok");
+        setMsg(data.message || "Sessão iniciada.", "ok");
       } catch (error) {
         setMsg("Erro ao iniciar: " + error.message, "error");
       } finally {
@@ -536,7 +536,7 @@
 
     async function performStop() {
       const stationId = getSelectedStationId();
-      if (!stationId) return setMsg("Selecione uma estacao para encerrar.", "error");
+      if (!stationId) return setMsg("Selecione uma estação para encerrar.", "error");
 
       state.actionBusy = true;
       state.actionBusyLabel = "Encerrando...";
@@ -552,7 +552,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return setMsg(data.message || `Falha ao encerrar (HTTP ${res.status})`, "error");
-        setMsg(data.message || "Sessao encerrada.", "ok");
+        setMsg(data.message || "Sessão encerrada.", "ok");
       } catch (error) {
         setMsg("Erro ao encerrar: " + error.message, "error");
       } finally {
