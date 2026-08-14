@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError, apiFetch } from '../api/client'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 500
 const PAYMENT_OPTIONS = [
   ['pendente', 'Pendente'],
   ['pago', 'Pago'],
@@ -15,6 +15,7 @@ type SavingField = 'payment_status' | 'price_override'
 type AdminStation = { id: number; name: string; location_label: string | null; is_active: boolean }
 type AdminSession = {
   id: number
+  client_id: number | null
   user_id: number | null
   station_id: number | null
   start_time: string | null
@@ -28,6 +29,10 @@ type AdminSession = {
   payment_status: string | null
   notes: string | null
   needs_review: boolean
+  client_label: string | null
+  client_name: string | null
+  client_tower: string | null
+  client_apartment: string | null
   user_name: string | null
   user_email: string | null
   station_name: string | null
@@ -67,6 +72,10 @@ function formatKwh(value: number | null) {
 function formatMoney(value: number | null) {
   if (value == null || !Number.isFinite(value)) return '--'
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function formatInteger(value: number) {
+  return value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
 }
 
 function displayText(value: string | null | undefined, fallback = '—') {
@@ -114,6 +123,39 @@ function paymentLabel(status: string | null) {
   return PAYMENT_OPTIONS.find(([value]) => value === status)?.[1] ?? 'N/A'
 }
 
+function currentMonthInputValue() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function monthDateRange(month: string) {
+  if (!/^\d{4}-\d{2}$/.test(month)) return { dateFrom: '', dateTo: '' }
+  const [year, monthNumber] = month.split('-').map(Number)
+  const lastDay = new Date(year, monthNumber, 0).getDate()
+  return {
+    dateFrom: `${year}-${String(monthNumber).padStart(2, '0')}-01`,
+    dateTo: `${year}-${String(monthNumber).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+  }
+}
+
+function formatMonthLabel(month: string) {
+  if (!/^\d{4}-\d{2}$/.test(month)) return 'Período personalizado'
+  const [year, monthNumber] = month.split('-').map(Number)
+  return new Date(year, monthNumber - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+}
+
+function sessionDayKey(session: AdminSession) {
+  const raw = session.start_time ?? session.end_time
+  if (!raw) return 'Sem data'
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return 'Sem data'
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+}
+
+function sessionUserLabel(session: AdminSession) {
+  return displayText(session.client_label || session.user_name || session.user_email, 'Sem cliente vinculado')
+}
+
 function sessionBadge(status: string | null) {
   if (status === 'done') return ['Concluida', 'bg-green-500/10 text-green-400', 'ev_station'] as const
   if (status === 'running') return ['Running', 'bg-blue-500/10 text-blue-300', 'bolt'] as const
@@ -126,8 +168,7 @@ export default function AdminHistoryPage() {
   const [sessions, setSessions] = useState<AdminSession[]>([])
   const [stationId, setStationId] = useState('')
   const [paymentStatus, setPaymentStatus] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [month, setMonth] = useState(currentMonthInputValue)
   const [search, setSearch] = useState('')
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
@@ -139,29 +180,98 @@ export default function AdminHistoryPage() {
   const [rowErrors, setRowErrors] = useState<Record<number, string | null>>({})
   const requestIdRef = useRef(0)
 
+  const { dateFrom, dateTo } = useMemo(() => monthDateRange(month), [month])
   const sessionsById = useMemo(() => new Map(sessions.map((session) => [session.id, session])), [sessions])
   const visibleSessions = useMemo(() => {
     const text = search.trim().toLowerCase()
     if (!text) return sessions
     return sessions.filter((session) =>
-      [session.user_name, session.user_email, session.station_name, session.address_label, String(session.id)]
+      [session.client_label, session.client_name, session.user_name, session.user_email, session.station_name, session.address_label, String(session.id)]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
         .includes(text),
     )
   }, [search, sessions])
-  const summary = useMemo(
-    () =>
-      visibleSessions.reduce(
-        (acc, session) => ({
-          energy: acc.energy + (session.energy_kwh ?? 0),
-          value: acc.value + (effectivePrice(session) ?? 0),
-        }),
-        { energy: 0, value: 0 },
-      ),
-    [visibleSessions],
-  )
+  const summary = useMemo(() => {
+    const totals = visibleSessions.reduce(
+      (acc, session) => {
+        const price = effectivePrice(session) ?? 0
+        const energy = session.energy_kwh ?? 0
+        const userKey = session.client_id != null
+          ? `client:${session.client_id}`
+          : session.user_id != null
+            ? `user:${session.user_id}`
+            : sessionUserLabel(session)
+        if (session.station_id != null) acc.stationIds.add(session.station_id)
+        acc.userKeys.add(userKey)
+        acc.energy += energy
+        acc.value += price
+        acc.duration += session.duration_seconds ?? 0
+        acc.paid += session.payment_status === 'pago' ? 1 : 0
+        acc.pending += session.payment_status === 'pendente' ? 1 : 0
+        acc.courtesy += session.payment_status === 'cortesia' ? 1 : 0
+        acc.review += session.needs_review ? 1 : 0
+        return acc
+      },
+      {
+        energy: 0,
+        value: 0,
+        duration: 0,
+        paid: 0,
+        pending: 0,
+        courtesy: 0,
+        review: 0,
+        userKeys: new Set<string>(),
+        stationIds: new Set<number>(),
+      },
+    )
+    return {
+      energy: totals.energy,
+      value: totals.value,
+      duration: totals.duration,
+      paid: totals.paid,
+      pending: totals.pending,
+      courtesy: totals.courtesy,
+      review: totals.review,
+      users: totals.userKeys.size,
+      stations: totals.stationIds.size,
+      avgEnergy: visibleSessions.length ? totals.energy / visibleSessions.length : 0,
+      avgValue: visibleSessions.length ? totals.value / visibleSessions.length : 0,
+    }
+  }, [visibleSessions])
+
+  const consumptionByDay = useMemo(() => {
+    const grouped = new Map<string, { label: string; energy: number; value: number; sessions: number }>()
+    visibleSessions.forEach((session) => {
+      const label = sessionDayKey(session)
+      const current = grouped.get(label) ?? { label, energy: 0, value: 0, sessions: 0 }
+      current.energy += session.energy_kwh ?? 0
+      current.value += effectivePrice(session) ?? 0
+      current.sessions += 1
+      grouped.set(label, current)
+    })
+    return Array.from(grouped.values())
+  }, [visibleSessions])
+
+  const utilizationByUser = useMemo(() => {
+    const grouped = new Map<string, { label: string; energy: number; value: number; sessions: number }>()
+    visibleSessions.forEach((session) => {
+      const label = sessionUserLabel(session)
+      const current = grouped.get(label) ?? { label, energy: 0, value: 0, sessions: 0 }
+      current.energy += session.energy_kwh ?? 0
+      current.value += effectivePrice(session) ?? 0
+      current.sessions += 1
+      grouped.set(label, current)
+    })
+    return Array.from(grouped.values())
+      .sort((a, b) => b.energy - a.energy || b.sessions - a.sessions)
+      .slice(0, 8)
+  }, [visibleSessions])
+
+  const maxDailyEnergy = Math.max(...consumptionByDay.map((item) => item.energy), 0)
+  const maxDailyValue = Math.max(...consumptionByDay.map((item) => item.value), 0)
+  const maxUserEnergy = Math.max(...utilizationByUser.map((item) => item.energy), 0)
 
   const fetchSessions = useCallback(
     async (targetOffset: number, append: boolean) => {
@@ -304,15 +414,16 @@ export default function AdminHistoryPage() {
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Histórico Global</h1>
               <p className="text-sm text-slate-500 dark:text-text-secondary">Sessões recentes com ajuste rápido de pagamento e valor.</p>
             </div>
-            <div className="text-xs text-slate-500 dark:text-text-secondary">Carregadas: {sessions.length}</div>
+            <div className="text-xs text-slate-500 dark:text-text-secondary">Carregadas: {sessions.length} no filtro atual</div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-white/5 dark:bg-surface-dark">
             <div className="flex h-12 items-center rounded-xl bg-slate-100 px-4 focus-within:ring-2 focus-within:ring-primary/50 dark:bg-background-dark">
               <span className="material-symbols-outlined text-slate-500 dark:text-text-secondary">search</span>
-              <input className="flex-1 border-none bg-transparent px-3 text-sm font-medium outline-none placeholder:text-slate-500 dark:text-white" onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por usuário, estação ou unidade" value={search} />
+              <input className="flex-1 border-none bg-transparent px-3 text-sm font-medium outline-none placeholder:text-slate-500 dark:text-white" onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por cliente, usuário, estação ou unidade" value={search} />
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <input className="h-11 rounded-full bg-slate-100 px-4 text-sm font-medium outline-none dark:bg-background-dark dark:text-white" onChange={(event) => setMonth(event.target.value || currentMonthInputValue())} type="month" value={month} />
               <select className="h-11 rounded-full bg-slate-100 px-4 text-sm font-medium outline-none dark:bg-background-dark dark:text-white" onChange={(event) => setStationId(event.target.value)} value={stationId}>
                 <option value="">Todas as estações</option>
                 {stations.map((station) => <option key={station.id} value={String(station.id)}>{station.name}</option>)}
@@ -321,16 +432,86 @@ export default function AdminHistoryPage() {
                 <option value="">Todos os pagamentos</option>
                 {PAYMENT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
-              <input className="h-11 rounded-full bg-slate-100 px-4 text-sm font-medium outline-none dark:bg-background-dark dark:text-white" onChange={(event) => setDateFrom(event.target.value)} type="date" value={dateFrom} />
-              <input className="h-11 rounded-full bg-slate-100 px-4 text-sm font-medium outline-none dark:bg-background-dark dark:text-white" onChange={(event) => setDateTo(event.target.value)} type="date" value={dateTo} />
+              <div className="flex h-11 items-center rounded-full bg-slate-100 px-4 text-xs font-medium text-slate-500 dark:bg-background-dark dark:text-text-secondary">{dateFrom} até {dateTo}</div>
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Sessões visíveis</p><p className="mt-2 text-2xl font-bold">{visibleSessions.length}</p></div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Energia</p><p className="mt-2 text-2xl font-bold text-primary">{formatKwh(summary.energy)}</p></div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Valor exibido</p><p className="mt-2 text-2xl font-bold">{formatMoney(summary.value)}</p></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Clientes/usuários</p><p className="mt-2 text-2xl font-bold">{summary.users}</p></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Estações usadas</p><p className="mt-2 text-2xl font-bold">{summary.stations}</p></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Tempo total</p><p className="mt-2 text-2xl font-bold">{formatDuration(summary.duration)}</p></div>
           </div>
+
+          <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white">Consumo e valores</h2>
+                  <p className="text-xs text-slate-500 dark:text-text-secondary">Agrupado por dia em {formatMonthLabel(month)}.</p>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-text-secondary">Médias: {formatKwh(summary.avgEnergy)} / {formatMoney(summary.avgValue)}</p>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {consumptionByDay.length === 0 ? (
+                  <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-background-dark dark:text-text-secondary">Sem dados para gerar gráfico.</p>
+                ) : consumptionByDay.map((item) => (
+                  <div className="grid gap-2 sm:grid-cols-[44px_minmax(0,1fr)_96px]" key={item.label}>
+                    <div className="text-xs font-semibold text-slate-500 dark:text-text-secondary">{item.label}</div>
+                    <div className="space-y-1.5">
+                      <div className="h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-background-dark">
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${maxDailyEnergy > 0 ? Math.max((item.energy / maxDailyEnergy) * 100, 3) : 0}%` }} />
+                      </div>
+                      <div className="h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-background-dark">
+                        <div className="h-full rounded-full bg-emerald-400" style={{ width: `${maxDailyValue > 0 ? Math.max((item.value / maxDailyValue) * 100, 3) : 0}%` }} />
+                      </div>
+                    </div>
+                    <div className="text-right text-[11px] text-slate-500 dark:text-text-secondary">{formatKwh(item.energy)}<br />{formatMoney(item.value)}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-slate-500 dark:text-text-secondary">
+                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" />Energia</span>
+                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400" />Valor</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Status financeiro</h2>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Pagos</p><p className="mt-1 text-xl font-bold text-primary">{formatInteger(summary.paid)}</p></div>
+                  <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Pendentes</p><p className="mt-1 text-xl font-bold text-amber-300">{formatInteger(summary.pending)}</p></div>
+                  <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Cortesias</p><p className="mt-1 text-xl font-bold text-sky-300">{formatInteger(summary.courtesy)}</p></div>
+                  <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Revisar</p><p className="mt-1 text-xl font-bold text-red-400">{formatInteger(summary.review)}</p></div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Utilização por cliente/usuário</h2>
+                <div className="mt-4 space-y-3">
+                  {utilizationByUser.length === 0 ? (
+                    <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-background-dark dark:text-text-secondary">Sem utilização no filtro atual.</p>
+                  ) : utilizationByUser.map((item) => (
+                    <div key={item.label}>
+                      <div className="mb-1 flex items-center justify-between gap-3 text-xs">
+                        <span className="truncate font-semibold">{item.label}</span>
+                        <span className="shrink-0 text-slate-500 dark:text-text-secondary">{formatInteger(item.sessions)} cargas</span>
+                      </div>
+                      <div className="h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-background-dark">
+                        <div className="h-full rounded-full bg-sky-400" style={{ width: `${maxUserEnergy > 0 ? Math.max((item.energy / maxUserEnergy) * 100, 4) : 0}%` }} />
+                      </div>
+                      <div className="mt-1 flex justify-between text-[11px] text-slate-500 dark:text-text-secondary"><span>{formatKwh(item.energy)}</span><span>{formatMoney(item.value)}</span></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
         </section>
 
         {loadingInitial ? <section className="space-y-4">{[1, 2, 3].map((item) => <div className="animate-pulse rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/5 dark:bg-surface-dark" key={item}><div className="h-5 w-1/3 rounded bg-slate-200 dark:bg-white/10" /><div className="mt-4 grid gap-3 md:grid-cols-4">{[1, 2, 3, 4].map((cell) => <div className="h-16 rounded-xl bg-slate-100 dark:bg-white/5" key={cell} />)}</div></div>)}</section> : null}
