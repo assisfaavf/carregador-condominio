@@ -234,6 +234,8 @@ const SESSION_WATCHDOG_INTERVAL_MS = 5000;
 const AUTO_END_ZERO_POWER_THRESHOLD_KW = 0.1;
 const AUTO_END_CONSECUTIVE_POLLS = 2;
 const AUTO_END_MIN_SESSION_AGE_SECONDS = 30;
+const START_MIN_CURRENT_A = 2;
+const START_MIN_POWER_KW = 0.5;
 const ADMIN_SESSION_PAYMENT_STATUSES = new Set(["pendente", "pago", "cortesia", "n/a"]);
 const USER_ROLES = new Set(["morador", "visitante"]);
 const USER_APPROVAL_STATUSES = new Set(["pending", "approved", "rejected"]);
@@ -585,6 +587,30 @@ function pickPowerKwFromStatus(statusData) {
   return raw / 1000;
 }
 
+function pickCurrentAFromStatus(statusData) {
+  const phaseA = decodePhaseA(statusData);
+  if (phaseA?.currentA != null) return phaseA.currentA;
+
+  return (
+    readDpNumber(statusData, "current") ??
+    readDpNumber(statusData, "cur_current") ??
+    readDpNumber(statusData, "charge_current") ??
+    readDpNumber(statusData, "current_a")
+  );
+}
+
+function hasEffectiveChargingFlow(statusData) {
+  const currentA = pickCurrentAFromStatus(statusData);
+  const powerKw = pickPowerKwFromStatus(statusData);
+
+  return {
+    ok: (currentA != null && currentA >= START_MIN_CURRENT_A)
+      || (powerKw != null && powerKw >= START_MIN_POWER_KW),
+    currentA,
+    powerKw,
+  };
+}
+
 function normalizeStatusToken(value) {
   if (value == null) return null;
   return String(value).trim().toLowerCase().replace(/[\s-]+/g, "_");
@@ -818,6 +844,8 @@ function diagnoseStartFailure(statusData) {
   const workState = findDp(statusData, "work_state")?.value || null;
   const connectionState = findDp(statusData, "connection_state")?.value || null;
   const sw = findDp(statusData, "switch")?.value ?? null;
+  const currentSet = readDpNumber(statusData, "charge_cur_set");
+  const flow = hasEffectiveChargingFlow(statusData);
   const connected = Boolean(connectionState && connectionState !== "controlpi_12v");
 
   if (!connected) {
@@ -838,6 +866,16 @@ function diagnoseStartFailure(statusData) {
     return {
       reasonCode: "not_in_charging_state",
       reasonMessage: `Carregador ligado, mas fora de charging (work_state=${workState}).`,
+    };
+  }
+
+  if (workState === "charger_charging" || sw === true) {
+    const currentText = flow.currentA == null ? "indisponível" : `${round2(flow.currentA)} A`;
+    const powerText = flow.powerKw == null ? "indisponível" : `${round2(flow.powerKw)} kW`;
+    const targetText = currentSet == null ? "" : ` Corrente configurada: ${currentSet} A.`;
+    return {
+      reasonCode: "charging_current_too_low",
+      reasonMessage: `O carregador ligou, mas não iniciou carga efetiva. Corrente medida: ${currentText}; potência: ${powerText}.${targetText} Verifique se o carro aceitou a carga, se há limite no veículo ou se o cabo/conector está corretamente encaixado.`,
     };
   }
 
@@ -1603,17 +1641,19 @@ async function runStartCommands(station) {
 
   let started = false;
   let lastStatus = null;
-  for (let i = 0; i < 20; i += 1) {
+  let lastFlow = null;
+  for (let i = 0; i < 30; i += 1) {
     await sleep(1000);
     lastStatus = await getDeviceShadow(deviceId);
     const workState = findDp(lastStatus, "work_state")?.value;
     const sw = findDp(lastStatus, "switch")?.value;
-    if (workState === "charger_charging" || sw === true) {
+    lastFlow = hasEffectiveChargingFlow(lastStatus);
+    if ((workState === "charger_charging" || sw === true) && lastFlow.ok) {
       started = true;
       break;
     }
   }
-  return { started, lastStatus };
+  return { started, lastStatus, lastFlow };
 }
 
 async function runStopPolling(station) {
@@ -1689,7 +1729,7 @@ async function startSessionFlow({ userId, addressId, station }) {
   });
 
   try {
-    const { started, lastStatus } = await runStartCommands(station);
+    const { started, lastStatus, lastFlow } = await runStartCommands(station);
     if (!started) {
       await safeSwitchOff(station.tuya_device_id);
       const diag = diagnoseStartFailure(lastStatus);
@@ -1701,6 +1741,8 @@ async function startSessionFlow({ userId, addressId, station }) {
           success: false,
           message: diag.reasonMessage,
           reasonCode: diag.reasonCode,
+          currentA: lastFlow?.currentA != null ? round2(lastFlow.currentA) : null,
+          powerKw: lastFlow?.powerKw != null ? round2(lastFlow.powerKw) : null,
           sessionId: session.id,
         },
       };
@@ -1908,10 +1950,12 @@ async function buildLivePayload(stationId) {
   const connectionState = findDp(status, "connection_state")?.value || null;
   const sw = findDp(status, "switch")?.value ?? false;
   const charging = isActivelyCharging(workState, sw);
+  const vehicleConnected = Boolean(connectionState && connectionState !== "controlpi_12v");
   const currentSet = readDpNumber(status, "charge_cur_set");
   const totalKwh = scale2ToKwh(readDpNumber(status, "forward_energy_total"));
   const totalKwhRounded = totalKwh != null ? round2(totalKwh) : null;
   const phaseA = decodePhaseA(status);
+  const currentA = pickCurrentAFromStatus(status);
   let totalPowerTrendKw = null;
   let phaseDetectionError = null;
   try {
@@ -1990,13 +2034,14 @@ async function buildLivePayload(stationId) {
     },
     telemetry: {
       charging,
+      vehicle_connected: vehicleConnected,
       work_state: workState,
       connection_state: connectionState,
       switch: sw,
       power_kw: powerKw != null ? round2(powerKw) : null,
       phase_power_kw: phaseA?.powerKw != null ? round2(phaseA.powerKw) : null,
       voltage_v: phaseA?.voltageV != null ? round2(phaseA.voltageV) : null,
-      current_a: phaseA?.currentA != null ? round2(phaseA.currentA) : null,
+      current_a: currentA != null ? round2(currentA) : null,
       detected_phase_count: detectedPhaseCount,
       phase_detection_ratio: powerRatio != null ? round2(powerRatio) : null,
       phase_detection_source: detectedPhaseCount ? "energy_total_trend" : null,
@@ -2014,13 +2059,14 @@ async function buildLivePayload(stationId) {
     },
     running_session: runningSession,
     charging,
+    vehicleConnected,
     workState,
     connectionState,
     switch: sw,
     powerKw: powerKw != null ? round2(powerKw) : null,
     phasePowerKw: phaseA?.powerKw != null ? round2(phaseA.powerKw) : null,
     voltageV: phaseA?.voltageV != null ? round2(phaseA.voltageV) : null,
-    currentA: phaseA?.currentA != null ? round2(phaseA.currentA) : null,
+    currentA: currentA != null ? round2(currentA) : null,
     phaseCount: detectedPhaseCount,
     phaseDetectionRatio: powerRatio != null ? round2(powerRatio) : null,
     phaseDetectionSource: detectedPhaseCount ? "energy_total_trend" : null,
@@ -2073,6 +2119,20 @@ async function detectExternalSessions() {
       if (external.energyKwh == null || !external.startedAt || totalKwh == null) continue;
 
       const startEnergyTotal = Math.max(0, totalKwh - external.energyKwh);
+      const duplicate = await sessionsRepo.findExternalNearStart({
+        station_id: station.id,
+        start_time: external.startedAt,
+        start_energy_total: startEnergyTotal,
+      });
+      if (duplicate) {
+        appLogger.info({
+          existing_session_id: duplicate.id,
+          station_id: station.id,
+          start_time: external.startedAt,
+        }, "[watchdog] Carga externa ja registrada; ignorando duplicata.");
+        continue;
+      }
+
       const tariffPerKwh = await getTariffPerKwh();
       const session = await sessionsRepo.createRunning({
         user_id: null,
@@ -2204,10 +2264,16 @@ async function stopSessionAsAdmin(body) {
 
   const running = await sessionsRepo.getRunningByStation(stationId);
   if (!running) {
+    await safeSwitchOff(station.tuya_device_id);
     return {
-      ok: false,
-      statusCode: 400,
-      body: { success: false, message: "Nenhuma sessao running nesta estacao." },
+      ok: true,
+      statusCode: 200,
+      body: {
+        success: true,
+        message: "Comando de encerramento enviado. Não havia sessão ativa registrada no sistema para esta estação.",
+        station_id: stationId,
+        sessionId: null,
+      },
     };
   }
 

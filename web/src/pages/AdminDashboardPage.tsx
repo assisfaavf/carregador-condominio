@@ -30,7 +30,7 @@ type AdminAddress = {
 type CurrentSession = {
   session_id: number
   station_id: number
-  user_id: number
+  user_id: number | null
   user_name: string | null
   user_email: string | null
   address_label: string | null
@@ -63,9 +63,17 @@ type LiveResponse = {
   telemetry_unavailable?: boolean
   telemetry_error?: string | null
   charging?: boolean
+  vehicleConnected?: boolean
   workState?: string | null
+  connectionState?: string | null
+  switch?: boolean | null
   stateLabel?: string | null
   powerKw?: number | null
+  voltageV?: number | null
+  currentA?: number | null
+  totalKwh?: number | null
+  liveSessionEnergyKwh?: number | null
+  currentSetA?: number | null
   session_active?: boolean
   session_energy_kwh?: number | null
 }
@@ -190,6 +198,17 @@ function isStationOffline(live: LiveResponse | null) {
   return !live || live.telemetry_unavailable === true
 }
 
+function isChargingOrOn(live: LiveResponse | null) {
+  return live?.charging === true || live?.switch === true || live?.workState === 'charger_charging'
+}
+
+function isVehicleConnected(live: LiveResponse | null) {
+  if (!live || live.telemetry_unavailable) return null
+  if (typeof live.vehicleConnected === 'boolean') return live.vehicleConnected
+  if (!live.connectionState) return null
+  return live.connectionState !== 'controlpi_12v'
+}
+
 export default function AdminDashboardPage() {
   const [stations, setStations] = useState<AdminStation[]>([])
   const [currentSessions, setCurrentSessions] = useState<CurrentSession[]>([])
@@ -238,7 +257,7 @@ export default function AdminDashboardPage() {
     [activeStations, liveByStation, sessionsByStation],
   )
 
-  const activeChargersCount = stationCards.filter((card) => card.session != null).length
+  const activeChargersCount = stationCards.filter((card) => card.session != null || isChargingOrOn(card.live)).length
   const currentPowerSumKw = stationCards.reduce((sum, card) => sum + (card.live?.powerKw ?? 0), 0)
   const sessionEnergySumKwh = stationCards.reduce(
     (sum, card) => sum + (card.live?.session_energy_kwh ?? 0),
@@ -690,8 +709,12 @@ export default function AdminDashboardPage() {
               const { station, session, live } = card
               const elapsedSeconds = session?.elapsed_seconds ?? calcElapsedSeconds(session?.start_time)
               const chargerState = getChargerStateMeta(live)
-              const occupancyState = getOccupancyMeta(session != null)
               const offline = isStationOffline(live)
+              const canStop = session != null || isChargingOrOn(live)
+              const occupancyState = getOccupancyMeta(canStop)
+              const vehicleConnected = isVehicleConnected(live)
+              const sessionEnergy = live?.session_energy_kwh ?? live?.liveSessionEnergyKwh ?? null
+              const totalEnergy = live?.totalKwh ?? null
               const starting = startingStationId === station.id
               const stopping = stoppingStationId === station.id
 
@@ -730,7 +753,7 @@ export default function AdminDashboardPage() {
                     <p className="text-slate-300">
                       Usuário:{' '}
                       <span className="font-semibold text-slate-100">
-                        {session?.user_name || 'Nenhuma sessão em andamento'}
+                        {session?.user_name || (canStop ? 'Carga externa ou sem usuário vinculado' : 'Nenhuma sessão em andamento')}
                       </span>
                     </p>
                     <p className="text-slate-400">
@@ -745,29 +768,49 @@ export default function AdminDashboardPage() {
                     </p>
                   </div>
 
-                  <div className="mt-4 grid grid-cols-3 gap-2 border-t border-secondary/50 pt-3">
+                  <div className="mt-4 grid grid-cols-2 gap-2 border-t border-secondary/50 pt-3 sm:grid-cols-3">
+                    <div className="text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500">Plugado</p>
+                      <p className="text-sm font-medium text-slate-200">
+                        {vehicleConnected == null ? '--' : vehicleConnected ? 'Sim' : 'Não'}
+                      </p>
+                    </div>
                     <div className="text-center">
                       <p className="text-[10px] uppercase tracking-wider text-slate-500">Tempo</p>
                       <p className="text-sm font-medium text-slate-200">
                         {formatElapsedLong(elapsedSeconds)}
                       </p>
                     </div>
-                    <div className="border-l border-secondary/50 text-center">
-                      <p className="text-[10px] uppercase tracking-wider text-slate-500">Energia</p>
+                    <div className="text-center sm:border-l sm:border-secondary/50">
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500">Corrente</p>
                       <p className="text-sm font-medium text-slate-200">
-                        {formatNumber(live?.session_energy_kwh ?? null, 'kWh', 2)}
+                        {formatNumber(live?.currentA ?? null, 'A', 1)}
                       </p>
                     </div>
-                    <div className="border-l border-secondary/50 text-center">
+                    <div className="text-center sm:border-l sm:border-secondary/50">
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500">Tensão</p>
+                      <p className="text-sm font-medium text-slate-200">
+                        {formatNumber(live?.voltageV ?? null, 'V', 1)}
+                      </p>
+                    </div>
+                    <div className="text-center sm:border-l sm:border-secondary/50">
                       <p className="text-[10px] uppercase tracking-wider text-slate-500">Potência</p>
                       <p className="text-sm font-medium text-primary">
                         {formatNumber(live?.powerKw ?? null, 'kW', 1)}
                       </p>
                     </div>
+                    <div className="text-center sm:border-l sm:border-secondary/50">
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500">Energia</p>
+                      <p className="text-sm font-medium text-slate-200">
+                        {sessionEnergy != null
+                          ? formatNumber(sessionEnergy, 'kWh', 2)
+                          : formatNumber(totalEnergy, 'kWh', 2)}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="mt-4">
-                    {session ? (
+                    {canStop ? (
                       <button
                         className="flex h-11 w-full items-center justify-center rounded-xl border border-red-500/40 bg-red-500/10 px-4 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={stopping || startingStationId != null}
@@ -777,7 +820,7 @@ export default function AdminDashboardPage() {
                         }}
                         type="button"
                       >
-                        {stopping ? 'Encerrando...' : 'Encerrar carregamento'}
+                        {stopping ? 'Encerrando...' : session ? 'Encerrar carregamento' : 'Encerrar recarga externa'}
                       </button>
                     ) : (
                       <button

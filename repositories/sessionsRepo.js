@@ -216,6 +216,62 @@ async function getById(sessionId, tx) {
   return mapSessionRow(rows[0]);
 }
 
+async function findExternalNearStart({ station_id, start_time, start_energy_total }, tx) {
+  const db = getExecutor(tx);
+  const rows = await db.query(
+    `
+      SELECT
+        id,
+        client_id,
+        user_id,
+        address_id,
+        station_id,
+        status,
+        start_time,
+        end_time,
+        duration_seconds,
+        start_energy_total,
+        end_energy_total,
+        energy_once,
+        energy_kwh,
+        energy_source,
+        origin,
+        authorization_method,
+        detected_at,
+        needs_review,
+        notes,
+        tariff_per_kwh,
+        price_calculated,
+        price_override,
+        payment_status,
+        paid_at
+      FROM sessions
+      WHERE
+        station_id = $1
+        AND origin = 'external'
+        AND status IN ('running', 'done')
+        AND (
+          ($2::timestamptz IS NOT NULL AND start_time BETWEEN ($2::timestamptz - INTERVAL '10 minutes') AND ($2::timestamptz + INTERVAL '10 minutes'))
+          OR (
+            $3::numeric IS NOT NULL
+            AND start_energy_total IS NOT NULL
+            AND ABS(start_energy_total - $3::numeric) <= 0.05
+            AND start_time >= NOW() - INTERVAL '72 hours'
+          )
+        )
+      ORDER BY start_time DESC, id DESC
+      LIMIT 1
+    `,
+    [
+      station_id,
+      start_time ?? null,
+      start_energy_total == null ? null : start_energy_total,
+    ]
+  );
+
+  return mapSessionRow(rows[0]);
+}
+
 async function createRunning(payload, tx) {
   const db = getExecutor(tx);
   const {
@@ -641,6 +697,7 @@ module.exports = {
   getRunningByStation,
   getRunningByUser,
   getById,
+  findExternalNearStart,
   createRunning,
   finishSession,
   listByUser,
