@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError, apiFetch } from '../api/client'
+import { SessionValidation, type EnergyReconciliation } from '../components/SessionValidation'
 
 const PAGE_SIZE = 500
 const PAYMENT_OPTIONS = [
@@ -29,6 +30,8 @@ type AdminSession = {
   payment_status: string | null
   notes: string | null
   needs_review: boolean
+  reconciliation?: EnergyReconciliation | null
+  billing_ready?: boolean
   client_label: string | null
   client_name: string | null
   client_tower: string | null
@@ -196,8 +199,8 @@ export default function AdminHistoryPage() {
   const summary = useMemo(() => {
     const totals = visibleSessions.reduce(
       (acc, session) => {
-        const price = effectivePrice(session) ?? 0
-        const energy = session.energy_kwh ?? 0
+        const price = session.billing_ready ? effectivePrice(session) ?? 0 : 0
+        const energy = session.billing_ready ? session.energy_kwh ?? 0 : 0
         const userKey = session.client_id != null
           ? `client:${session.client_id}`
           : session.user_id != null
@@ -211,7 +214,7 @@ export default function AdminHistoryPage() {
         acc.paid += session.payment_status === 'pago' ? 1 : 0
         acc.pending += session.payment_status === 'pendente' ? 1 : 0
         acc.courtesy += session.payment_status === 'cortesia' ? 1 : 0
-        acc.review += session.needs_review ? 1 : 0
+        acc.review += session.needs_review || !session.billing_ready ? 1 : 0
         return acc
       },
       {
@@ -438,13 +441,18 @@ export default function AdminHistoryPage() {
 
           <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Sessões visíveis</p><p className="mt-2 text-2xl font-bold">{visibleSessions.length}</p></div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Energia</p><p className="mt-2 text-2xl font-bold text-primary">{formatKwh(summary.energy)}</p></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Energia validada e vinculada</p><p className="mt-2 text-2xl font-bold text-primary">{formatKwh(summary.energy)}</p></div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Valor exibido</p><p className="mt-2 text-2xl font-bold">{formatMoney(summary.value)}</p></div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Clientes/usuários</p><p className="mt-2 text-2xl font-bold">{summary.users}</p></div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Estações usadas</p><p className="mt-2 text-2xl font-bold">{summary.stations}</p></div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Tempo total</p><p className="mt-2 text-2xl font-bold">{formatDuration(summary.duration)}</p></div>
           </div>
 
+          <div className="flex flex-wrap gap-4 text-sm text-slate-500 dark:text-text-secondary">
+            <span>Pendentes de validação: {visibleSessions.filter((s) => s.reconciliation?.status !== 'validated').length}</span>
+            <span>Aguardando cliente: {visibleSessions.filter((s) => s.client_id == null && s.user_id == null).length}</span>
+            <span>Prontas para cobrança: {visibleSessions.filter((s) => s.billing_ready).length}</span>
+          </div>
           <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -559,6 +567,7 @@ export default function AdminHistoryPage() {
                     <div className="text-slate-500 dark:text-text-secondary">{savingField ? 'Salvando alterações da linha...' : `Fim: ${formatDateTime(session.end_time)}`}</div>
                     {rowErrors[session.id] ? <div className="font-medium text-red-400">{rowErrors[session.id]}</div> : session.notes ? <div className="text-slate-500 dark:text-text-secondary">{session.notes}</div> : null}
                   </div>
+                  <SessionValidation session={session} onUpdated={(value) => patchSession(session.id, value as Partial<AdminSession>)} />
                 </article>
               )
             })}

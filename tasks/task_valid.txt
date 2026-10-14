@@ -1,0 +1,315 @@
+# TASK CODEX — Validação e conciliação de sessões de carregamento
+
+**Projeto:** SPATE Charge — Carregador Condomínio  
+**Repositório:** `assisfaavf/carregador-condominio`  
+**Branch:** `develop`  
+**Objetivo:** Garantir registros confiáveis de consumo energético, principalmente diante de reinícios do servidor, hibernação da hospedagem, indisponibilidade da API Tuya e encerramentos não detectados em tempo real.
+
+## 1. Contexto do problema
+
+Atualmente, o sistema monitora sessões de carregamento pela API Tuya, com consumo e potência apresentados em tempo real.
+
+Entretanto, quando o backend é suspenso pela hospedagem, o watchdog deixa de executar. Quando o servidor retorna, podem ocorrer inconsistências nos horários de encerramento e nos valores de energia consumida.
+
+Isso pode produzir sessões com consumo incompatível com a capacidade do veículo.
+
+Precisamos preservar o monitoramento atual, mas adicionar um processo de **validação e conciliação energética antes de confirmar o histórico e os valores para cobrança**.
+
+## 2. Inspeção obrigatória
+
+Antes de implementar:
+
+- Analisar `server.js`, `config.js`, integração Tuya, watchdog, repositories, migrations e interfaces administrativas.
+- Identificar como o consumo é calculado atualmente.
+- Identificar os campos de energia acumulada, potência, estado de carregamento e `charge_energy_once`.
+- Verificar unidades, escala, precisão, resets de contador e comportamento desses campos após o encerramento.
+- Identificar como as sessões são persistidas e recuperadas após reinicializações.
+- Identificar o modelo existente de clientes/usuários, vínculos e dashboards.
+- Reutilizar os componentes e fluxos já existentes sempre que possível.
+
+Não assumir que `charge_energy_once` representa sempre o valor final da sessão sem confirmar sua semântica por meio das respostas reais da Tuya.
+
+## 3. Preservar consumo em tempo real
+
+Manter a apresentação atual do consumo energético durante a recarga.
+
+O painel deve continuar apresentando:
+
+- Status do carregador.
+- Potência instantânea.
+- Corrente e tensão, quando disponíveis.
+- Energia acumulada durante a sessão.
+- Tempo decorrido.
+- Valor estimado em reais.
+
+Durante a sessão, identificar os valores como **provisórios**.
+
+Não prejudicar a frequência atual de atualização nem o funcionamento do watchdog.
+
+Registrar no banco as leituras relevantes recebidas da Tuya, com timestamps, identificação da sessão, campos de origem e dados necessários para auditoria.
+
+Evitar armazenamento desnecessário de respostas duplicadas ou informações sensíveis.
+
+## 4. Conciliação após encerramento
+
+Quando o carregamento terminar, iniciar uma etapa de validação antes de confirmar o resultado.
+
+Comparar obrigatoriamente três referências, quando disponíveis:
+
+**A. Consumo calculado pelo sistema**
+
+Valor acumulado pelas leituras registradas durante a sessão.
+
+**B. Energia registrada pelo carregador**
+
+Diferença entre leituras inicial e final de um contador acumulativo, caso esse contador seja confiável e persistente.
+
+**C. `charge_energy_once`**
+
+Valor disponibilizado pela Tuya, após validar unidade, escala e relação com a sessão encerrada.
+
+Apresentar a comparação no formato:
+
+| Fonte | Consumo |
+|---|---|
+| Sistema | 18,40 kWh |
+| Contador do carregador | 18,10 kWh |
+| `charge_energy_once` | 18,15 kWh |
+
+Os valores acima são apenas ilustrativos.
+
+### Regras de validação
+
+- Criar uma tolerância de divergência configurável.
+- Não escolher automaticamente a maior das três medições.
+- Não utilizar apenas tempo decorrido multiplicado pela potência nominal.
+- Diferenciar tempo conectado de tempo efetivamente carregando.
+- Verificar se as leituras pertencem à mesma sessão.
+- Identificar ausência de amostras, reinicializações e valores impossíveis.
+- Identificar resets do contador energético e leituras fora de ordem.
+- Nunca preencher lacunas com energia fictícia.
+- Não somar `charge_energy_once` com o contador acumulado se ambos representarem a mesma energia.
+- Usar uma fonte principal apenas depois de validar sua semântica e confiabilidade.
+
+Quando os valores forem compatíveis, marcar a sessão como **Validada**.
+
+Quando houver divergência relevante, marcar como **Divergente — revisão necessária**.
+
+Quando faltarem dados suficientes, marcar como **Inconclusiva — revisão necessária**.
+
+Nunca confirmar automaticamente para cobrança uma sessão divergente ou inconclusiva.
+
+## 5. Recuperação após hibernação ou reinicialização
+
+Ao iniciar o backend:
+
+1. Consultar no PostgreSQL as sessões que permaneceram abertas.
+2. Consultar o estado atual do carregador pela Tuya.
+3. Recuperar as últimas leituras persistidas.
+4. Identificar se a sessão continua ativa ou já terminou.
+5. Recuperar leituras ou registros históricos da Tuya, caso a API efetivamente disponibilize esses dados.
+6. Executar a conciliação quando houver evidências suficientes.
+
+Não usar o horário de reinício do backend como horário real de encerramento sem comprovação.
+
+Se não for possível determinar quando ocorreu o término, registrar explicitamente essa incerteza.
+
+Manter as sessões pendentes para reconciliação posterior, sem gerar duplicidades.
+
+## 6. Novo fluxo de histórico
+
+O encerramento físico da recarga deve gerar um registro persistente de sessão encerrada, inicialmente com status de validação pendente.
+
+O fluxo será:
+
+**Carregamento ativo → Encerramento detectado → Conciliação → Histórico com status de validação → Vinculação ao usuário → Disponível para cobrança.**
+
+Importante: não perder o registro de uma sessão porque ela ainda não foi validada ou vinculada.
+
+O histórico deverá mostrar:
+
+- Data e horário da sessão.
+- Estação utilizada.
+- Energia calculada pelo sistema.
+- Energia do contador.
+- Valor de `charge_energy_once`.
+- Consumo conciliado, quando confirmado.
+- Valor financeiro correspondente.
+- Situação da validação.
+- Cliente/usuário vinculado.
+- Indicador de pendências.
+
+## 7. Vinculação obrigatória a cliente/usuário
+
+No histórico administrativo, permitir selecionar o responsável por cada sessão.
+
+O vínculo deve ocorrer preferencialmente depois da validação energética, mas também poderá ser preparado enquanto a sessão estiver pendente.
+
+Usar o cadastro de clientes/usuários já existente no sistema.
+
+Criar ações como:
+
+**Vincular cliente**  
+**Alterar cliente**  
+**Revisar consumo**  
+**Confirmar validação**
+
+Não duplicar clientes já cadastrados.
+
+Uma sessão não deve ser considerada pronta para cobrança enquanto não tiver:
+
+- Consumo validado.
+- Cliente vinculado.
+- Valor financeiro determinado.
+
+Registrar quem realizou a validação ou alteração, quando ocorreu e quais valores foram modificados.
+
+## 8. Integração com dashboards
+
+Depois da validação e vinculação, atualizar os dashboards existentes.
+
+Permitir consultar:
+
+- Consumo total por cliente.
+- Valor acumulado por cliente.
+- Histórico individual.
+- Quantidade de sessões.
+- Consumo por período.
+- Sessões pendentes de validação.
+- Sessões pendentes de vinculação.
+- Sessões prontas para cobrança.
+
+Não incluir sessões divergentes ou inconclusivas nos totais definitivos de cobrança.
+
+Caso os dashboards exibam dados provisórios, diferenciá-los claramente dos valores confirmados.
+
+## 9. Banco de dados
+
+Utilizar PostgreSQL, mantendo compatibilidade com o Neon.
+
+Criar migrations incrementais, preservando todas as tabelas e os registros existentes.
+
+Avaliar a necessidade de:
+
+- Tabela de leituras energéticas.
+- Campos de conciliação nas sessões.
+- Histórico de revisões.
+- Status de validação.
+- Referência ao cliente vinculado.
+- Timestamps reais e estimados.
+- Origem e confiabilidade das medições.
+
+As operações de encerramento e conciliação devem ser idempotentes, evitando sessões duplicadas após reinícios.
+
+Não sobrescrever valores brutos originalmente recebidos da Tuya.
+
+## 10. Interface e experiência
+
+Manter a identidade visual atual do SPATE Charge.
+
+Na tela de acompanhamento, mostrar consumo provisório em tempo real.
+
+No histórico administrativo, adicionar indicadores:
+
+- **Validada**
+- **Divergente**
+- **Inconclusiva**
+- **Aguardando cliente**
+- **Pronta para cobrança**
+
+Criar uma visualização clara das três medições de energia, destacando divergências.
+
+Permitir que o administrador revise e confirme valores manualmente, com registro de auditoria.
+
+## 11. Segurança e confiabilidade
+
+- Não permitir que usuários comuns alterem o consumo validado.
+- Restringir a conciliação manual e o vínculo administrativo às permissões adequadas.
+- Não expor credenciais da Tuya.
+- Não confiar exclusivamente no frontend para validação.
+- Não permitir consumo negativo.
+- Não transformar falhas de leitura em consumo zero definitivo.
+- Não gerar sessões duplicadas após reconexões.
+- Preservar dados em reinicializações do backend.
+- Não alterar o histórico antigo automaticamente.
+
+## 12. Testes obrigatórios
+
+Criar testes para os seguintes cenários:
+
+1. Sessão normal com leituras compatíveis.
+2. Sessão com pequenas diferenças entre as três medições.
+3. Sessão com divergência energética relevante.
+4. Ausência de `charge_energy_once`.
+5. Ausência de contador acumulativo.
+6. Reinicialização do backend durante uma recarga.
+7. Backend indisponível durante o encerramento.
+8. Falha temporária da API Tuya.
+9. Carro conectado por horas, mas sem consumir energia.
+10. Encerramento repetido após reconexão.
+11. Leituras duplicadas ou fora de ordem.
+12. Contador energético reiniciado.
+13. Sessão validada sem cliente vinculado.
+14. Vinculação posterior do cliente.
+15. Atualização dos dashboards após validação e vinculação.
+
+Utilizar mocks da API Tuya e testes de integração sempre que possível. Não iniciar nem interromper carregamentos reais durante os testes automatizados.
+
+## 13. Estratégia de implementação
+
+Executar em etapas.
+
+**Etapa 1 — Diagnóstico**
+
+Analisar o fluxo atual, identificar fontes de energia e apresentar as causas prováveis das inconsistências.
+
+**Etapa 2 — Persistência**
+
+Implementar armazenamento confiável das leituras e recuperação de sessões abertas.
+
+**Etapa 3 — Conciliação**
+
+Implementar comparação das três referências, tolerâncias e classificação das sessões.
+
+**Etapa 4 — Histórico**
+
+Adicionar os resultados da validação e vinculação ao cliente.
+
+**Etapa 5 — Dashboards**
+
+Integrar somente os valores definitivos aos indicadores financeiros.
+
+**Etapa 6 — Testes**
+
+Validar os cenários normais e de falha.
+
+## 14. Critérios de aceitação
+
+A implementação será considerada concluída quando:
+
+- O consumo continuar aparecendo em tempo real.
+- O encerramento da recarga acionar a conciliação.
+- As três fontes de energia forem comparadas, quando disponíveis.
+- O sistema não inventar consumo durante períodos sem monitoramento.
+- O encerramento não depender de o administrador estar com o painel aberto.
+- Uma reinicialização não resultar em duplicidade de sessão.
+- O histórico exibir a situação da validação.
+- O administrador puder vincular cada sessão a um cliente.
+- Os dashboards utilizarem corretamente os valores validados e vinculados.
+- As divergências permanecerem identificadas para revisão.
+
+## 15. Restrições
+
+Trabalhar na branch `develop`.
+
+Preservar as funcionalidades existentes.
+
+Manter compatibilidade com Render, Neon e futura migração para Dado Cloud.
+
+Evitar novas dependências pesadas, considerando hospedagem com aproximadamente 128 MB de RAM.
+
+Não modificar credenciais, configurações de produção ou dados reais desnecessariamente.
+
+**Primeiro apresentar o diagnóstico e o plano técnico. Depois implementar por etapas, com testes e evidências dos resultados.**
+
+Priorizar confiabilidade e rastreabilidade da cobrança, não apenas a aparência de continuidade do monitoramento.

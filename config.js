@@ -58,6 +58,11 @@ const config = {
   priceFallback: Number.isFinite(Number(process.env.PRICE_PER_KWH))
     ? Number(process.env.PRICE_PER_KWH)
     : 1.2,
+  energyValidation: {
+    absolute: Number(process.env.ENERGY_TOLERANCE_KWH) > 0 ? Number(process.env.ENERGY_TOLERANCE_KWH) : 0.2,
+    relative: Number(process.env.ENERGY_TOLERANCE_RATIO) > 0 ? Number(process.env.ENERGY_TOLERANCE_RATIO) : 0.05,
+    maxGapSeconds: Number(process.env.ENERGY_MAX_SAMPLE_GAP_SECONDS) > 0 ? Number(process.env.ENERGY_MAX_SAMPLE_GAP_SECONDS) : 30,
+  },
   defaultChargeCurrentA: (() => {
     const value = Number(process.env.DEFAULT_CHARGE_CURRENT_A);
     return Number.isInteger(value) && value >= 6 && value <= 32 ? value : 32;

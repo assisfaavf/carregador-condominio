@@ -27,6 +27,7 @@ function mapSessionRow(row) {
     energy_once: toFiniteNumber(row.energy_once),
     energy_kwh: toFiniteNumber(row.energy_kwh),
     energy_source: row.energy_source ?? null,
+    reconciliation: row.reconciliation ?? null,
     origin: row.origin ?? "program",
     authorization_method: row.authorization_method ?? "program",
     detected_at: row.detected_at ?? null,
@@ -116,6 +117,7 @@ async function getRunningByStation(stationId, tx) {
         energy_once,
         energy_kwh,
         energy_source,
+        reconciliation,
         origin,
         authorization_method,
         detected_at,
@@ -156,6 +158,7 @@ async function getRunningByUser(userId, tx) {
         energy_once,
         energy_kwh,
         energy_source,
+        reconciliation,
         origin,
         authorization_method,
         detected_at,
@@ -196,6 +199,7 @@ async function getById(sessionId, tx) {
         energy_once,
         energy_kwh,
         energy_source,
+        reconciliation,
         origin,
         authorization_method,
         detected_at,
@@ -235,6 +239,7 @@ async function findExternalNearStart({ station_id, start_time, start_energy_tota
         energy_once,
         energy_kwh,
         energy_source,
+        reconciliation,
         origin,
         authorization_method,
         detected_at,
@@ -261,6 +266,88 @@ async function findExternalNearStart({ station_id, start_time, start_energy_tota
         )
       ORDER BY start_time DESC, id DESC
       LIMIT 1
+    `,
+    [
+      station_id,
+      start_time ?? null,
+      start_energy_total == null ? null : start_energy_total,
+    ]
+  );
+
+  return mapSessionRow(rows[0]);
+}
+
+async function recoverRecentlyEndedProgramSession({ station_id, start_time, start_energy_total }, tx) {
+  const db = getExecutor(tx);
+  const rows = await db.query(
+    `
+      WITH candidate AS (
+        SELECT id
+        FROM sessions
+        WHERE
+          station_id = $1
+          AND origin = 'program'
+          AND user_id IS NOT NULL
+          AND status = 'done'
+          AND notes LIKE '%auto-ended:%'
+          AND reconciliation->>'status' IS DISTINCT FROM 'validated'
+          AND end_time >= NOW() - INTERVAL '30 minutes'
+          AND COALESCE(energy_kwh, 0) <= 0.2
+          AND ($3::numeric IS NULL OR start_energy_total IS NULL OR ABS(start_energy_total - $3::numeric) <= 0.05)
+          AND (
+            $2::timestamptz IS NOT NULL
+            AND start_time BETWEEN ($2::timestamptz - INTERVAL '2 minutes') AND ($2::timestamptz + INTERVAL '2 minutes')
+          )
+          AND NOT EXISTS (SELECT 1 FROM sessions other WHERE other.station_id = $1 AND other.status = 'running')
+        ORDER BY end_time DESC, id DESC
+        LIMIT 1
+      )
+      UPDATE sessions s
+      SET
+        status = 'running',
+        end_time = NULL,
+        duration_seconds = NULL,
+        end_energy_total = NULL,
+        energy_once = NULL,
+        energy_kwh = NULL,
+        energy_source = NULL,
+        reconciliation = NULL,
+        needs_review = FALSE,
+        price_calculated = NULL,
+        start_energy_total = COALESCE(s.start_energy_total, $3::numeric),
+        notes = CONCAT_WS(
+          E'\\n',
+          NULLIF(s.notes, ''),
+          'Sessao reaberta automaticamente: o carregador continuou carregando apos encerramento prematuro.'
+        )
+      FROM candidate
+      WHERE s.id = candidate.id
+      RETURNING
+        s.id,
+        s.client_id,
+        s.user_id,
+        s.address_id,
+        s.station_id,
+        s.status,
+        s.start_time,
+        s.end_time,
+        s.duration_seconds,
+        s.start_energy_total,
+        s.end_energy_total,
+        s.energy_once,
+        s.energy_kwh,
+        s.energy_source,
+        s.reconciliation,
+        s.origin,
+        s.authorization_method,
+        s.detected_at,
+        s.needs_review,
+        s.notes,
+        s.tariff_per_kwh,
+        s.price_calculated,
+        s.price_override,
+        s.payment_status,
+        s.paid_at
     `,
     [
       station_id,
@@ -318,6 +405,7 @@ async function createRunning(payload, tx) {
         energy_once,
         energy_kwh,
         energy_source,
+        reconciliation,
         origin,
         authorization_method,
         detected_at,
@@ -360,6 +448,7 @@ async function finishSession(sessionId, patch, tx) {
     "energy_once",
     "energy_kwh",
     "energy_source",
+    "reconciliation",
     "needs_review",
     "notes",
     "tariff_per_kwh",
@@ -401,6 +490,7 @@ async function finishSession(sessionId, patch, tx) {
         energy_once,
         energy_kwh,
         energy_source,
+        reconciliation,
         origin,
         authorization_method,
         detected_at,
@@ -455,6 +545,7 @@ async function listByUser(userId, limit = 50, offset = 0, filters = {}) {
         s.energy_once,
         s.energy_kwh,
         s.energy_source,
+        s.reconciliation,
         s.origin,
         s.authorization_method,
         s.detected_at,
@@ -558,6 +649,7 @@ async function listAdmin(filters = {}) {
         s.energy_once,
         s.energy_kwh,
         s.energy_source,
+        s.reconciliation,
         s.origin,
         s.authorization_method,
         s.detected_at,
@@ -650,6 +742,12 @@ async function updateAdminFields(sessionId, patch, tx) {
   if (Object.prototype.hasOwnProperty.call(patch, "client_id")) {
     setField("client_id", patch.client_id == null ? null : patch.client_id);
   }
+  if (Object.prototype.hasOwnProperty.call(patch, "user_id")) {
+    setField("user_id", patch.user_id == null ? null : patch.user_id);
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "reconciliation")) {
+    setField("reconciliation", patch.reconciliation);
+  }
 
   if (updates.length === 0) {
     return getById(sessionId, tx);
@@ -676,6 +774,7 @@ async function updateAdminFields(sessionId, patch, tx) {
         energy_once,
         energy_kwh,
         energy_source,
+        reconciliation,
         origin,
         authorization_method,
         detected_at,
@@ -698,6 +797,7 @@ module.exports = {
   getRunningByUser,
   getById,
   findExternalNearStart,
+  recoverRecentlyEndedProgramSession,
   createRunning,
   finishSession,
   listByUser,

@@ -3,7 +3,7 @@ const path = require("path");
 const { Pool } = require("pg");
 const config = require("../config");
 
-const databaseUrl = config.dbUrl;
+const databaseUrl = process.env.DATABASE_URL_UNPOOLED || config.dbUrl;
 if (!databaseUrl) {
   throw new Error("DATABASE_URL não definido. Configure no .env antes de rodar as migrações.");
 }

@@ -560,6 +560,7 @@ function renderClientSessionDetails(client, sessions) {
         <option value="pago">Pago</option>
       `;
       select.value = session.payment_status === "pago" ? "pago" : "pendente";
+      select.disabled = !session.billing_ready;
       statusTd.appendChild(select);
       detailTr.appendChild(statusTd);
 

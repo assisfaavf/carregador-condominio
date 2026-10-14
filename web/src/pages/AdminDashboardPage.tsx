@@ -800,7 +800,7 @@ export default function AdminDashboardPage() {
                       </p>
                     </div>
                     <div className="text-center sm:border-l sm:border-secondary/50">
-                      <p className="text-[10px] uppercase tracking-wider text-slate-500">Energia</p>
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500">Energia provisória</p>
                       <p className="text-sm font-medium text-slate-200">
                         {sessionEnergy != null
                           ? formatNumber(sessionEnergy, 'kWh', 2)

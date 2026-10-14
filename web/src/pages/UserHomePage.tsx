@@ -697,7 +697,7 @@ export default function UserHomePage() {
             <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-primary/10 dark:bg-slate-800/50">
               {isBusy ? <div className="absolute inset-0 animate-pulse bg-primary/5" /> : null}
               <p className="relative z-10 mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Energia da Sessão
+                Energia da sessão (provisória)
               </p>
               <p className="relative z-10 text-lg font-bold text-primary">
                 {formatNumber(displayedSessionEnergyKwh, 'kWh', 2)}

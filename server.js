@@ -20,6 +20,8 @@ const usersRepo = require("./repositories/usersRepo");
 const addressesRepo = require("./repositories/addressesRepo");
 const stationsRepo = require("./repositories/stationsRepo");
 const sessionsRepo = require("./repositories/sessionsRepo");
+const energyReadingsRepo = require("./repositories/energyReadingsRepo");
+const { reconcile, billingReady } = require("./services/energyValidation");
 const chargingClientsRepo = require("./repositories/chargingClientsRepo");
 const systemSettingsRepo = require("./repositories/systemSettingsRepo");
 
@@ -232,8 +234,9 @@ app.use(
 
 const SESSION_WATCHDOG_INTERVAL_MS = 5000;
 const AUTO_END_ZERO_POWER_THRESHOLD_KW = 0.1;
-const AUTO_END_CONSECUTIVE_POLLS = 2;
-const AUTO_END_MIN_SESSION_AGE_SECONDS = 30;
+const AUTO_END_CONSECUTIVE_POLLS = 6;
+const AUTO_END_EXPLICIT_CONSECUTIVE_POLLS = 3;
+const AUTO_END_MIN_SESSION_AGE_SECONDS = 180;
 const START_MIN_CURRENT_A = 2;
 const START_MIN_POWER_KW = 0.5;
 const ADMIN_SESSION_PAYMENT_STATUSES = new Set(["pendente", "pago", "cortesia", "n/a"]);
@@ -642,29 +645,53 @@ function detectExplicitChargingEnd(statusData) {
 }
 
 function didChargingEnd(statusData, monitorState = {}, runningSession = null) {
-  const explicitEnd = detectExplicitChargingEnd(statusData);
+  const powerKw = pickPowerKwFromStatus(statusData);
+  const elapsedSeconds = runningSession ? calcElapsedSeconds(runningSession.start_time) : null;
+  const eligibleByAge = elapsedSeconds == null || elapsedSeconds >= AUTO_END_MIN_SESSION_AGE_SECONDS;
+  const oldExplicitCount = Number.isInteger(monitorState.explicitEndCount) ? monitorState.explicitEndCount : 0;
+  const oldZeroCount = Number.isInteger(monitorState.zeroPowerCount) ? monitorState.zeroPowerCount : 0;
+  const telemetryTime = Number(findDp(statusData, 'phase_a')?.time);
+  const freshPower = !Number.isFinite(telemetryTime) || Date.now() - telemetryTime <= config.energyValidation.maxGapSeconds * 1000;
+  const effectiveFlow = freshPower && hasEffectiveChargingFlow(statusData).ok;
+  let explicitEnd = effectiveFlow ? null : detectExplicitChargingEnd(statusData);
+  if (explicitEnd && runningSession) {
+    const endSignalTime = Number(findDp(statusData, explicitEnd.code)?.time);
+    if (Number.isFinite(endSignalTime) && endSignalTime < new Date(runningSession.start_time).getTime()) explicitEnd = null;
+  }
+
   if (explicitEnd) {
+    const explicitEndCount = eligibleByAge ? oldExplicitCount + 1 : oldExplicitCount;
+    if (explicitEndCount >= AUTO_END_EXPLICIT_CONSECUTIVE_POLLS) {
+      return {
+        ended: true,
+        reason: `charger reported finished (${explicitEnd.code}=${explicitEnd.value}) for ${explicitEndCount} polls`,
+        source: "explicit_status",
+        explicitEndCount,
+        zeroPowerCount: 0,
+        powerKw,
+      };
+    }
+
     return {
-      ended: true,
-      reason: `charger reported finished (${explicitEnd.code}=${explicitEnd.value})`,
-      source: "explicit_status",
+      ended: false,
+      reason: null,
+      source: null,
+      explicitEndCount,
       zeroPowerCount: 0,
-      powerKw: pickPowerKwFromStatus(statusData),
+      powerKw,
     };
   }
 
-  const powerKw = pickPowerKwFromStatus(statusData);
-  const elapsedSeconds = runningSession ? calcElapsedSeconds(runningSession.start_time) : null;
-  const oldCount = Number.isInteger(monitorState.zeroPowerCount) ? monitorState.zeroPowerCount : 0;
-  const eligibleByAge = elapsedSeconds == null || elapsedSeconds >= AUTO_END_MIN_SESSION_AGE_SECONDS;
-  const zeroPower = powerKw != null && powerKw <= AUTO_END_ZERO_POWER_THRESHOLD_KW && eligibleByAge;
-  const zeroPowerCount = zeroPower ? oldCount + 1 : 0;
+  const zeroPower = !effectiveFlow && findDp(statusData, 'work_state')?.value !== 'charger_charging'
+    && powerKw != null && powerKw <= AUTO_END_ZERO_POWER_THRESHOLD_KW && eligibleByAge;
+  const zeroPowerCount = zeroPower ? oldZeroCount + 1 : 0;
 
   if (zeroPowerCount >= AUTO_END_CONSECUTIVE_POLLS) {
     return {
       ended: true,
       reason: `power stayed at ${AUTO_END_ZERO_POWER_THRESHOLD_KW.toFixed(1)} kW or below for ${zeroPowerCount} polls`,
       source: "power_zero",
+      explicitEndCount: 0,
       zeroPowerCount,
       powerKw,
     };
@@ -674,6 +701,7 @@ function didChargingEnd(statusData, monitorState = {}, runningSession = null) {
     ended: false,
     reason: null,
     source: null,
+    explicitEndCount: 0,
     zeroPowerCount,
     powerKw,
   };
@@ -1729,7 +1757,9 @@ async function startSessionFlow({ userId, addressId, station }) {
   });
 
   try {
+    await persistEnergyReading(session.id, statusBefore, 'start');
     const { started, lastStatus, lastFlow } = await runStartCommands(station);
+    if (lastStatus) await persistEnergyReading(session.id, lastStatus, 'start_confirmed');
     if (!started) {
       await safeSwitchOff(station.tuya_device_id);
       const diag = diagnoseStartFailure(lastStatus);
@@ -1877,8 +1907,65 @@ function computeNeedsReview(energyOnce, energyFromTotal, energyKwh) {
   return diff > Math.max(0.15, energyKwh * 0.2);
 }
 
+async function persistEnergyReading(sessionId, status, source = 'watchdog') {
+  if (!status) return;
+  const codes = ['forward_energy_total', 'charge_energy_once', 'phase_a', 'work_state', 'charge_status', 'charging_state', 'switch', 'connection_state'];
+  const raw = {};
+  for (const code of codes) { const dp = findDp(status, code); if (dp) raw[code] = { value: dp.value, time: dp.time ?? null }; }
+  const phase = decodePhaseA(status);
+  const workState = findDp(status, 'work_state')?.value ?? null;
+  await energyReadingsRepo.record(sessionId, {
+    observed_at: phase?.observedAt || new Date().toISOString(),
+    source,
+    total_kwh: scale2ToKwh(readDpNumber(status, 'forward_energy_total')),
+    once_kwh: scale2ToKwh(readDpNumber(status, 'charge_energy_once')),
+    power_kw: phase?.observedAt ? phase.powerKw : null,
+    current_a: pickCurrentAFromStatus(status),
+    voltage_v: phase?.voltageV ?? null,
+    work_state: workState,
+    charging: isActivelyCharging(workState, findDp(status, 'switch')?.value),
+    raw_fields: raw,
+  });
+}
+
+async function recoverHistoricalReadings(session, station, endTime = Date.now()) {
+  const startTime = Math.max(new Date(session.start_time).getTime(), endTime - 48 * 60 * 60 * 1000);
+  for (const code of ['phase_a', 'forward_energy_total']) {
+    const response = await getDeviceLogs(station.tuya_device_id, { code, startTime, endTime, size: 100 });
+    for (const entry of extractDeviceLogs(response)) {
+      const time = Number(entry.event_time);
+      if (!Number.isFinite(time) || time < startTime || time > endTime) continue;
+      const status = { result: [{ code, value: entry.value, time }] };
+      const phase = decodePhaseA(status);
+      await energyReadingsRepo.record(session.id, {
+        observed_at: new Date(time).toISOString(), source: 'tuya_history',
+        total_kwh: code === 'forward_energy_total' ? scale2ToKwh(entry.value) : null,
+        once_kwh: null, power_kw: phase?.powerKw ?? null, current_a: phase?.currentA ?? null,
+        voltage_v: phase?.voltageV ?? null, work_state: null,
+        charging: phase?.powerKw > 0.1, raw_fields: { [code]: { value: entry.value, time } },
+      });
+    }
+  }
+}
+
 async function stopSessionFlow({ running, station, finalStatus: suppliedFinalStatus = null }) {
   const finalStatus = suppliedFinalStatus || await runStopPolling(station);
+  await persistEnergyReading(running.id, finalStatus, 'end');
+  let readings = await energyReadingsRepo.list(running.id);
+  const previous = readings.filter((reading) => reading.source !== 'end').slice(-1)[0];
+  const monitoringGap = !previous || Date.now() - new Date(previous.observed_at).getTime() > config.energyValidation.maxGapSeconds * 1000;
+  let verifiedEnd = null;
+  if (suppliedFinalStatus && monitoringGap) {
+    try {
+      await recoverHistoricalReadings(running, station);
+      readings = await energyReadingsRepo.list(running.id);
+      const logs = extractDeviceLogs(await getDeviceLogs(station.tuya_device_id, {
+        code: 'work_state', startTime: new Date(running.start_time).getTime(), endTime: Date.now(),
+      })).filter((entry) => Number.isFinite(Number(entry.event_time)) && Number(entry.event_time) >= new Date(running.start_time).getTime())
+        .sort((a, b) => Number(b.event_time) - Number(a.event_time));
+      if (['charger_end', 'charger_finish', 'charger_finished'].includes(logs[0]?.value)) verifiedEnd = new Date(Number(logs[0].event_time));
+    } catch (error) { appLogger.warn({ session_id: running.id }, 'Historico Tuya indisponivel para confirmar termino.'); }
+  }
 
   const energyOnce = (() => {
     const raw = readDpNumber(finalStatus, "charge_energy_once");
@@ -1892,13 +1979,18 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
 
   const energyKwh = energyFromTotal != null ? energyFromTotal : energyOnce;
   const energySource = energyFromTotal != null ? "total_delta" : (energyOnce != null ? "once" : null);
-  const durationSeconds = calcElapsedSeconds(running.start_time);
+  const explicitEnd = detectExplicitChargingEnd(finalStatus);
+  const signalTime = explicitEnd ? Number(findDp(finalStatus, explicitEnd.code)?.time) : NaN;
+  const timestampedEnd = Number.isFinite(signalTime) && signalTime >= new Date(running.start_time).getTime() && signalTime <= Date.now()
+    ? new Date(signalTime) : null;
+  const endTime = suppliedFinalStatus ? timestampedEnd || verifiedEnd || (monitoringGap ? null : new Date()) : new Date();
+  const durationSeconds = endTime ? Math.max(0, Math.floor((endTime - new Date(running.start_time)) / 1000)) : null;
   const tariff = await getTariffPerKwh();
   const priceCalculated = energyKwh != null ? round2(energyKwh * tariff) : null;
   const needsReview = computeNeedsReview(energyOnce, energyFromTotal, energyKwh);
   const patch = {
     status: "done",
-    end_time: new Date(),
+    end_time: endTime,
     duration_seconds: durationSeconds,
     end_energy_total: endEnergyTotal,
     energy_once: energyOnce,
@@ -1913,20 +2005,34 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
     patch.notes = appendSessionNote(running.notes, running.auto_end_note);
   }
 
-  const finished = await pgDb.withTransaction(async (tx) => (
-    sessionsRepo.finishSession(running.id, patch, tx)
-  ));
+  const endTimeSource = timestampedEnd ? 'tuya_event' : verifiedEnd ? 'tuya_history' : endTime ? 'detection_estimate' : 'unknown';
+  let validation = { status: 'pending', end_detected_at: new Date().toISOString(), end_time_source: endTimeSource, end_time_uncertain: !endTime || endTimeSource === 'detection_estimate', reconciled_kwh: null };
+  const finished = await pgDb.withTransaction(async (tx) => {
+    const result = await sessionsRepo.finishSession(running.id, { ...patch, reconciliation: validation, energy_kwh: null, price_calculated: null, needs_review: true }, tx);
+    if (result) {
+      await energyReadingsRepo.audit(running.id, null, 'physical_end', {}, validation, 'Encerramento registrado; aguardando conciliação.', tx);
+    }
+    return result;
+  });
   if (!finished) return null;
+  try {
+    validation = { ...reconcile({ ...running, ...patch }, readings, config.energyValidation), end_detected_at: validation.end_detected_at, end_time_source: endTimeSource, end_time_uncertain: validation.end_time_uncertain, last_attempt_at: new Date().toISOString() };
+    await energyReadingsRepo.revise(running.id, null, { reconciliation: validation }, 'Encerramento detectado e fontes comparadas.');
+  } catch (error) {
+    appLogger.warn({ session_id: running.id }, 'Sessão encerrada; conciliação ficará pendente para nova tentativa.');
+    validation = { status: 'pending', reconciled_kwh: null };
+  }
 
   return {
     sessionId: running.id,
     duration_seconds: durationSeconds,
     end_energy_total: endEnergyTotal,
     energy_once: energyOnce,
-    energy_kwh: energyKwh,
+    energy_kwh: validation.reconciled_kwh,
+    reconciliation: validation,
     energy_source: energySource,
-    needs_review: needsReview,
-    price_calculated: priceCalculated,
+    needs_review: validation.status !== 'validated',
+    price_calculated: validation.reconciled_kwh == null ? null : round2(validation.reconciled_kwh * tariff),
     end_work_state: findDp(finalStatus, "work_state")?.value || null,
     end_connection_state: findDp(finalStatus, "connection_state")?.value || null,
   };
@@ -2133,6 +2239,21 @@ async function detectExternalSessions() {
         continue;
       }
 
+      const recovered = await sessionsRepo.recoverRecentlyEndedProgramSession({
+        station_id: station.id,
+        start_time: external.startedAt,
+        start_energy_total: startEnergyTotal,
+      });
+      if (recovered) {
+        runningSessionMonitor.set(recovered.id, { explicitEndCount: 0, zeroPowerCount: 0 });
+        appLogger.info({
+          session_id: recovered.id,
+          station_id: station.id,
+          start_time: recovered.start_time,
+        }, "[watchdog] Sessao iniciada pelo programa foi reaberta; carga nao sera registrada como externa.");
+        continue;
+      }
+
       const tariffPerKwh = await getTariffPerKwh();
       const session = await sessionsRepo.createRunning({
         user_id: null,
@@ -2179,11 +2300,15 @@ async function runSessionWatchdogTick() {
         }
 
         const status = await getDeviceShadow(station.tuya_device_id);
+        await persistEnergyReading(session.id, status);
         const monitorState = runningSessionMonitor.get(session.id) || { zeroPowerCount: 0 };
         const detection = didChargingEnd(status, monitorState, session);
 
         if (!detection.ended) {
-          runningSessionMonitor.set(session.id, { zeroPowerCount: detection.zeroPowerCount });
+          runningSessionMonitor.set(session.id, {
+            explicitEndCount: detection.explicitEndCount || 0,
+            zeroPowerCount: detection.zeroPowerCount || 0,
+          });
           continue;
         }
 
@@ -2227,6 +2352,53 @@ async function runSessionWatchdogTick() {
   } finally {
     sessionWatchdogRunning = false;
   }
+}
+
+let reconciliationRetryRunning = false;
+function startReconciliationRetries() {
+  const timer = setInterval(async () => {
+    if (reconciliationRetryRunning) return;
+    reconciliationRetryRunning = true;
+    try {
+      const [session] = await pgDb.query(`SELECT s.*, st.tuya_device_id FROM sessions s
+        JOIN stations st ON st.id=s.station_id
+        WHERE s.status='done' AND s.reconciliation->>'status' IN ('pending','inconclusive')
+          AND COALESCE(s.reconciliation->>'manual','false') <> 'true'
+          AND s.start_time >= NOW() - INTERVAL '7 days'
+          AND (s.reconciliation->>'last_attempt_at' IS NULL
+            OR (s.reconciliation->>'last_attempt_at')::timestamptz < NOW() - INTERVAL '5 minutes')
+        ORDER BY s.reconciliation->>'last_attempt_at' NULLS FIRST, s.id LIMIT 1`);
+      if (!session) return;
+      const attempted = new Date().toISOString();
+      const endBound = new Date(session.reconciliation.end_detected_at || session.end_time).getTime();
+      try {
+        if (Number.isFinite(endBound)) await recoverHistoricalReadings(session, session, endBound);
+        let verifiedEndTime = null;
+        if (!session.end_time && Number.isFinite(endBound)) {
+          const events = extractDeviceLogs(await getDeviceLogs(session.tuya_device_id, {
+            code: 'work_state', startTime: new Date(session.start_time).getTime(), endTime: endBound,
+          })).filter((entry) => Number.isFinite(Number(entry.event_time))
+            && Number(entry.event_time) >= new Date(session.start_time).getTime() && Number(entry.event_time) <= endBound)
+            .sort((a, b) => Number(b.event_time) - Number(a.event_time));
+          if (['charger_end', 'charger_finish', 'charger_finished'].includes(events[0]?.value)) {
+            verifiedEndTime = new Date(Number(events[0].event_time));
+            session.end_time = verifiedEndTime;
+          }
+        }
+        const validation = { ...reconcile(session, await energyReadingsRepo.list(session.id), config.energyValidation),
+          end_detected_at: session.reconciliation.end_detected_at, end_time_source: verifiedEndTime ? 'tuya_history' : session.reconciliation.end_time_source,
+          end_time_uncertain: verifiedEndTime ? false : session.reconciliation.end_time_uncertain, last_attempt_at: attempted };
+        await energyReadingsRepo.revise(session.id, null, { reconciliation: validation, verified_end_time: verifiedEndTime }, 'Nova tentativa após indisponibilidade ou dados insuficientes.');
+      } catch (error) {
+        await pgDb.query(`UPDATE sessions SET reconciliation=jsonb_set(reconciliation, '{last_attempt_at}', to_jsonb($2::text))
+          WHERE id=$1 AND reconciliation->>'status' IN ('pending','inconclusive')
+            AND COALESCE(reconciliation->>'manual','false') <> 'true'`, [session.id, attempted]);
+        appLogger.warn({ session_id: session.id }, 'Conciliação pendente: histórico Tuya ainda indisponível.');
+      }
+    } catch (error) { appLogger.warn('Falha na nova tentativa de conciliação.'); }
+    finally { reconciliationRetryRunning = false; }
+  }, 60000);
+  timer.unref();
 }
 
 function startSessionWatchdog() {
@@ -2406,7 +2578,8 @@ function parseOffset(value) {
 }
 
 function mapUserSessionForUi(session) {
-  const energyKwh = session.energy_kwh != null ? session.energy_kwh : session.energy_once;
+  const ready = billingReady(session);
+  const energyKwh = ready ? session.energy_kwh : null;
   return {
     ...session,
     id: session.id,
@@ -2414,9 +2587,10 @@ function mapUserSessionForUi(session) {
     end_time: session.end_time,
     duration_seconds: session.duration_seconds,
     energy_kwh: energyKwh,
-    energy_once: session.energy_once,
-    price_calculated: session.price_calculated,
-    price_override: session.price_override,
+    energy_once: ready ? session.energy_once : null,
+    price_calculated: ready ? session.price_calculated : null,
+    price_override: ready ? session.price_override : null,
+    billing_ready: ready,
     payment_status: session.payment_status,
     station_id: session.station_id,
     station_name: session.station_name ?? session.station?.name ?? null,
@@ -2465,7 +2639,8 @@ function mapChargingClientForUi(client) {
 }
 
 function mapAdminSessionForUi(session) {
-  const energyKwh = session?.energy_kwh != null ? session.energy_kwh : session?.energy_once;
+  const ready = billingReady(session);
+  const energyKwh = ready ? session.energy_kwh : null;
   const client = mapChargingClientForUi(session.client);
   return {
     id: session.id,
@@ -2480,9 +2655,13 @@ function mapAdminSessionForUi(session) {
     authorization_method: session.authorization_method ?? "program",
     detected_at: session.detected_at ?? null,
     energy_kwh: energyKwh,
+    reconciliation: session.reconciliation,
+    billing_ready: ready,
+    provisional_energy_kwh: session.energy_kwh,
+    provisional_price: session.price_override ?? session.price_calculated,
     tariff_per_kwh: session.tariff_per_kwh ?? null,
-    price_calculated: session.price_calculated ?? null,
-    price_override: session.price_override ?? null,
+    price_calculated: ready ? session.price_calculated : null,
+    price_override: ready ? session.price_override : null,
     payment_status: session.payment_status ?? null,
     notes: session.notes ?? null,
     needs_review: session.needs_review === true,
@@ -2565,6 +2744,39 @@ app.get("/api/admin/sessions", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+app.get('/api/admin/sessions/:id/energy', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const id = parsePositiveInt(req.params.id);
+    if (!id) return res.status(400).json({ success: false, message: 'ID inválido.' });
+    const session = await sessionsRepo.getById(id);
+    if (!session) return res.status(404).json({ success: false, message: 'Sessão não encontrada.' });
+    const revisions = await pgDb.query('SELECT actor_id, created_at, action, before_values, after_values, reason FROM session_revisions WHERE session_id=$1 ORDER BY id DESC LIMIT 50', [id]);
+    return res.json({ success: true, reconciliation: session.reconciliation, revisions });
+  } catch (error) { return sendErrorResponse(res, 500, 'Erro ao consultar validação.', error); }
+});
+
+app.post('/api/admin/sessions/:id/validate', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const id = parsePositiveInt(req.params.id);
+    if (!id) return res.status(400).json({ success: false, message: 'ID inválido.' });
+    const session = await sessionsRepo.getById(id);
+    if (!session) return res.status(404).json({ success: false, message: 'Sessão não encontrada.' });
+    if (session.status !== 'done') return res.status(409).json({ success: false, message: 'Encerre a sessão antes de validar.' });
+    let result;
+    if (req.body?.action === 'reconcile') {
+      result = reconcile(session, await energyReadingsRepo.list(id), config.energyValidation);
+    } else {
+      const energy = toFiniteNumber(req.body?.energy_kwh);
+      const reason = normalizeNullableText(req.body?.reason);
+      if (energy == null || energy < 0 || energy > 10000 || !reason) return res.status(400).json({ success: false, message: 'Informe consumo não negativo e justificativa para validar.' });
+      result = { ...(session.reconciliation || {}), status: 'validated', reconciled_kwh: energy, manual: true, validated_by: req.user.id, validated_at: new Date().toISOString() };
+    }
+    await energyReadingsRepo.revise(id, req.user.id, { reconciliation: result }, normalizeNullableText(req.body?.reason) || 'Nova comparação das leituras persistidas.');
+    const [updated] = await sessionsRepo.listAdmin({ id, limit: 1 });
+    return res.json({ success: true, session: mapAdminSessionForUi(updated) });
+  } catch (error) { return sendErrorResponse(res, 409, 'Não foi possível validar a sessão.', error); }
+});
+
 app.patch("/api/admin/sessions/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
     const sessionId = parsePositiveInt(req.params.id);
@@ -2630,7 +2842,7 @@ app.patch("/api/admin/sessions/:id", requireAuth, requireAdmin, async (req, res)
       return res.status(400).json({ success: false, message: "Nenhum campo valido para atualizar." });
     }
 
-    const updated = await sessionsRepo.updateAdminFields(sessionId, patch);
+    const updated = await energyReadingsRepo.revise(sessionId, req.user.id, patch, normalizeNullableText(body.reason) || 'Atualizacao administrativa.');
     if (!updated) return res.status(404).json({ success: false, message: "Sessao nao encontrada." });
 
     const [sessionWithRelations] = await sessionsRepo.listAdmin({
@@ -2644,7 +2856,7 @@ app.patch("/api/admin/sessions/:id", requireAuth, requireAdmin, async (req, res)
       session: sessionWithRelations ? mapAdminSessionForUi(sessionWithRelations) : mapAdminSessionForUi(updated),
     });
   } catch (error) {
-    return sendErrorResponse(res, 500, "Erro ao atualizar sessao", error);
+    return sendErrorResponse(res, error.statusCode || 500, error.publicMessage || "Erro ao atualizar sessao", error);
   }
 });
 
@@ -2661,7 +2873,7 @@ app.get("/sessions", requireAuth, requireAdmin, async (req, res) => {
         ? Number(req.query.offset)
         : 0,
     });
-    return res.json({ success: true, sessions });
+    return res.json({ success: true, sessions: sessions.map((session) => ({ ...session, ...mapAdminSessionForUi(session) })) });
   } catch (error) {
     return sendErrorResponse(res, 500, "Erro ao listar sessoes", error);
   }
@@ -2723,11 +2935,11 @@ app.post("/admin/set-paid", requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: "Informe paid (boolean) ou payment_status (string)." });
     }
 
-    const updated = await sessionsRepo.updateAdminFields(id, { payment_status: paymentStatus });
+    const updated = await energyReadingsRepo.revise(id, req.user.id, { payment_status: paymentStatus }, 'Atualizacao de pagamento.');
     if (!updated) return res.status(404).json({ success: false, message: "Sessao nao encontrada." });
     return res.json({ success: true, session: updated });
   } catch (error) {
-    return sendErrorResponse(res, 500, "Erro ao atualizar pagamento", error);
+    return sendErrorResponse(res, error.statusCode || 500, error.publicMessage || "Erro ao atualizar pagamento", error);
   }
 });
 
@@ -2853,5 +3065,6 @@ app.use((error, req, res, next) => {
 const PORT = config.port;
 app.listen(PORT, "0.0.0.0", () => {
   startSessionWatchdog();
+  startReconciliationRetries();
   appLogger.info({ port: PORT }, `Servidor rodando em http://localhost:${PORT}`);
 });
