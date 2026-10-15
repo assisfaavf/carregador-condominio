@@ -19,3 +19,8 @@ yarn-error.log*
 # Sistema
 .DS_Store
 Thumbs.db
+
+
+#ia
+.agents
+tasks
