@@ -4,7 +4,8 @@ WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --include=dev --no-audit --no-fund
 COPY web/ ./
-RUN npm run build
+# Dependencies are already installed in the cached layer above.
+RUN npm run build:assets
 
 FROM node:24-alpine AS backend-dependencies
 WORKDIR /app

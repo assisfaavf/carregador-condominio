@@ -8,7 +8,7 @@ somente dependências de produção antes de compilar o frontend.
 
 O Dockerfile usa Node.js 24 e três estágios:
 
-1. `frontend-build`: `npm ci --include=dev` na pasta `web`, seguido de `npm run build`.
+1. `frontend-build`: `npm ci --include=dev` na pasta `web`, seguido de `npm run build:assets`.
    TypeScript e Vite são ferramentas de compilação e continuam em `devDependencies`.
 2. `backend-dependencies`: instala as dependências de produção da raiz com `npm ci --omit=dev`.
 3. `production`: recebe o backend, os arquivos legados de `public`, as migrations
@@ -18,6 +18,26 @@ Não há processo Vite em produção. O Express serve o frontend e a API no mesm
 processo/porta. Já escuta em `0.0.0.0` e respeita `PORT`. A porta padrão da
 imagem é 3000; se a plataforma fornecer outra, use a porta fornecida no roteamento.
 O endpoint de saúde HTTP é `/health`. `/health/db` verifica também o PostgreSQL.
+
+### Se o deploy continuar mostrando `tsc: not found`
+
+O script `npm --prefix web run build` agora instala as dependências do frontend
+com `npm ci --include=dev` antes de executar `build:assets`. Isso também cobre
+presets Node que instalam inicialmente apenas dependências de produção.
+`npm run build` na raiz utiliza esse mesmo fluxo. TypeScript, Vite, plugins,
+tipagens e CSS são necessários para compilar, mesmo com `NODE_ENV=production`.
+
+No Dockerfile, a instalação permanece em uma camada própria para aproveitar o
+cache; ele chama `build:assets` depois dessa instalação, sem reinstalar tudo.
+O comando `build:assets` sozinho pressupõe que as ferramentas já foram instaladas.
+
+Se o erro persistir, confira a branch e o commit usados no deploy, o caminho
+`Dockerfile` com contexto na raiz e o log completo das etapas de instalação.
+Um log sem estágios `frontend-build` pode indicar o uso do preset em vez do
+Dockerfile. Reconstrua sem cache ao trocar a configuração de build.
+`--legacy-peer-deps` não é necessário para os lockfiles atuais: os builds limpos
+passaram sem conflitos de peer dependencies. Essa opção não corrige a omissão
+de dependências de desenvolvimento por si só.
 
 Os dois pares `package.json`/`package-lock.json` são preservados. O build não precisa
 de credenciais nem de acesso ao banco/Tuya. `.dockerignore` exclui `.env`, arquivos
