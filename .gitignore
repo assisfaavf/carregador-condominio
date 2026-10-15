@@ -3,6 +3,8 @@ node_modules/
 
 # Variáveis sensíveis
 .env
+.env.*
+!.env.example
 
 # Banco local
 database.sqlite

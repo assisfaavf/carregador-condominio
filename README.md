@@ -84,6 +84,8 @@ Nesse modo, o Vite roda separado do Express. Websocket do Vite e hot reload sao 
 
 ## Producao local
 
+Para deploy por Dockerfile na Dado, consulte [Deploy na Dado](docs/deploy-dado.md).
+
 Gerar o frontend:
 
 ```bash
