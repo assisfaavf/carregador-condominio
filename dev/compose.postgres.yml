@@ -1,3 +1,7 @@
+# Local development only. Production uses DATABASE_URL and the root Dockerfile.
+# Keep the original Compose project name so existing local volumes are reused.
+name: carregador-condominio
+
 services:
   postgres:
     image: postgres:16

@@ -77,15 +77,24 @@ Não enviar o `.env` local nem usar as credenciais de exemplo do Compose em prod
 
 ## PostgreSQL e demais serviços
 
-`docker-compose.yml` contém somente PostgreSQL 16, com um volume `pgdata` para
-desenvolvimento local. Não há Redis nem outro serviço obrigatório.
+O repositório não possui Compose com nome padrão na raiz. A configuração
+PostgreSQL 16 para desenvolvimento está em `dev/compose.postgres.yml`, com volume
+persistente `pgdata`. Essa pasta e arquivos Compose são excluídos do contexto
+de build pelo `.dockerignore`. Não há Redis nem outro serviço obrigatório.
 
-A Dado, conforme a configuração informada, não executa os serviços adicionais
-do Compose. Portanto, o PostgreSQL deve ser provisionado separadamente: Neon,
+A Dado deve executar somente a imagem definida pelo Dockerfile da raiz.
+O PostgreSQL deve ser provisionado separadamente: Neon,
 um serviço PostgreSQL persistente da hospedagem ou outro banco acessível pela rede.
 Configure sua URL em `DATABASE_URL`, incluindo os parâmetros TLS exigidos pelo
 provedor. `localhost` dentro do container aponta para o próprio container, e o
 hostname `postgres` do Compose local não existe automaticamente no deploy.
+
+Se a plataforma exibir a mensagem sobre PostgreSQL no `docker-compose.yml`,
+confirme que o deploy usa o commit que moveu o Compose para a pasta `dev`,
+selecione o Dockerfile da raiz e faça uma nova implantação. Se houver uma
+seleção anterior de Compose/preset na plataforma, altere-a para Dockerfile.
+Mantenha a `DATABASE_URL` que aponta para o banco de produção já utilizado;
+essa mudança de arquivos não exige criar outro banco nem migrar os dados.
 
 Sessões, amostras, validações e auditoria ficam no PostgreSQL. O arquivo legado
 `database.sqlite` não é necessário para o backend atual e não entra na imagem.

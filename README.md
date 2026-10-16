@@ -6,7 +6,7 @@ Backend Express + frontend React/Vite para operacao de carregadores do condomini
 
 - Node.js 20+ recomendado
 - PostgreSQL acessivel pela `DATABASE_URL`
-- Docker opcional para subir o Postgres local com `docker compose`
+- Docker opcional para subir o Postgres local com o Compose em `dev/compose.postgres.yml`
 
 ## Variaveis de ambiente
 
@@ -51,8 +51,20 @@ Para fluxo real de carregamento, as credenciais Tuya tambem precisam estar confi
 Subir o Postgres local:
 
 ```bash
-docker compose up -d
+docker compose -f dev/compose.postgres.yml up -d
 ```
+
+O Compose é exclusivo do desenvolvimento local. A produção usa o `Dockerfile`
+da raiz e um PostgreSQL externo configurado por `DATABASE_URL`.
+O nome do projeto Compose permanece `carregador-condominio`, preservando o
+volume local existente. Para consultar logs ou parar o banco local:
+
+```bash
+docker compose -f dev/compose.postgres.yml logs postgres
+docker compose -f dev/compose.postgres.yml down
+```
+
+Não use `down -v` se quiser preservar os dados locais.
 
 Rodar migracoes:
 

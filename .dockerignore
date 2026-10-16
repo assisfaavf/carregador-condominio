@@ -18,3 +18,8 @@ tmp
 tasks
 tests
 docs
+dev
+docker-compose*.yml
+docker-compose*.yaml
+compose*.yml
+compose*.yaml
