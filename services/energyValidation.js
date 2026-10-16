@@ -53,7 +53,9 @@ function reconcile(session, readings, options = {}) {
   let status = disagreement ? 'divergent' : references.length >= 2 && issues.length === 0 ? 'validated' : 'inconclusive';
   if (issues.includes('counter_reset')) status = 'inconclusive';
   const energy = status === 'validated' ? counter ?? system : null;
-  return { status, system_kwh: samples.length > 1 ? round(system) : null, counter_kwh: round(counter), once_kwh: once, once_trusted: onceTrusted, reconciled_kwh: round(energy), charging_seconds: chargingSeconds, covered_seconds: covered, sample_count: samples.length, issues: [...new Set(issues)], end_time_uncertain: !session.end_time, tolerance: { absolute, relative } };
+  const proposed = !issues.includes('counter_reset') ? counter : null;
+  const suggested = energy ?? proposed ?? (systemReliable ? system : finite(session.energy_kwh));
+  return { status, proposed_kwh: suggested != null && suggested >= 0 ? round(suggested) : null, system_kwh: samples.length > 1 ? round(system) : null, counter_kwh: round(counter), once_kwh: once, once_trusted: onceTrusted, reconciled_kwh: round(energy), charging_seconds: chargingSeconds, covered_seconds: covered, sample_count: samples.length, issues: [...new Set(issues)], end_time_uncertain: !session.end_time, tolerance: { absolute, relative } };
 }
 
 function billingReady(session, result = session.reconciliation) {

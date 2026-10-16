@@ -177,6 +177,11 @@
               <label for="clientApartment">Apartamento</label>
               <input id="clientApartment" class="input" />
             </div>
+            <div class="field">
+              <label for="clientTariffPerKwh">Valor do kWh (R$)</label>
+              <input id="clientTariffPerKwh" type="number" min="0" step="0.0001" class="input" placeholder="Usar tarifa padrão" />
+              <small>Opcional. Aplicado ao vincular uma recarga a este cliente.</small>
+            </div>
           </div>
           <button type="submit" class="btn btn-secondary">Cadastrar cliente</button>
         </form>

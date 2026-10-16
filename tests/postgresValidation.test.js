@@ -46,6 +46,47 @@ test('PostgreSQL: migration, deduplicação, encerramento idempotente, auditoria
     assert.equal(updated.energy_kwh, 1); assert.equal(updated.price_calculated, 1.2);
     assert.equal(updated.payment_status, 'pago');
     assert.equal((await tx.query('SELECT * FROM session_revisions')).length, 2);
+    const clients = load('chargingClientsRepo');
+    const owner = await clients.create({ name: 'Cliente tarifado', tariff_per_kwh: 2.75 });
+    const defaultOwner = await clients.create({ name: 'Tarifa padrão' });
+    const freeOwner = await clients.create({ name: 'Tarifa zero', tariff_per_kwh: 0 });
+    assert.equal((await clients.getById(owner.id)).tariff_per_kwh, 2.75);
+    assert.equal(defaultOwner.tariff_per_kwh, null);
+    assert.equal(freeOwner.tariff_per_kwh, 0);
+    assert.equal((await clients.listAll()).length, 3);
+    await client.query('SAVEPOINT invalid_tariff');
+    await assert.rejects(clients.create({ name: 'Tarifa inválida', tariff_per_kwh: -1 }));
+    await client.query('ROLLBACK TO SAVEPOINT invalid_tariff');
+
+    const provisional = await sessions.createRunning({ user_id: null, address_id: null, station_id: station.id, start_energy_total: 100, tariff_per_kwh: 1.2, origin: 'external' });
+    await sessions.finishSession(provisional.id, { status: 'done', end_time: new Date(), end_energy_total: 105 });
+    const suggestion = require('../services/energyValidation').reconcile(await sessions.getById(provisional.id), []);
+    await energy.revise(provisional.id, null, { reconciliation: suggestion }, 'Consumo provisório do acompanhamento');
+    let snapshot = await sessions.getById(provisional.id);
+    assert.equal(snapshot.energy_kwh, 5); assert.equal(snapshot.price_calculated, 6);
+    assert.equal(require('../services/energyValidation').billingReady(snapshot), false);
+    await energy.revise(provisional.id, null, { reconciliation: { status: 'inconclusive' } }, 'Revisão sem novas evidências');
+    snapshot = await sessions.getById(provisional.id);
+    assert.equal(snapshot.energy_kwh, 5); assert.equal(snapshot.price_calculated, 6);
+    await energy.revise(provisional.id, user.id, { client_id: owner.id }, 'Cliente vinculado');
+    snapshot = await sessions.getById(provisional.id);
+    assert.equal(snapshot.tariff_per_kwh, 2.75); assert.equal(snapshot.price_calculated, 13.75);
+    const [withClient] = await sessions.listAdmin({ id: provisional.id });
+    assert.equal(withClient.client.tariff_per_kwh, 2.75);
+    await tx.query('UPDATE charging_clients SET tariff_per_kwh=3.5 WHERE id=$1', [owner.id]);
+    await energy.revise(provisional.id, user.id, { reconciliation: { ...suggestion, status: 'validated', reconciled_kwh: 4, manual: true } }, 'Correção do consumo');
+    snapshot = await sessions.getById(provisional.id);
+    assert.equal(snapshot.tariff_per_kwh, 2.75); assert.equal(snapshot.price_calculated, 11);
+    await energy.revise(provisional.id, user.id, { price_override: 9 }, 'Valor manual');
+    await energy.revise(provisional.id, user.id, { client_id: freeOwner.id }, 'Troca do cliente');
+    snapshot = await sessions.getById(provisional.id);
+    assert.equal(snapshot.tariff_per_kwh, 0); assert.equal(snapshot.price_calculated, 0); assert.equal(snapshot.price_override, 9);
+    assert.equal((await sessions.getById(session.id)).price_calculated, 1.2);
+    await energy.revise(provisional.id, user.id, { payment_status: 'pago' }, 'Pagamento conferido');
+    await assert.rejects(energy.revise(provisional.id, user.id, { client_id: owner.id }, 'Repreço indevido'), /sessão paga/);
+    await tx.query("UPDATE sessions SET reconciliation=NULL WHERE id=$1", [session.id]);
+    await energy.revise(session.id, user.id, { payment_status: 'pendente' }, 'Reabrir pagamento histórico para revisão');
+    assert.equal((await sessions.getById(session.id)).payment_status, 'pendente');
   } finally {
     await client.query('ROLLBACK'); await client.end();
   }

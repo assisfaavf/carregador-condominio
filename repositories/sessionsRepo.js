@@ -59,6 +59,7 @@ function mapSessionWithRelations(row) {
       name: row.c_name,
       tower: row.c_tower ?? null,
       apartment: row.c_apartment ?? null,
+      tariff_per_kwh: toFiniteNumber(row.c_tariff_per_kwh),
     },
     station: row.st_id == null ? null : {
       id: row.st_id,
@@ -664,6 +665,7 @@ async function listAdmin(filters = {}) {
         c.name AS c_name,
         c.tower AS c_tower,
         c.apartment AS c_apartment,
+        c.tariff_per_kwh AS c_tariff_per_kwh,
         u.id AS u_id,
         u.name AS u_name,
         u.email AS u_email,

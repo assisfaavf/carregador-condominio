@@ -7,6 +7,7 @@ function mapClient(row) {
     name: row.name,
     tower: row.tower ?? null,
     apartment: row.apartment ?? null,
+    tariff_per_kwh: row.tariff_per_kwh == null ? null : Number(row.tariff_per_kwh),
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -20,6 +21,7 @@ async function listAll() {
         name,
         tower,
         apartment,
+        tariff_per_kwh,
         created_at,
         updated_at
       FROM charging_clients
@@ -38,6 +40,7 @@ async function getById(clientId) {
         name,
         tower,
         apartment,
+        tariff_per_kwh,
         created_at,
         updated_at
       FROM charging_clients
@@ -56,14 +59,16 @@ async function create(payload) {
       INSERT INTO charging_clients (
         name,
         tower,
-        apartment
+        apartment,
+        tariff_per_kwh
       )
-      VALUES ($1, $2, $3)
+      VALUES ($1, $2, $3, $4)
       RETURNING
         id,
         name,
         tower,
         apartment,
+        tariff_per_kwh,
         created_at,
         updated_at
     `,
@@ -71,6 +76,7 @@ async function create(payload) {
       payload.name,
       payload.tower ?? null,
       payload.apartment ?? null,
+      payload.tariff_per_kwh ?? null,
     ]
   );
 

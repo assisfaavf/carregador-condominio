@@ -99,6 +99,7 @@ function formatDateTime(value) {
 }
 
 function formatKwh(value) {
+  if (value == null || value === '') return '--';
   const number = Number(value);
   return Number.isFinite(number) ? `${number.toFixed(2)} kWh` : "--";
 }
@@ -410,7 +411,7 @@ function renderChargingSessionsTable() {
     for (const client of adminState.chargingClients) {
       const option = document.createElement("option");
       option.value = String(client.id);
-      option.textContent = formatClientLabel(client);
+      option.textContent = formatClientLabel(client) + (client.tariff_per_kwh == null ? '' : ` — R$ ${Number(client.tariff_per_kwh).toLocaleString('pt-BR')}/kWh`);
       select.appendChild(option);
     }
 
@@ -470,6 +471,7 @@ async function submitChargingClientForm(event) {
     name: document.getElementById("clientName").value.trim(),
     tower: document.getElementById("clientTower").value.trim(),
     apartment: document.getElementById("clientApartment").value.trim(),
+    tariff_per_kwh: document.getElementById("clientTariffPerKwh").value.trim() || null,
   };
 
   if (!payload.name) return setClientMsg("Informe o nome do cliente.", "error");
@@ -588,7 +590,7 @@ function renderClientDashboard() {
 
   for (const client of adminState.chargingClients) {
     const sessions = getDashboardSessionsForClient(client.id);
-    const totalKwh = sessions.reduce((sum, session) => sum + getNumericKwh(session.energy_kwh), 0);
+    const totalKwh = sessions.filter((session) => session.billing_ready).reduce((sum, session) => sum + getNumericKwh(session.energy_kwh), 0);
     const isExpanded = String(adminState.expandedDashboardClientId || "") === String(client.id);
 
     const tr = document.createElement("tr");

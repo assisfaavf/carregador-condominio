@@ -15,8 +15,8 @@ async function list(sessionId, tx = db) {
 }
 async function saveResult(sessionId, result, tx = db) {
   await tx.query(`UPDATE sessions SET reconciliation = $2, needs_review = $3,
-    energy_kwh = $4, price_calculated = CASE WHEN $4::numeric IS NULL THEN NULL ELSE ROUND($4::numeric * tariff_per_kwh, 2) END
-    WHERE id = $1 AND status = 'done'`, [sessionId, result, result.status !== 'validated', result.reconciled_kwh]);
+    energy_kwh = COALESCE($4, energy_kwh), price_calculated = CASE WHEN $4::numeric IS NULL THEN price_calculated ELSE ROUND($4::numeric * tariff_per_kwh, 2) END
+    WHERE id = $1 AND status = 'done'`, [sessionId, result, result.status !== 'validated', result.reconciled_kwh ?? result.proposed_kwh ?? null]);
 }
 async function audit(sessionId, actorId, action, before, after, reason, tx = db) {
   await tx.query(`INSERT INTO session_revisions(session_id, actor_id, action, before_values, after_values, reason)
@@ -33,15 +33,28 @@ async function revise(sessionId, actorId, patch, reason) {
     const result = patch.reconciliation ?? before.reconciliation;
     const clientId = Object.hasOwn(patch, 'client_id') ? patch.client_id : before.client_id;
     const userId = Object.hasOwn(patch, 'user_id') ? patch.user_id : before.user_id;
-    const energy = result?.reconciled_kwh ?? before.energy_kwh;
+    const remainsPaid = (patch.payment_status ?? before.payment_status) === 'pago';
+    let tariff = before.tariff_per_kwh;
+    const clientChanged = Object.hasOwn(patch, 'client_id') && String(clientId) !== String(before.client_id);
+    if (clientChanged && clientId != null) {
+      const [client] = await tx.query('SELECT tariff_per_kwh FROM charging_clients WHERE id=$1 FOR SHARE', [clientId]);
+      if (!client) reject('Cliente não encontrado.');
+      if (client.tariff_per_kwh != null) tariff = client.tariff_per_kwh;
+      if (before.payment_status === 'pago' && remainsPaid && Number(tariff) !== Number(before.tariff_per_kwh)) reject('Revise o pagamento antes de alterar a tarifa de uma sessão paga.');
+    }
+    const energy = result?.reconciled_kwh ?? result?.proposed_kwh ?? before.energy_kwh;
     const price = patch.price_override !== undefined ? patch.price_override : before.price_override;
-    const ready = require('../services/energyValidation').billingReady({ ...before, client_id: clientId, user_id: userId, price_override: price, price_calculated: energy == null || before.tariff_per_kwh == null ? null : Number(energy) * Number(before.tariff_per_kwh) }, result);
+    const ready = require('../services/energyValidation').billingReady({ ...before, client_id: clientId, user_id: userId, price_override: price, price_calculated: energy == null || tariff == null ? null : Number(energy) * Number(tariff) }, result);
     if (patch.payment_status === 'pago' && !ready) reject('Sessão sem consumo validado, responsável ou valor financeiro.');
-    if (before.payment_status === 'pago' && !ready) reject('Revise o pagamento antes de remover a validação ou o responsável.');
+    if (before.payment_status === 'pago' && remainsPaid && !ready) reject('Revise o pagamento antes de remover a validação ou o responsável.');
     if (before.end_time == null && patch.verified_end_time) {
       await tx.query(`UPDATE sessions SET end_time=$2, duration_seconds=GREATEST(0, EXTRACT(EPOCH FROM ($2::timestamptz-start_time))::integer) WHERE id=$1`, [sessionId, patch.verified_end_time]);
     }
     await require('./sessionsRepo').updateAdminFields(sessionId, patch, tx);
+    if (clientChanged && clientId != null) {
+      await tx.query(`UPDATE sessions SET tariff_per_kwh=$2,
+        price_calculated=CASE WHEN $3::numeric IS NULL THEN NULL ELSE ROUND($3::numeric * $2::numeric, 2) END WHERE id=$1`, [sessionId, tariff, energy]);
+    }
     if (patch.reconciliation) await saveResult(sessionId, patch.reconciliation, tx);
     const [updated] = await tx.query('SELECT * FROM sessions WHERE id = $1', [sessionId]);
     await audit(sessionId, actorId, patch.reconciliation ? actorId == null ? 'automatic_reconciliation' : 'manual_validation' : 'admin_change', before, updated, reason, tx);

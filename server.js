@@ -22,6 +22,7 @@ const stationsRepo = require("./repositories/stationsRepo");
 const sessionsRepo = require("./repositories/sessionsRepo");
 const energyReadingsRepo = require("./repositories/energyReadingsRepo");
 const { reconcile, billingReady } = require("./services/energyValidation");
+const { sessionPresentation } = require("./services/sessionPresentation");
 const chargingClientsRepo = require("./repositories/chargingClientsRepo");
 const systemSettingsRepo = require("./repositories/systemSettingsRepo");
 
@@ -1322,12 +1323,16 @@ app.post("/api/admin/charging-clients", requireAuth, requireAdmin, async (req, r
     const name = String(body.name || "").trim();
     const tower = normalizeNullableText(body.tower);
     const apartment = normalizeNullableText(body.apartment);
+    const tariffPerKwh = body.tariff_per_kwh == null || String(body.tariff_per_kwh).trim() === '' ? null : toFiniteNumber(body.tariff_per_kwh);
+    if (body.tariff_per_kwh != null && String(body.tariff_per_kwh).trim() !== '' && (tariffPerKwh == null || tariffPerKwh < 0)) {
+      return res.status(400).json({ success: false, message: 'Valor do kWh deve ser um número não negativo.' });
+    }
 
     if (!name) {
       return res.status(400).json({ success: false, message: "Nome do cliente e obrigatorio." });
     }
 
-    const client = await chargingClientsRepo.create({ name, tower, apartment });
+    const client = await chargingClientsRepo.create({ name, tower, apartment, tariff_per_kwh: tariffPerKwh });
     return res.status(201).json({
       success: true,
       client: mapChargingClientForUi(client),
@@ -1973,8 +1978,8 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
   })();
   const endEnergyTotal = scale2ToKwh(readDpNumber(finalStatus, "forward_energy_total"));
   const startEnergyTotal = toFiniteNumber(running.start_energy_total);
-  const energyFromTotal = startEnergyTotal != null && endEnergyTotal != null
-    ? Math.max(0, endEnergyTotal - startEnergyTotal)
+  const energyFromTotal = startEnergyTotal != null && endEnergyTotal != null && endEnergyTotal >= startEnergyTotal
+    ? endEnergyTotal - startEnergyTotal
     : null;
 
   const energyKwh = energyFromTotal != null ? energyFromTotal : energyOnce;
@@ -1985,7 +1990,7 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
     ? new Date(signalTime) : null;
   const endTime = suppliedFinalStatus ? timestampedEnd || verifiedEnd || (monitoringGap ? null : new Date()) : new Date();
   const durationSeconds = endTime ? Math.max(0, Math.floor((endTime - new Date(running.start_time)) / 1000)) : null;
-  const tariff = await getTariffPerKwh();
+  const tariff = running.tariff_per_kwh ?? await getTariffPerKwh();
   const priceCalculated = energyKwh != null ? round2(energyKwh * tariff) : null;
   const needsReview = computeNeedsReview(energyOnce, energyFromTotal, energyKwh);
   const patch = {
@@ -2006,9 +2011,11 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
   }
 
   const endTimeSource = timestampedEnd ? 'tuya_event' : verifiedEnd ? 'tuya_history' : endTime ? 'detection_estimate' : 'unknown';
-  let validation = { status: 'pending', end_detected_at: new Date().toISOString(), end_time_source: endTimeSource, end_time_uncertain: !endTime || endTimeSource === 'detection_estimate', reconciled_kwh: null };
+  let validation = { status: 'pending', proposed_kwh: energyFromTotal, end_detected_at: new Date().toISOString(), end_time_source: endTimeSource, end_time_uncertain: !endTime || endTimeSource === 'detection_estimate', reconciled_kwh: null };
   const finished = await pgDb.withTransaction(async (tx) => {
-    const result = await sessionsRepo.finishSession(running.id, { ...patch, reconciliation: validation, energy_kwh: null, price_calculated: null, needs_review: true }, tx);
+    const [latest] = await tx.query('SELECT tariff_per_kwh FROM sessions WHERE id=$1 FOR UPDATE', [running.id]);
+    const appliedTariff = latest?.tariff_per_kwh ?? tariff;
+    const result = await sessionsRepo.finishSession(running.id, { ...patch, tariff_per_kwh: appliedTariff, reconciliation: validation, energy_kwh: energyFromTotal, price_calculated: energyFromTotal == null ? null : round2(energyFromTotal * Number(appliedTariff)), needs_review: true }, tx);
     if (result) {
       await energyReadingsRepo.audit(running.id, null, 'physical_end', {}, validation, 'Encerramento registrado; aguardando conciliação.', tx);
     }
@@ -2020,7 +2027,7 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
     await energyReadingsRepo.revise(running.id, null, { reconciliation: validation }, 'Encerramento detectado e fontes comparadas.');
   } catch (error) {
     appLogger.warn({ session_id: running.id }, 'Sessão encerrada; conciliação ficará pendente para nova tentativa.');
-    validation = { status: 'pending', reconciled_kwh: null };
+    validation = { status: 'pending', reconciled_kwh: null, proposed_kwh: energyFromTotal };
   }
 
   return {
@@ -2028,11 +2035,11 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
     duration_seconds: durationSeconds,
     end_energy_total: endEnergyTotal,
     energy_once: energyOnce,
-    energy_kwh: validation.reconciled_kwh,
+    energy_kwh: validation.reconciled_kwh ?? validation.proposed_kwh,
     reconciliation: validation,
     energy_source: energySource,
     needs_review: validation.status !== 'validated',
-    price_calculated: validation.reconciled_kwh == null ? null : round2(validation.reconciled_kwh * tariff),
+    price_calculated: (validation.reconciled_kwh ?? validation.proposed_kwh) == null ? null : round2((validation.reconciled_kwh ?? validation.proposed_kwh) * (finished.tariff_per_kwh ?? tariff)),
     end_work_state: findDp(finalStatus, "work_state")?.value || null,
     end_connection_state: findDp(finalStatus, "connection_state")?.value || null,
   };
@@ -2109,7 +2116,7 @@ async function buildLivePayload(stationId) {
       kwh_estimated: kwhEstimated != null ? round2(kwhEstimated) : null,
       session_energy_kwh: sessionEnergyKwh != null ? round2(sessionEnergyKwh) : null,
       session_energy_source: sessionEnergySource,
-      price_estimated: kwhEstimated != null ? round2(kwhEstimated * tariffPerKwh) : null,
+      price_estimated: kwhEstimated != null ? round2(kwhEstimated * (running.tariff_per_kwh ?? tariffPerKwh)) : null,
     };
   } else {
     try {
@@ -2629,6 +2636,7 @@ function mapChargingClientForUi(client) {
     name: normalizeNullableText(client.name) || "-",
     tower: normalizeNullableText(client.tower),
     apartment: normalizeNullableText(client.apartment),
+    tariff_per_kwh: client.tariff_per_kwh ?? null,
     label: [
       normalizeNullableText(client.name) || "-",
       [normalizeNullableText(client.tower), normalizeNullableText(client.apartment)]
@@ -2640,7 +2648,7 @@ function mapChargingClientForUi(client) {
 
 function mapAdminSessionForUi(session) {
   const ready = billingReady(session);
-  const energyKwh = ready ? session.energy_kwh : null;
+  const display = sessionPresentation(session);
   const client = mapChargingClientForUi(session.client);
   return {
     id: session.id,
@@ -2654,14 +2662,14 @@ function mapAdminSessionForUi(session) {
     origin: session.origin ?? "program",
     authorization_method: session.authorization_method ?? "program",
     detected_at: session.detected_at ?? null,
-    energy_kwh: energyKwh,
-    reconciliation: session.reconciliation,
+    energy_kwh: display.energy_kwh,
+    reconciliation: display.reconciliation,
     billing_ready: ready,
-    provisional_energy_kwh: session.energy_kwh,
-    provisional_price: session.price_override ?? session.price_calculated,
+    provisional_energy_kwh: display.energy_kwh,
+    provisional_price: display.price_override ?? display.price_calculated,
     tariff_per_kwh: session.tariff_per_kwh ?? null,
-    price_calculated: ready ? session.price_calculated : null,
-    price_override: ready ? session.price_override : null,
+    price_calculated: display.price_calculated,
+    price_override: display.price_override,
     payment_status: session.payment_status ?? null,
     notes: session.notes ?? null,
     needs_review: session.needs_review === true,
@@ -2751,7 +2759,7 @@ app.get('/api/admin/sessions/:id/energy', requireAuth, requireAdmin, async (req,
     const session = await sessionsRepo.getById(id);
     if (!session) return res.status(404).json({ success: false, message: 'Sessão não encontrada.' });
     const revisions = await pgDb.query('SELECT actor_id, created_at, action, before_values, after_values, reason FROM session_revisions WHERE session_id=$1 ORDER BY id DESC LIMIT 50', [id]);
-    return res.json({ success: true, reconciliation: session.reconciliation, revisions });
+    return res.json({ success: true, reconciliation: sessionPresentation(session).reconciliation, revisions });
   } catch (error) { return sendErrorResponse(res, 500, 'Erro ao consultar validação.', error); }
 });
 
@@ -2769,7 +2777,7 @@ app.post('/api/admin/sessions/:id/validate', requireAuth, requireAdmin, async (r
       const energy = toFiniteNumber(req.body?.energy_kwh);
       const reason = normalizeNullableText(req.body?.reason);
       if (energy == null || energy < 0 || energy > 10000 || !reason) return res.status(400).json({ success: false, message: 'Informe consumo não negativo e justificativa para validar.' });
-      result = { ...(session.reconciliation || {}), status: 'validated', reconciled_kwh: energy, manual: true, validated_by: req.user.id, validated_at: new Date().toISOString() };
+      result = { ...sessionPresentation(session).reconciliation, status: 'validated', reconciled_kwh: energy, manual: true, validated_by: req.user.id, validated_at: new Date().toISOString() };
     }
     await energyReadingsRepo.revise(id, req.user.id, { reconciliation: result }, normalizeNullableText(req.body?.reason) || 'Nova comparação das leituras persistidas.');
     const [updated] = await sessionsRepo.listAdmin({ id, limit: 1 });

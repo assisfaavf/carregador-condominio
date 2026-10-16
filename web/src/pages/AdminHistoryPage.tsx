@@ -249,8 +249,8 @@ export default function AdminHistoryPage() {
     visibleSessions.forEach((session) => {
       const label = sessionDayKey(session)
       const current = grouped.get(label) ?? { label, energy: 0, value: 0, sessions: 0 }
-      current.energy += session.energy_kwh ?? 0
-      current.value += effectivePrice(session) ?? 0
+      current.energy += session.billing_ready ? session.energy_kwh ?? 0 : 0
+      current.value += session.billing_ready ? effectivePrice(session) ?? 0 : 0
       current.sessions += 1
       grouped.set(label, current)
     })
@@ -262,8 +262,8 @@ export default function AdminHistoryPage() {
     visibleSessions.forEach((session) => {
       const label = sessionUserLabel(session)
       const current = grouped.get(label) ?? { label, energy: 0, value: 0, sessions: 0 }
-      current.energy += session.energy_kwh ?? 0
-      current.value += effectivePrice(session) ?? 0
+      current.energy += session.billing_ready ? session.energy_kwh ?? 0 : 0
+      current.value += session.billing_ready ? effectivePrice(session) ?? 0 : 0
       current.sessions += 1
       grouped.set(label, current)
     })
@@ -551,10 +551,10 @@ export default function AdminHistoryPage() {
 
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Data/hora</p><p className="mt-2 text-sm font-semibold">{formatDateTime(session.start_time)}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">Duração: {formatDuration(session.duration_seconds)}</p></div>
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Usuário</p><p className="mt-2 text-sm font-semibold">{displayText(session.user_name)}</p>{session.user_email && session.user_email.trim() ? <p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.user_email}</p> : null}</div>
+                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Responsável</p><p className="mt-2 text-sm font-semibold">{displayText(session.client_label || session.user_name)}</p>{session.user_email && session.user_email.trim() ? <p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.user_email}</p> : null}</div>
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Estação</p><p className="mt-2 text-sm font-semibold">{session.station_name ?? 'Sem estação'}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.address_label ?? 'Unidade não informada'}</p></div>
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Energia</p><p className="mt-2 text-sm font-semibold">{formatKwh(session.energy_kwh)}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">Tarifa: {formatMoney(session.tariff_per_kwh)}</p></div>
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Valor</p><p className="mt-2 text-sm font-semibold">{formatMoney(effectivePrice(session))}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.price_override != null ? 'Usando ajuste manual' : 'Usando valor calculado'}</p></div>
+                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Valor</p><p className="mt-2 text-sm font-semibold">{formatMoney(effectivePrice(session))}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{!session.billing_ready ? 'Provisório / histórico — revisão pendente' : session.price_override != null ? 'Usando ajuste manual' : 'Usando valor calculado'}</p></div>
                   </div>
 
                   <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,220px)_minmax(0,220px)_auto] lg:items-end">

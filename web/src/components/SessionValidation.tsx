@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { apiFetch } from '../api/client'
 
 export type EnergyReconciliation = {
   status: string; system_kwh?: number | null; counter_kwh?: number | null; once_kwh?: number | null
   reconciled_kwh?: number | null; once_trusted?: boolean; issues?: string[]; end_time_uncertain?: boolean
+  recorded_kwh?: number | null; proposed_kwh?: number | null
   charging_seconds?: number; sample_count?: number
 }
-export type ValidatedSession = { id: number; status: string | null; client_id: number | null; user_id: number | null; reconciliation?: EnergyReconciliation | null; billing_ready?: boolean }
-type Client = { id: number; name: string; tower?: string; apartment?: string }
-const labels: Record<string, string> = { validated: 'Validada', divergent: 'Divergente — revisão necessária', inconclusive: 'Inconclusiva — revisão necessária', pending: 'Validação pendente' }
+export type ValidatedSession = { id: number; status: string | null; client_id: number | null; user_id: number | null; energy_kwh?: number | null; reconciliation?: EnergyReconciliation | null; billing_ready?: boolean }
+type Client = { id: number; name: string; tower?: string; apartment?: string; tariff_per_kwh?: number | null }
+const labels: Record<string, string> = { legacy: 'Registro anterior — revisão pendente', validated: 'Validada', divergent: 'Divergente — revisão necessária', inconclusive: 'Inconclusiva — revisão necessária', pending: 'Validação pendente' }
 const issueLabels: Record<string, string> = { counter_reset: 'Contador reiniciado', missing_samples: 'Lacunas nas leituras', invalid_power: 'Potência indisponível ou inválida', incomplete_coverage: 'Monitoramento incompleto' }
 const kwh = (n?: number | null) => n == null ? 'Indisponível' : `${n.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} kWh`
 export function SessionValidation({ session, onUpdated }: { session: ValidatedSession; onUpdated: (value: Record<string, unknown>) => void }) {
@@ -21,6 +22,10 @@ export function SessionValidation({ session, onUpdated }: { session: ValidatedSe
   const [busy, setBusy] = useState(false)
   const [audit, setAudit] = useState<Array<{ created_at: string; reason: string; actor_id: number | null }>>([])
   const result = session.reconciliation
+  const suggestedEnergy = result?.reconciled_kwh ?? result?.proposed_kwh ?? session.energy_kwh
+  useEffect(() => {
+    setEnergy(suggestedEnergy == null ? '' : String(suggestedEnergy).replace('.', ','))
+  }, [suggestedEnergy])
   const field = 'rounded-lg border border-slate-300 bg-slate-50 p-2 text-sm dark:border-white/30 dark:bg-slate-800 dark:text-white'
   async function expand() {
     setOpen(!open)
@@ -55,11 +60,14 @@ export function SessionValidation({ session, onUpdated }: { session: ValidatedSe
         <tr><td>Contador do carregador</td><td>{kwh(result?.counter_kwh)}</td></tr>
         <tr><td>charge_energy_once {result?.once_trusted ? '' : '(associação não confirmada)'}</td><td>{kwh(result?.once_kwh)}</td></tr>
         <tr><td>Consumo conciliado</td><td>{kwh(result?.reconciled_kwh)}</td></tr>
+        {result?.recorded_kwh != null ? <tr><td>Consumo salvo no histórico</td><td>{kwh(result.recorded_kwh)}</td></tr> : null}
+        <tr><td>Consumo sugerido para revisão</td><td>{kwh(result?.proposed_kwh)}</td></tr>
       </tbody></table>
       {result?.end_time_uncertain ? <p>Horário real de término não confirmado.</p> : null}
       <p>{(result?.issues || []).map((issue) => issueLabels[issue] || issue).join(' • ')}</p>
       <p>Tempo efetivamente carregando observado: {Math.round((result?.charging_seconds || 0) / 60)} min. Amostras: {result?.sample_count ?? 0}.</p>
-      <div className="flex flex-wrap gap-2"><select aria-label="Cliente responsável" className={field} value={client} onChange={(e) => setClient(e.target.value)}><option value="">Sem cliente</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.tower}/{c.apartment}</option>)}</select><button disabled={busy} type="button" className="text-primary" onClick={() => void save('link')}>{session.client_id ? 'Alterar cliente' : 'Vincular cliente'}</button></div>
+      <div className="flex flex-wrap gap-2"><select aria-label="Cliente responsável" className={field} value={client} onChange={(e) => setClient(e.target.value)}><option value="">Sem cliente</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.tower}/{c.apartment}{c.tariff_per_kwh == null ? '' : ` — R$ ${c.tariff_per_kwh.toLocaleString('pt-BR')}/kWh`}</option>)}</select><button disabled={busy} type="button" className="text-primary" onClick={() => void save('link')}>{session.client_id ? 'Alterar cliente' : 'Vincular cliente'}</button></div>
+      <p>O consumo sugerido já está preenchido abaixo. Confira ou edite antes de confirmar. Ao vincular um cliente com tarifa própria, o valor da recarga será recalculado.</p>
       {session.status === 'done' ? <><div className="flex flex-wrap gap-2"><input aria-label="Consumo revisado em kWh" className={field} placeholder="Consumo revisado (kWh)" inputMode="decimal" value={energy} onChange={(e) => setEnergy(e.target.value)} /><input aria-label="Justificativa da revisão" className={field} placeholder="Justificativa obrigatória" value={reason} onChange={(e) => setReason(e.target.value)} /><button disabled={busy || !energy.trim() || !reason.trim()} className="text-primary" type="button" onClick={() => void save('validate')}>Confirmar validação</button><button disabled={busy} className="text-primary" type="button" onClick={() => void save('reconcile')}>Reconciliar leituras</button></div></> : null}
       {message ? <p role="status">{message}</p> : null}
       <details><summary>Auditoria das revisões</summary>{audit.map((entry, i) => <p key={i}>{new Date(entry.created_at).toLocaleString('pt-BR')} — {entry.actor_id ? `Administrador #${entry.actor_id}` : 'Sistema'}: {entry.reason}</p>)}</details>
