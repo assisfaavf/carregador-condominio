@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ApiError, apiFetch } from '../api/client'
 import AdminStartModal from '../components/AdminStartModal'
 import ConfirmModal from '../components/ConfirmModal'
+import { AdminStartTracker } from '../lib/adminStartTracker.js'
 
 const ADMIN_POLL_INTERVAL_MS = 3000
 
@@ -60,6 +61,7 @@ type CurrentSessionsResponse = {
 
 type LiveResponse = {
   success: boolean
+  session_id?: number | null
   telemetry_unavailable?: boolean
   telemetry_error?: string | null
   charging?: boolean
@@ -231,6 +233,7 @@ export default function AdminDashboardPage() {
   const [debugOutput, setDebugOutput] = useState('(vazio)')
   const [debugLoading, setDebugLoading] = useState(false)
   const refreshBusyRef = useRef(false)
+  const startTrackerRef = useRef(new AdminStartTracker())
 
   const activeStations = useMemo(
     () => stations.filter((station) => station.is_active === true),
@@ -283,6 +286,15 @@ export default function AdminDashboardPage() {
     () => (stopStationId == null ? null : activeStations.find((station) => station.id === stopStationId) ?? null),
     [activeStations, stopStationId],
   )
+
+  const clearStartModal = useCallback(() => {
+    startTrackerRef.current.reset()
+    setStartStationId(null)
+    setSelectedUserId(null)
+    setSelectedAddressId(null)
+    setAddresses([])
+    setStartModalError(null)
+  }, [])
 
   const loadStations = useCallback(async () => {
     const response = await apiFetch<StationsResponse>('/api/admin/stations')
@@ -402,6 +414,15 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (startStationId == null) return
 
+    if (startTrackerRef.current.tracking) {
+      if (startTrackerRef.current.confirmCharging(startStationSession, startStationLive)) {
+        clearStartModal()
+        setStartingStationId(null)
+        setErrorMessage('Carregamento iniciado com sucesso.')
+      }
+      return
+    }
+
     if (startStation == null) {
       setStartModalError('Estação não encontrada ou inativa.')
       return
@@ -418,7 +439,7 @@ export default function AdminDashboardPage() {
     setStartModalError((current) => (
       current === 'Estação ocupada' || current === 'Estação offline no momento.' ? null : current
     ))
-  }, [startStation, startStationId, startStationLive, startStationSession])
+  }, [clearStartModal, startStation, startStationId, startStationLive, startStationSession, startingStationId])
 
   useEffect(() => {
     if (startStationId == null) return
@@ -456,6 +477,8 @@ export default function AdminDashboardPage() {
   }, [loadAddressesForUser, selectedUserId, startStationId])
 
   const openStartModal = useCallback((stationId: number) => {
+    if (startTrackerRef.current.pending) return
+    startTrackerRef.current.reset()
     setStartStationId(stationId)
     setSelectedUserId(null)
     setSelectedAddressId(null)
@@ -464,15 +487,12 @@ export default function AdminDashboardPage() {
   }, [])
 
   const closeStartModal = useCallback(() => {
-    if (startingStationId != null) return
-    setStartStationId(null)
-    setSelectedUserId(null)
-    setSelectedAddressId(null)
-    setAddresses([])
-    setStartModalError(null)
-  }, [startingStationId])
+    if (startTrackerRef.current.pending) return
+    clearStartModal()
+  }, [clearStartModal])
 
   const handleUserChange = (value: string) => {
+    startTrackerRef.current.reset()
     setStartModalError(null)
     setSelectedUserId(parseId(value))
     setSelectedAddressId(null)
@@ -480,11 +500,13 @@ export default function AdminDashboardPage() {
   }
 
   const handleAddressChange = (value: string) => {
+    startTrackerRef.current.reset()
     setStartModalError(null)
     setSelectedAddressId(parseId(value))
   }
 
   const handleStartSubmit = useCallback(async () => {
+    if (startTrackerRef.current.pending) return
     if (!startStation) {
       setStartModalError('Estação não encontrada ou inativa.')
       return
@@ -506,6 +528,13 @@ export default function AdminDashboardPage() {
       return
     }
 
+    const tracker = startTrackerRef.current
+    const attempt = tracker.begin({
+      stationId: startStation.id,
+      userId: selectedUserId,
+      existingSessionIds: currentSessions.map((session) => session.session_id),
+    })
+    if (!attempt) return
     setStartingStationId(startStation.id)
     setStartModalError(null)
 
@@ -519,20 +548,45 @@ export default function AdminDashboardPage() {
         },
       })
 
-      setErrorMessage(response.message ?? 'Sessão iniciada (admin).')
-      setStartStationId(null)
-      setSelectedUserId(null)
-      setSelectedAddressId(null)
-      setAddresses([])
-      setStartModalError(null)
-      await reloadStationsAndDashboard()
+      if (response.success !== true) throw new Error(response.message || 'Não foi possível confirmar o início.')
+      if (tracker.confirm(attempt)) {
+        clearStartModal()
+        setErrorMessage(response.message ?? 'Carregamento iniciado com sucesso.')
+      }
     } catch (error) {
-      setStartModalError(getErrorMessage(error, 'Não foi possível iniciar o carregamento.'))
+      if (!attempt.confirmed) {
+        // A proxy/network error may arrive after the charger accepted the command.
+        // Confirm both the new session owner and effective live charging before closing.
+        try {
+          const [sessions, live] = await Promise.all([
+            apiFetch<CurrentSessionsResponse>('/api/admin/current-sessions'),
+            apiFetch<LiveResponse>(`/api/live?station_id=${attempt.stationId}`),
+          ])
+          const running = sessions.running?.find((session) => String(session.station_id) === String(attempt.stationId))
+          if (tracker.confirmCharging(running, live)) {
+            clearStartModal()
+            setErrorMessage('Carregamento iniciado com sucesso.')
+          }
+        } catch {
+          // Keep the original error if confirmation is unavailable.
+        }
+        if (!attempt.confirmed) setStartModalError(getErrorMessage(error, 'Não foi possível iniciar o carregamento.'))
+      }
     } finally {
+      tracker.finish(attempt)
       setStartingStationId(null)
     }
+
+    if (attempt.confirmed) {
+      try {
+        await reloadStationsAndDashboard()
+      } catch {
+        setErrorMessage('Carregamento iniciado. Não foi possível atualizar o painel; a atualização automática tentará novamente.')
+      }
+    }
   }, [
-    closeStartModal,
+    clearStartModal,
+    currentSessions,
     reloadStationsAndDashboard,
     selectedAddressId,
     selectedUserId,
