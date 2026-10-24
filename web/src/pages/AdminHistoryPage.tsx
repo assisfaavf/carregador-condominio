@@ -449,7 +449,7 @@ export default function AdminHistoryPage() {
           </div>
 
           <div className="flex flex-wrap gap-4 text-sm text-slate-500 dark:text-text-secondary">
-            <span>Pendentes de validação: {visibleSessions.filter((s) => s.reconciliation?.status !== 'validated').length}</span>
+            <span>Consumos provisórios: {visibleSessions.filter((s) => s.reconciliation?.status !== 'validated').length}</span>
             <span>Aguardando cliente: {visibleSessions.filter((s) => s.client_id == null && s.user_id == null).length}</span>
             <span>Prontas para cobrança: {visibleSessions.filter((s) => s.billing_ready).length}</span>
           </div>
@@ -495,7 +495,7 @@ export default function AdminHistoryPage() {
                   <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Pagos</p><p className="mt-1 text-xl font-bold text-primary">{formatInteger(summary.paid)}</p></div>
                   <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Pendentes</p><p className="mt-1 text-xl font-bold text-amber-300">{formatInteger(summary.pending)}</p></div>
                   <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Cortesias</p><p className="mt-1 text-xl font-bold text-sky-300">{formatInteger(summary.courtesy)}</p></div>
-                  <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Revisar</p><p className="mt-1 text-xl font-bold text-red-400">{formatInteger(summary.review)}</p></div>
+                  <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Valores provisórios</p><p className="mt-1 text-xl font-bold text-slate-400">{formatInteger(summary.review)}</p></div>
                 </div>
               </div>
 
@@ -545,7 +545,6 @@ export default function AdminHistoryPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${statusClass}`}>{statusLabel}</span>
                       <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ring-1 ring-inset ${paymentBadge(session.payment_status)}`}>{paymentLabel(session.payment_status)}</span>
-                      {session.needs_review ? <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-red-400">Revisar</span> : null}
                     </div>
                   </div>
 
@@ -554,7 +553,7 @@ export default function AdminHistoryPage() {
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Responsável</p><p className="mt-2 text-sm font-semibold">{displayText(session.client_label || session.user_name)}</p>{session.user_email && session.user_email.trim() ? <p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.user_email}</p> : null}</div>
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Estação</p><p className="mt-2 text-sm font-semibold">{session.station_name ?? 'Sem estação'}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{session.address_label ?? 'Unidade não informada'}</p></div>
                     <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Energia</p><p className="mt-2 text-sm font-semibold">{formatKwh(session.energy_kwh)}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">Tarifa: {formatMoney(session.tariff_per_kwh)}</p></div>
-                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Valor</p><p className="mt-2 text-sm font-semibold">{formatMoney(effectivePrice(session))}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{!session.billing_ready ? 'Provisório / histórico — revisão pendente' : session.price_override != null ? 'Usando ajuste manual' : 'Usando valor calculado'}</p></div>
+                    <div className="rounded-xl bg-slate-50 p-3 dark:bg-background-dark"><p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 dark:text-text-secondary">Valor</p><p className="mt-2 text-sm font-semibold">{formatMoney(effectivePrice(session))}</p><p className="mt-1 text-xs text-slate-500 dark:text-text-secondary">{!session.billing_ready ? 'Valor registrado (provisório)' : session.price_override != null ? 'Usando ajuste manual' : 'Usando valor calculado'}</p></div>
                   </div>
 
                   <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,220px)_minmax(0,220px)_auto] lg:items-end">
