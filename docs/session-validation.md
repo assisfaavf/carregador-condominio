@@ -39,10 +39,10 @@ Uma rotina independente tenta novamente uma sessão pendente por minuto, com
 intervalo mínimo de cinco minutos por sessão, por até sete dias. Após esse
 período, a revisão manual continua disponível. Ela nunca comanda o carregador.
 
-No histórico administrativo, “Revisar consumo / vincular cliente” mostra as
+No histórico administrativo, “Corrigir consumo / vincular cliente” mostra as
 três fontes, o consumo conciliado e as pendências. O administrador pode selecionar
 um cliente existente, reconciliar novamente ou confirmar um consumo com
-justificativa. As alterações são auditadas com autor, data e valores anteriores.
+justificativa opcional. As alterações são auditadas com autor, data e valores anteriores.
 
 Os totais financeiros e energéticos confirmados recebem apenas sessões encerradas,
 validadas e vinculadas, com preço definido. Marcar como pago também exige essas
@@ -59,6 +59,10 @@ Para registros anteriores à conciliação, a revisão mostra a energia salva, a
 diferença dos contadores e `charge_energy_once`, quando existentes, sem inventar
 amostras de potência antigas. O campo de consumo revisado vem preenchido com o
 valor sugerido. Exibir essa sugestão não aprova a cobrança automaticamente.
+O administrador usa “Corrigir consumo” e “Salvar consumo”, sem justificativa
+obrigatória nem selo de revisão na linha. Salvar confirma o consumo corrigido,
+recalcula o preço e limpa `needs_review`. Sem justificativa, a auditoria registra
+“Correção manual do consumo.”; autor e valores anteriores continuam preservados.
 
 Novas sessões preservam uma proposta de consumo e de valor financeiro mesmo
 quando a validação é inconclusiva/divergente. A proposta prioriza a diferença

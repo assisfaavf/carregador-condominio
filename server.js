@@ -2774,12 +2774,13 @@ app.post('/api/admin/sessions/:id/validate', requireAuth, requireAdmin, async (r
     if (req.body?.action === 'reconcile') {
       result = reconcile(session, await energyReadingsRepo.list(id), config.energyValidation);
     } else {
-      const energy = toFiniteNumber(req.body?.energy_kwh);
-      const reason = normalizeNullableText(req.body?.reason);
-      if (energy == null || energy < 0 || energy > 10000 || !reason) return res.status(400).json({ success: false, message: 'Informe consumo não negativo e justificativa para validar.' });
+      const rawEnergy = req.body?.energy_kwh;
+      const energy = typeof rawEnergy === 'string' && !rawEnergy.trim() ? null : toFiniteNumber(rawEnergy);
+      if (energy == null || energy < 0 || energy > 10000) return res.status(400).json({ success: false, message: 'Informe um consumo válido entre 0 e 10.000 kWh.' });
       result = { ...sessionPresentation(session).reconciliation, status: 'validated', reconciled_kwh: energy, manual: true, validated_by: req.user.id, validated_at: new Date().toISOString() };
     }
-    await energyReadingsRepo.revise(id, req.user.id, { reconciliation: result }, normalizeNullableText(req.body?.reason) || 'Nova comparação das leituras persistidas.');
+    const reason = normalizeNullableText(req.body?.reason) || (req.body?.action === 'reconcile' ? 'Nova comparação das leituras persistidas.' : 'Correção manual do consumo.');
+    await energyReadingsRepo.revise(id, req.user.id, { reconciliation: result }, reason);
     const [updated] = await sessionsRepo.listAdmin({ id, limit: 1 });
     return res.json({ success: true, session: mapAdminSessionForUi(updated) });
   } catch (error) { return sendErrorResponse(res, 409, 'Não foi possível validar a sessão.', error); }

@@ -77,6 +77,10 @@ test('PostgreSQL: migration, deduplicação, encerramento idempotente, auditoria
     await energy.revise(provisional.id, user.id, { reconciliation: { ...suggestion, status: 'validated', reconciled_kwh: 4, manual: true } }, 'Correção do consumo');
     snapshot = await sessions.getById(provisional.id);
     assert.equal(snapshot.tariff_per_kwh, 2.75); assert.equal(snapshot.price_calculated, 11);
+    assert.equal(snapshot.needs_review, false);
+    assert.equal(snapshot.reconciliation.status, 'validated');
+    assert.equal(snapshot.reconciliation.manual, true);
+    await assert.rejects(energy.revise(provisional.id, null, { reconciliation: suggestion }, 'Tentativa automática após correção manual'), /manual/);
     await energy.revise(provisional.id, user.id, { price_override: 9 }, 'Valor manual');
     await energy.revise(provisional.id, user.id, { client_id: freeOwner.id }, 'Troca do cliente');
     snapshot = await sessions.getById(provisional.id);
