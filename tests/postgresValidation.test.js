@@ -91,6 +91,28 @@ test('PostgreSQL: migration, deduplicação, encerramento idempotente, auditoria
     await tx.query("UPDATE sessions SET reconciliation=NULL WHERE id=$1", [session.id]);
     await energy.revise(session.id, user.id, { payment_status: 'pendente' }, 'Reabrir pagamento histórico para revisão');
     assert.equal((await sessions.getById(session.id)).payment_status, 'pendente');
+    const [errorStation] = await tx.query("INSERT INTO stations(name,tuya_device_id) VALUES ('Erros','mock-errors-only') RETURNING id");
+    const fixtures = [
+      ['done', null],
+      ['done', { status: 'validated', manual: true, issues: ['counter_reset'] }],
+      ['done', { status: 'divergent', issues: [] }],
+      ['done', { status: 'inconclusive', issues: ['missing_samples'] }],
+      ['failed', null],
+      ['running', null],
+    ];
+    for (const [status, reconciliation] of fixtures) {
+      await tx.query("INSERT INTO sessions(station_id,status,start_time,reconciliation) VALUES ($1,$2,'2026-11-01T12:00:00Z',$3)", [errorStation.id, status, reconciliation]);
+    }
+    const errorList = await sessions.listAdmin({ station_id: errorStation.id, only_errors: true });
+    const allList = await sessions.listAdmin({ station_id: errorStation.id });
+    const { sessionErrors } = require('../services/sessionErrors');
+    assert.equal(errorList.length, 3);
+    assert.deepEqual(errorList.map((s) => s.id), allList.filter((s) => sessionErrors(s).length > 0).map((s) => s.id));
+    const firstPage = await sessions.listAdmin({ station_id: errorStation.id, only_errors: true, limit: 1, offset: 0 });
+    const secondPage = await sessions.listAdmin({ station_id: errorStation.id, only_errors: true, limit: 1, offset: 1 });
+    assert.equal(firstPage.length, 1); assert.equal(secondPage.length, 1);
+    assert.notEqual(firstPage[0].id, secondPage[0].id);
+    assert.equal((await sessions.listAdmin({ station_id: errorStation.id, only_errors: true, date_from: '2026-12-01' })).length, 0);
   } finally {
     await client.query('ROLLBACK'); await client.end();
   }

@@ -52,6 +52,19 @@ automáticas de conciliação.
 
 ## Configuração
 
+### Aba de erros no histórico
+
+O histórico administrativo possui as abas “Todos os carregamentos” e “Erros”.
+A segunda lista sessões com falha de início (`failed`) ou consumo divergente/
+inconclusivo, com os motivos e diagnósticos já persistidos. Mês, estação,
+pagamento, busca e paginação continuam disponíveis. O filtro de erros é aplicado
+no banco antes da paginação; não depende apenas das primeiras sessões carregadas.
+Ausência de cliente, pagamento pendente e registros antigos sem conciliação
+não são classificados como erros por si só. Após salvar uma correção manual,
+os diagnósticos antigos deixam de colocar essa sessão na aba de erros.
+Essa aba apresenta os problemas registrados nas sessões, não um log global
+de todas as falhas de infraestrutura ou das requisições HTTP.
+
 ### Histórico e valores sugeridos
 
 O histórico administrativo exibe os valores já registrados mesmo sem validação.
