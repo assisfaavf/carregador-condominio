@@ -23,6 +23,7 @@ const sessionsRepo = require("./repositories/sessionsRepo");
 const energyReadingsRepo = require("./repositories/energyReadingsRepo");
 const { reconcile, billingReady } = require("./services/energyValidation");
 const { sessionPresentation } = require("./services/sessionPresentation");
+const { sessionErrors } = require('./services/sessionErrors');
 const chargingClientsRepo = require("./repositories/chargingClientsRepo");
 const systemSettingsRepo = require("./repositories/systemSettingsRepo");
 
@@ -2664,6 +2665,7 @@ function mapAdminSessionForUi(session) {
     detected_at: session.detected_at ?? null,
     energy_kwh: display.energy_kwh,
     reconciliation: display.reconciliation,
+    errors: sessionErrors(session),
     billing_ready: ready,
     provisional_energy_kwh: display.energy_kwh,
     provisional_price: display.price_override ?? display.price_calculated,
@@ -2732,6 +2734,7 @@ app.get("/api/admin/sessions", requireAuth, requireAdmin, async (req, res) => {
 
     const sessions = await sessionsRepo.listAdmin({
       user_id: parsePositiveInt(req.query.user_id),
+      only_errors: req.query.only_errors === 'true',
       station_id: parsePositiveInt(req.query.station_id),
       status: req.query.status ? String(req.query.status).trim() : undefined,
       payment_status: paymentStatus,

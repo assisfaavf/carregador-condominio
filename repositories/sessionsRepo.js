@@ -1,4 +1,5 @@
 const pgDb = require("../db/pg");
+const { ERROR_SESSION_FILTER } = require('../services/sessionErrors');
 
 function toFiniteNumber(value) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -587,6 +588,7 @@ async function listByUser(userId, limit = 50, offset = 0, filters = {}) {
 
 async function listAdmin(filters = {}) {
   const clauses = [];
+  if (filters.only_errors === true) clauses.push(ERROR_SESSION_FILTER);
   const values = [];
   let idx = 1;
 
