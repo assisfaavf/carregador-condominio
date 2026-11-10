@@ -107,6 +107,12 @@ test('PostgreSQL: migration, deduplicação, encerramento idempotente, auditoria
     const allList = await sessions.listAdmin({ station_id: errorStation.id });
     const { sessionErrors } = require('../services/sessionErrors');
     assert.equal(errorList.length, 3);
+    const completedList = await sessions.listAdmin({ station_id: errorStation.id, status: 'done' });
+    assert.equal(completedList.length, 4);
+    assert.ok(completedList.every((s) => s.status === 'done'));
+    const completedPage = await sessions.listAdmin({ station_id: errorStation.id, status: 'done', limit: 1, offset: 1 });
+    assert.equal(completedPage.length, 1);
+    assert.equal(completedPage[0].id, completedList[1].id);
     assert.deepEqual(errorList.map((s) => s.id), allList.filter((s) => sessionErrors(s).length > 0).map((s) => s.id));
     const firstPage = await sessions.listAdmin({ station_id: errorStation.id, only_errors: true, limit: 1, offset: 0 });
     const secondPage = await sessions.listAdmin({ station_id: errorStation.id, only_errors: true, limit: 1, offset: 1 });

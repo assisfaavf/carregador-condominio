@@ -170,7 +170,7 @@ function sessionBadge(status: string | null) {
 export default function AdminHistoryPage() {
   const [stations, setStations] = useState<AdminStation[]>([])
   const [sessions, setSessions] = useState<AdminSession[]>([])
-  const [historyTab, setHistoryTab] = useState<'all' | 'errors'>('all')
+  const [historyTab, setHistoryTab] = useState<'completed' | 'errors' | 'all'>('completed')
   const [stationId, setStationId] = useState('')
   const [paymentStatus, setPaymentStatus] = useState('')
   const [month, setMonth] = useState(currentMonthInputValue)
@@ -289,6 +289,7 @@ export default function AdminHistoryPage() {
       try {
         const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(targetOffset) })
         if (historyTab === 'errors') params.set('only_errors', 'true')
+        if (historyTab === 'completed') params.set('status', 'done')
         if (stationId) params.set('station_id', stationId)
         if (paymentStatus) params.set('payment_status', paymentStatus)
         if (dateFrom) params.set('date_from', dateFrom)
@@ -424,8 +425,8 @@ export default function AdminHistoryPage() {
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-white/5 dark:bg-surface-dark">
-            <div aria-label="Visualização do histórico" className="mb-4 flex gap-2" role="tablist">
-              {([{ id: 'all', label: 'Todos os carregamentos' }, { id: 'errors', label: 'Erros' }] as const).map((tab) => (
+            <div aria-label="Visualização do histórico" className="mb-4 flex flex-wrap gap-2" role="tablist">
+              {([{ id: 'completed', label: 'Concluídos' }, { id: 'errors', label: 'Erros' }, { id: 'all', label: 'Todos os carregamentos' }] as const).map((tab) => (
                 <button key={tab.id} id={`history-tab-${tab.id}`} role="tab" aria-selected={historyTab === tab.id} aria-controls="history-results" type="button"
                   className={`rounded-xl px-4 py-2 text-sm font-semibold ${historyTab === tab.id ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 dark:bg-background-dark dark:text-slate-300'}`}
                   onClick={() => {
@@ -455,7 +456,7 @@ export default function AdminHistoryPage() {
             </div>
           </div>
 
-          {historyTab === 'all' ? <>
+          {historyTab !== 'errors' ? <>
           <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Sessões visíveis</p><p className="mt-2 text-2xl font-bold">{visibleSessions.length}</p></div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-[11px] uppercase tracking-[0.2em] text-slate-500 dark:text-text-secondary">Energia validada e vinculada</p><p className="mt-2 text-2xl font-bold text-primary">{formatKwh(summary.energy)}</p></div>
@@ -542,7 +543,7 @@ export default function AdminHistoryPage() {
 
         {loadingInitial ? <section className="space-y-4">{[1, 2, 3].map((item) => <div className="animate-pulse rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/5 dark:bg-surface-dark" key={item}><div className="h-5 w-1/3 rounded bg-slate-200 dark:bg-white/10" /><div className="mt-4 grid gap-3 md:grid-cols-4">{[1, 2, 3, 4].map((cell) => <div className="h-16 rounded-xl bg-slate-100 dark:bg-white/5" key={cell} />)}</div></div>)}</section> : null}
 
-        {!loadingInitial && !errorMessage && visibleSessions.length === 0 ? <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-base font-semibold">{historyTab === 'errors' ? 'Nenhum erro encontrado' : 'Nenhuma sessão encontrada'}</p><p className="mt-1 text-sm text-slate-500 dark:text-text-secondary">Ajuste os filtros ou carregue mais sessões.</p></section> : null}
+        {!loadingInitial && !errorMessage && visibleSessions.length === 0 ? <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/5 dark:bg-surface-dark"><p className="text-base font-semibold">{historyTab === 'errors' ? 'Nenhum erro encontrado' : historyTab === 'completed' ? 'Nenhum carregamento concluído encontrado' : 'Nenhuma sessão encontrada'}</p><p className="mt-1 text-sm text-slate-500 dark:text-text-secondary">Ajuste os filtros ou carregue mais sessões.</p></section> : null}
 
         <div id="history-results" role="tabpanel" aria-labelledby={`history-tab-${historyTab}`}>
         {historyTab === 'errors' && visibleSessions.length > 0 ? <section className="space-y-4">
@@ -556,7 +557,7 @@ export default function AdminHistoryPage() {
             {session.status === 'done' ? <SessionValidation session={session} onUpdated={(value) => { patchSession(session.id, value as Partial<AdminSession>); void fetchSessions(0, false) }} /> : null}
           </article>)}
         </section> : null}
-        {historyTab === 'all' && visibleSessions.length > 0 ? (
+        {historyTab !== 'errors' && visibleSessions.length > 0 ? (
           <section className="space-y-4">
             {visibleSessions.map((session) => {
               const [statusLabel, statusClass, statusIcon] = sessionBadge(session.status)
