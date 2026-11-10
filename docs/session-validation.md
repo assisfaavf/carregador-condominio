@@ -54,8 +54,11 @@ automáticas de conciliação.
 
 ### Aba de erros no histórico
 
-O histórico administrativo possui as abas “Todos os carregamentos” e “Erros”.
-A segunda lista sessões com falha de início (`failed`) ou consumo divergente/
+O histórico administrativo abre na aba “Concluídos” e apresenta, nesta ordem,
+“Concluídos”, “Erros” e “Todos os carregamentos”. A primeira filtra sessões
+encerradas (`done`) no servidor, antes da paginação, mantendo os filtros de mês,
+estação e pagamento. Conclusão da recarga não implica validação automática da energia.
+A aba “Erros” lista sessões com falha de início (`failed`) ou consumo divergente/
 inconclusivo, com os motivos e diagnósticos já persistidos. Mês, estação,
 pagamento, busca e paginação continuam disponíveis. O filtro de erros é aplicado
 no banco antes da paginação; não depende apenas das primeiras sessões carregadas.
