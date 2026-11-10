@@ -28,7 +28,7 @@ function optionalText(value) {
 const nodeEnv = String(process.env.NODE_ENV || "development").trim().toLowerCase() || "development";
 const isProd = nodeEnv === "production";
 const cookieSameSite = normalizeSameSite(process.env.COOKIE_SAMESITE, "lax");
-const cookieSecure = parseBoolean(process.env.COOKIE_SECURE, isProd);
+const cookieSecure = isProd || parseBoolean(process.env.COOKIE_SECURE, false);
 
 if (cookieSameSite === "none" && cookieSecure !== true) {
   throw new Error("COOKIE_SAMESITE=none exige COOKIE_SECURE=true.");
@@ -40,6 +40,12 @@ const config = {
   port: parsePort(process.env.PORT, 3000),
   jwtSecret: String(process.env.JWT_SECRET || "").trim(),
   jwtExpiresIn: String(process.env.JWT_EXPIRES_IN || "7d").trim() || "7d",
+  adminRememberExpiresIn: String(process.env.ADMIN_REMEMBER_EXPIRES_IN || '7d').trim() || '7d',
+  push: {
+    publicKey: String(process.env.VAPID_PUBLIC_KEY || '').trim(),
+    privateKey: String(process.env.VAPID_PRIVATE_KEY || '').trim(),
+    subject: String(process.env.VAPID_SUBJECT || '').trim(),
+  },
   dbUrl: String(process.env.DATABASE_URL || "").trim(),
   cookie: {
     name: String(process.env.COOKIE_NAME || "token").trim() || "token",

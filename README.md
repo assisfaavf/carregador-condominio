@@ -4,7 +4,7 @@ Backend Express + frontend React/Vite para operacao de carregadores do condomini
 
 ## Requisitos
 
-- Node.js 20+ recomendado
+- Node.js 24 LTS (mesma versão utilizada no Dockerfile)
 - PostgreSQL acessivel pela `DATABASE_URL`
 - Docker opcional para subir o Postgres local com o Compose em `dev/compose.postgres.yml`
 
@@ -134,3 +134,9 @@ Cookies e HTTPS:
 - `COOKIE_SAMESITE=none` exige `COOKIE_SECURE=true`.
 - Em ambiente local sem HTTPS, use `COOKIE_SECURE=false`.
 - Se o frontend estiver em outro dominio/subdominio, ajuste `COOKIE_DOMAIN` e `COOKIE_SAMESITE` com cuidado.
+
+## Notificações Web Push do administrador
+
+Consulte [configuração, migração e testes no iPhone](docs/admin-web-push.md).
+Requer a migration `011_admin_push_sessions.sql` antes de publicar o novo backend.
+As chaves VAPID são opcionais para o restante da aplicação, mas necessárias para os avisos.

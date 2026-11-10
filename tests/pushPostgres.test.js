@@ -1,0 +1,94 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const jwt=require('jsonwebtoken');
+const { createAdminPush }=require('../services/adminPush');
+const settings={ jwtSecret:'push-integration-secret',jwtExpiresIn:'1h',adminRememberExpiresIn:'7d' };
+const vapid={ publicKey:'test-public',privateKey:'test-private',subject:'mailto:test@example.com' };
+const subscription=(device)=>({ endpoint:`https://web.push.apple.com/${device}`,keys:{ p256dh:'B'.repeat(87),auth:'A'.repeat(22) } });
+
+test('PostgreSQL Push: sessões, três eventos, deduplicação, revogação e falhas de envio', { skip:!process.env.TEST_DATABASE_URL },async()=>{
+  const { Client }=require('pg');
+  const client=new Client({ connectionString:process.env.TEST_DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query('BEGIN');
+    const schema=`push_test_${Date.now()}`;
+    await client.query(`CREATE SCHEMA ${schema}`); await client.query(`SET LOCAL search_path TO ${schema}`);
+    for (const file of fs.readdirSync(path.join(__dirname,'../migrations')).filter((name)=>name.endsWith('.sql')).sort()) await client.query(fs.readFileSync(path.join(__dirname,'../migrations',file),'utf8'));
+    const db={ query:async(sql,params)=>(await client.query(sql,params)).rows,withTransaction:async(fn)=>fn(db) };
+    const module={ exports:{} };
+    vm.runInThisContext('(function(require,module){'+fs.readFileSync(require.resolve('../services/authSessions'),'utf8')+'\n})')((name)=>name==='../db/pg'?db:name==='../config'?settings:require(name),module);
+    const auth=module.exports;
+    const [admin]=await db.query("INSERT INTO users(name,email,password_hash,is_admin) VALUES('Admin','push-admin@invalid.local','test',TRUE) RETURNING id");
+    const [ordinary]=await db.query("INSERT INTO users(name,email,password_hash) VALUES('Usuário','push-user@invalid.local','test') RETURNING id");
+    const [station]=await db.query("INSERT INTO stations(name,tuya_device_id) VALUES('Estação de teste','mock-push') RETURNING id");
+    const makeSession=async(user,remember=true)=>{ const issued=auth.issueToken({ id:user.id,is_admin:user===admin },remember,settings); await auth.create(issued,user.id,db); return issued; };
+    const a=await makeSession(admin); const b=await makeSession(admin); const common=await makeSession(ordinary);
+    assert.notEqual(a.id,b.id); assert.equal(await auth.validate(a.token,a.claims,db),a.id);
+    // A valid JWT without a browser window still has a valid persisted session.
+    const sent=[]; let beforeSend=null; let fail=false; const warnings=[];
+    const sender={ sendNotification:async(sub,payload)=>{ if(fail){const error=new Error('mock expired subscription');error.statusCode=410;throw error;} sent.push({ endpoint:sub.endpoint,payload:JSON.parse(payload) }); if(beforeSend)await beforeSend(); } };
+    const create=()=>createAdminPush({ db,webpush:sender,config:vapid,logger:{ warn:(...values)=>warnings.push(values) } });
+    const push=create();
+    await push.subscribe(a.id,subscription('a')); await push.subscribe(b.id,subscription('b'));
+    await db.query('UPDATE push_subscriptions SET enabled=FALSE WHERE auth_session_id=$1',[b.id]);
+    await assert.rejects(push.subscribe(common.id,subscription('common')),/administrativa/);
+    const expired=await makeSession(admin);
+    await push.subscribe(expired.id,subscription('expired'));
+    await db.query("UPDATE auth_sessions SET expires_at=NOW()-INTERVAL '1 second' WHERE id=$1",[expired.id]);
+    await assert.rejects(push.subscribe(expired.id,subscription('expired')),/administrativa/);
+    const old=jwt.sign({ id:admin.id },settings.jwtSecret,{ expiresIn:'1h' });
+    const claims=jwt.decode(old);
+    assert.ok(await auth.validate(old,claims,db)); await auth.revokeToken(old,db);
+    assert.equal(await auth.validate(old,claims,db),null);
+    const base=Date.now()-10000;
+    const status=(cp,work,offset,power=0)=>{
+      const time=base+offset; const raw=Buffer.alloc(8); raw.writeUIntBE(power?16000:0,2,3);raw.writeUIntBE(power*1000,5,3);
+      return { result:[{code:'connection_state',value:cp,time},{code:'work_state',value:work,time},{code:'phase_a',value:raw.toString('base64'),time}] };
+    };
+    await push.observe(station.id,status('controlpi_12v','charger_free',0));
+    await push.observe(station.id,status('controlpi_9v','charger_wait',1000));
+    const charging=status('controlpi_6v','charger_charging',2000,3.5);
+    await push.observe(station.id,charging);await push.observe(station.id,charging);
+    assert.equal((await db.query('SELECT * FROM push_events')).length,2);
+    await push.dispatch(); assert.equal(sent.length,2);
+    assert.match(sent[0].payload.title,/Carro conectado/); assert.match(sent[1].payload.title,/Recarga iniciada/);
+    assert.match(sent[1].payload.url,/\/admin\/dashboard\?station_id=/);
+    assert.ok(sent.every((item)=>item.endpoint.endsWith('/a')));
+    assert.equal((await db.query('SELECT enabled FROM push_subscriptions WHERE auth_session_id=$1',[expired.id]))[0].enabled,false);
+    await create().observe(station.id,charging); await create().dispatch(); assert.equal(sent.length,2);
+    const [session]=await db.query("INSERT INTO sessions(station_id,status,end_time,reconciliation) VALUES($1,'done',NOW(),$2) RETURNING id",[station.id,{status:'inconclusive',last_attempt_at:new Date().toISOString()}]);
+    await push.dispatch(); assert.equal(sent.length,2);
+    const energyModule={exports:{}};
+    vm.runInThisContext('(function(require,module){'+fs.readFileSync(require.resolve('../repositories/energyReadingsRepo'),'utf8')+'\n})')((name)=>name==='../db/pg'?db:require(name),energyModule);
+    await energyModule.exports.saveResult(session.id,{status:'validated',reconciled_kwh:1.5,last_attempt_at:new Date().toISOString()},db);
+    const [validated]=await db.query('SELECT energy_kwh,push_validated_at FROM sessions WHERE id=$1',[session.id]);
+    assert.equal(Number(validated.energy_kwh),1.5);assert.ok(validated.push_validated_at);
+    await push.dispatch(); assert.equal(sent.length,3);
+    assert.match(sent[2].payload.title,/Recarga finalizada/); assert.equal(sent[2].payload.url,'/admin/history');
+    assert.equal((await db.query('SELECT user_id,client_id FROM sessions WHERE id=$1',[session.id]))[0].client_id,null);
+    await create().dispatch();assert.equal(sent.length,3);
+    // Two events claimed together: logout after the first must block the second.
+    await push.observe(station.id,status('controlpi_12v','charger_free',3000));
+    await push.observe(station.id,status('controlpi_9v','charger_wait',4000));
+    await push.observe(station.id,status('controlpi_6v','charger_charging',5000,3.5));
+    beforeSend=async()=>auth.revokeToken(a.token,db);
+    await push.dispatch(); assert.equal(sent.length,4);
+    assert.equal(await auth.validate(a.token,a.claims,db),null);
+    await assert.rejects(push.subscribe(a.id,subscription('a')),/administrativa/);
+    beforeSend=null;
+    // Role loss is independently checked even with an unexpired auth session.
+    const c=await makeSession(admin);await push.subscribe(c.id,subscription('c'));
+    await db.query('UPDATE users SET is_admin=FALSE WHERE id=$1',[admin.id]);
+    await push.dispatch();assert.equal(sent.length,4);
+    assert.equal((await db.query('SELECT enabled FROM push_subscriptions WHERE auth_session_id=$1',[c.id]))[0].enabled,false);
+    await db.query('UPDATE users SET is_admin=TRUE WHERE id=$1',[admin.id]);
+    const d=await makeSession(admin);await push.subscribe(d.id,subscription('d'));
+    fail=true; await push.dispatch(); assert.ok(warnings.length>0);
+    assert.equal((await db.query('SELECT enabled FROM push_subscriptions WHERE auth_session_id=$1',[d.id]))[0].enabled,false);
+    assert.equal((await db.query('SELECT status FROM sessions WHERE id=$1',[session.id]))[0].status,'done');
+  } finally { await client.query('ROLLBACK');await client.end(); }
+});

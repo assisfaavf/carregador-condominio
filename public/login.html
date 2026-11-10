@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - Carregador</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -48,6 +50,7 @@
             </div>
           </div>
 
+          <label><input type="checkbox" id="rememberMe" /> Manter-me conectado (administradores)</label>
           <div class="actions">
             <button class="btn btn-primary" type="submit">Entrar</button>
             <div class="divider"><span>-- ou --</span></div>
@@ -101,7 +104,7 @@
         const res = await fetch("/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ emailOrCpf, password }),
+          body: JSON.stringify({ emailOrCpf, password, remember_me: document.getElementById('rememberMe').checked }),
         });
 
         const data = await res.json().catch(() => ({}));

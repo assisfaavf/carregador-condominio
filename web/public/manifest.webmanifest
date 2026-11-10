@@ -1,0 +1,11 @@
+{
+  "id": "/",
+  "name": "SPATE Charge",
+  "short_name": "SPATE Charge",
+  "start_url": "/login",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#10213c",
+  "theme_color": "#172b49",
+  "icons": [{ "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }]
+}

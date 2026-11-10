@@ -63,10 +63,13 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   )
 
   const signOut = useCallback(async () => {
-    try {
-      await logout()
-    } finally {
-      setUser(null)
+    await logout()
+    setUser(null)
+    if ('serviceWorker' in navigator) {
+      void navigator.serviceWorker.getRegistration('/').then(async (registration) => {
+        const notifications = await registration?.getNotifications()
+        notifications?.forEach((notification) => notification.close())
+      }).catch(() => {})
     }
   }, [])
 
