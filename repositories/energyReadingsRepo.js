@@ -15,6 +15,7 @@ async function list(sessionId, tx = db) {
 }
 async function saveResult(sessionId, result, tx = db) {
   await tx.query(`UPDATE sessions SET reconciliation = $2, needs_review = $3,
+    push_validated_at = CASE WHEN ($2::jsonb)->>'status'='validated' THEN COALESCE(push_validated_at,NOW()) ELSE push_validated_at END,
     energy_kwh = COALESCE($4, energy_kwh), price_calculated = CASE WHEN $4::numeric IS NULL THEN price_calculated ELSE ROUND($4::numeric * tariff_per_kwh, 2) END
     WHERE id = $1 AND status = 'done'`, [sessionId, result, result.status !== 'validated', result.reconciled_kwh ?? result.proposed_kwh ?? null]);
 }

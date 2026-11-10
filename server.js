@@ -24,6 +24,8 @@ const energyReadingsRepo = require("./repositories/energyReadingsRepo");
 const { reconcile, billingReady } = require("./services/energyValidation");
 const { sessionPresentation } = require("./services/sessionPresentation");
 const { sessionErrors } = require('./services/sessionErrors');
+const authSessions = require('./services/authSessions');
+const { createAdminPush } = require('./services/adminPush');
 const chargingClientsRepo = require("./repositories/chargingClientsRepo");
 const systemSettingsRepo = require("./repositories/systemSettingsRepo");
 
@@ -31,6 +33,11 @@ const app = express();
 const appLogger = pino({
   level: config.isProd ? "info" : "debug",
 });
+const adminPush = createAdminPush({ db: pgDb, webpush: require('web-push'), config: config.push, logger: appLogger });
+async function observePushSafely(stationId, status) {
+  try { await adminPush.observe(stationId, status); }
+  catch { appLogger.warn({ station_id: stationId }, 'Falha ao registrar evento Push; monitoramento preservado.'); }
+}
 
 if (config.isProd) {
   app.set("trust proxy", 1);
@@ -786,16 +793,10 @@ function isDatabaseUnavailableError(error) {
   return false;
 }
 
-function signToken(payload) {
-  const secret = config.jwtSecret;
-  if (!secret) throw new Error("JWT_SECRET nao configurado no .env");
-  return jwt.sign(payload, secret, { expiresIn: config.jwtExpiresIn });
-}
-
 function getAuthCookieOptions() {
   const options = {
     httpOnly: true,
-    secure: config.cookie.secure,
+    secure: config.isProd || config.cookie.secure,
     sameSite: config.cookie.sameSite,
     path: config.cookie.path,
   };
@@ -807,8 +808,8 @@ function getAuthCookieOptions() {
   return options;
 }
 
-function setAuthCookie(res, token) {
-  res.cookie(config.cookie.name, token, getAuthCookieOptions());
+function setAuthCookie(res, token, maxAge) {
+  res.cookie(config.cookie.name, token, { ...getAuthCookieOptions(), ...(maxAge == null ? {} : { maxAge }) });
 }
 
 function clearAuthCookie(res) {
@@ -847,8 +848,12 @@ async function requireAuth(req, res, next) {
 
     const user = await usersRepo.findById(userId);
     if (!user) return res.status(401).json({ success: false, message: "Usuario nao encontrado." });
+    if (user.approval_status === 'rejected') return res.status(401).json({ success: false, message: 'Acesso revogado.' });
+    const authSessionId = await authSessions.validate(token, decoded);
+    if (!authSessionId) return res.status(401).json({ success: false, message: 'Sessão expirada ou revogada.' });
 
     req.user = user;
+    req.authSessionId = authSessionId;
     res.locals.userId = user.id;
     return next();
   } catch (_error) {
@@ -1084,7 +1089,10 @@ app.post("/auth/login", async (req, res) => {
 
     const loggedUser = await usersRepo.setLastLoginAt(user.id);
 
-    setAuthCookie(res, signToken({ id: user.id }));
+    await authSessions.revokeToken(req.cookies?.[config.cookie.name]);
+    const issued = authSessions.issueToken(user, req.body?.remember_me === true);
+    await authSessions.create(issued, user.id);
+    setAuthCookie(res, issued.token, issued.maxAge);
     return res.json({
       success: true,
       message: "Login ok",
@@ -1185,13 +1193,38 @@ app.patch("/api/me/password", requireAuth, async (req, res) => {
     return sendErrorResponse(res, 500, "Erro ao alterar senha.", error);
   }
 });
-app.post("/auth/logout", (req, res) => {
-  clearAuthCookie(res);
-  return res.json({ ok: true });
+async function logoutSession(req, res) {
+  try {
+    await authSessions.revokeToken(req.cookies?.[config.cookie.name]);
+    clearAuthCookie(res);
+    return res.json({ ok: true });
+  } catch (error) { return sendErrorResponse(res, 503, 'Não foi possível revogar a sessão. Tente sair novamente.', error); }
+}
+app.post('/auth/logout', logoutSession);
+app.post('/api/logout', logoutSession);
+
+app.delete('/api/auth/sessions/:id', requireAuth, async (req, res) => {
+  await pgDb.query('UPDATE auth_sessions SET revoked_at=NOW() WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+  return res.json({ success: true });
 });
-app.post("/api/logout", (req, res) => {
-  clearAuthCookie(res);
-  return res.json({ ok: true });
+app.get('/api/auth/sessions', requireAuth, async (req, res) => {
+  const sessions = await pgDb.query('SELECT id,created_at,expires_at,revoked_at FROM auth_sessions WHERE user_id=$1 ORDER BY created_at DESC LIMIT 30', [req.user.id]);
+  return res.json({ success: true, current: req.authSessionId, sessions });
+});
+
+app.get('/api/admin/push', requireAuth, requireAdmin, async (req, res) => {
+  const [subscription] = await pgDb.query('SELECT id FROM push_subscriptions WHERE auth_session_id=$1 AND enabled=TRUE LIMIT 1', [req.authSessionId]);
+  return res.json({ success: true, configured: adminPush.configured(), publicKey: config.push.publicKey, enabled: Boolean(subscription) });
+});
+app.post('/api/admin/push', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await adminPush.subscribe(req.authSessionId, req.body?.subscription);
+    return res.json({ success: true });
+  } catch (error) { return sendErrorResponse(res, error.statusCode || 500, error.statusCode ? error.message : 'Falha ao ativar notificações.', error); }
+});
+app.delete('/api/admin/push', requireAuth, requireAdmin, async (req, res) => {
+  await pgDb.query('UPDATE push_subscriptions SET enabled=FALSE WHERE auth_session_id=$1', [req.authSessionId]);
+  return res.json({ success: true });
 });
 
 app.get("/api/my/addresses", requireAuth, async (req, res) => {
@@ -2211,15 +2244,16 @@ async function buildLivePayload(stationId) {
   };
 }
 
-async function detectExternalSessions() {
+async function detectExternalSessions(telemetryByStation = new Map()) {
   const stations = await stationsRepo.listActive();
 
   for (const station of stations) {
     try {
+      const status = await getDeviceShadow(station.tuya_device_id);
+      telemetryByStation.set(String(station.id), status);
+      await observePushSafely(station.id, status);
       const existing = await sessionsRepo.getRunningByStation(station.id);
       if (existing) continue;
-
-      const status = await getDeviceShadow(station.tuya_device_id);
       const workState = findDp(status, "work_state")?.value || null;
       const sw = findDp(status, "switch")?.value ?? false;
       if (!isActivelyCharging(workState, sw)) continue;
@@ -2293,7 +2327,8 @@ async function runSessionWatchdogTick() {
   sessionWatchdogRunning = true;
 
   try {
-    await detectExternalSessions();
+    const telemetryByStation = new Map();
+    await detectExternalSessions(telemetryByStation);
     const runningSessions = await sessionsRepo.listCurrentRunning();
     const activeIds = new Set();
 
@@ -2307,7 +2342,7 @@ async function runSessionWatchdogTick() {
           continue;
         }
 
-        const status = await getDeviceShadow(station.tuya_device_id);
+        const status = telemetryByStation.get(String(station.id)) || await getDeviceShadow(station.tuya_device_id);
         await persistEnergyReading(session.id, status);
         const monitorState = runningSessionMonitor.get(session.id) || { zeroPowerCount: 0 };
         const detection = didChargingEnd(status, monitorState, session);
@@ -3078,5 +3113,7 @@ const PORT = config.port;
 app.listen(PORT, "0.0.0.0", () => {
   startSessionWatchdog();
   startReconciliationRetries();
+  const pushTimer = setInterval(() => { void adminPush.dispatch(); }, 15000);
+  pushTimer.unref();
   appLogger.info({ port: PORT }, `Servidor rodando em http://localhost:${PORT}`);
 });

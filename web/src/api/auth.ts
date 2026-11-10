@@ -15,6 +15,7 @@ export type AuthUser = {
 export type LoginInput = {
   email: string
   password: string
+  rememberMe?: boolean
 }
 
 export type RegisterRole = 'morador' | 'visitante'
@@ -56,6 +57,7 @@ export async function login(input: LoginInput): Promise<AuthUser> {
   const payload = {
     email: String(input.email || '').trim().toLowerCase(),
     password: String(input.password || ''),
+    remember_me: input.rememberMe === true,
   }
   const response = await apiFetch<AuthResponse>('/auth/login', {
     method: 'POST',

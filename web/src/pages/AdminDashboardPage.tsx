@@ -245,6 +245,12 @@ export default function AdminDashboardPage() {
     [activeStations],
   )
 
+  useEffect(() => {
+    if (isLoading) return
+    const stationId = new URLSearchParams(window.location.search).get('station_id')
+    if (stationId && /^\d+$/.test(stationId)) document.getElementById(`charger-${stationId}`)?.scrollIntoView({ block: 'center' })
+  }, [activeStationIdsKey, isLoading])
+
   const sessionsByStation = useMemo(() => {
     const entries = currentSessions.map((session) => [session.station_id, session] as const)
     return new Map<number, CurrentSession>(entries)
@@ -776,6 +782,7 @@ export default function AdminDashboardPage() {
                 <article
                   className="group relative rounded-xl border border-secondary bg-surface-dark p-4 transition-all hover:border-primary/50"
                   key={station.id}
+                  id={`charger-${station.id}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">

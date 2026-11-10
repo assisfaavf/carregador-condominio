@@ -18,6 +18,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'))
   const [submitting, setSubmitting] = useState(false)
@@ -36,7 +37,7 @@ export default function LoginPage() {
     setMessage('')
     setSubmitting(true)
     try {
-      const nextUser = await signIn({ email, password })
+      const nextUser = await signIn({ email, password, rememberMe })
       navigate(
         nextUser.is_admin
           ? '/admin/dashboard'
@@ -123,6 +124,11 @@ export default function LoginPage() {
               </div>
             </label>
 
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
+              Manter-me conectado
+            </label>
+            <p className="text-xs text-slate-500 dark:text-slate-300">Para administradores, mantém o acesso ao fechar e reabrir o app.</p>
             <div className="grid gap-3">
               <button
                 className="inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-primary text-base font-bold text-white shadow-[0_12px_30px_rgba(37,89,244,0.24)] transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"

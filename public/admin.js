@@ -1007,8 +1007,11 @@ function clearOutput() {
 }
 
 async function logout() {
-  await fetch("/auth/logout", { method: "POST" });
-  window.location.href = "/login.html";
+  try {
+    const response = await fetch('/auth/logout', { method: 'POST' });
+    if (!response.ok) throw new Error('Falha ao revogar sessão.');
+    window.location.href = '/login.html';
+  } catch { setMsg('Não foi possível sair. Tente novamente para encerrar a sessão e os avisos.', 'error'); }
 }
 
 function setupEvents() {

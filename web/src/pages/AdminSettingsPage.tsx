@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { ApiError, apiFetch } from '../api/client'
+import AdminPushSettings from '../components/AdminPushSettings'
 
 type AdminSettings = {
   price_per_kwh: number
@@ -315,6 +316,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="bg-background-light font-display text-slate-900 antialiased selection:bg-primary selection:text-background-dark dark:bg-background-dark dark:text-slate-100">
       <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pb-28 pt-6">
+        <AdminPushSettings />
         <section className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,_rgba(37,89,244,0.12),_transparent_30%),linear-gradient(160deg,_rgba(23,33,58,1),_rgba(15,23,42,1))] p-6 shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-700 text-lg font-bold text-background-dark">
