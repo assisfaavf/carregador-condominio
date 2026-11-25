@@ -114,11 +114,20 @@ Não há necessidade de persistir arquivos do container para essas funcionalidad
 4. Verifique `/health`, `/health/db`, login, uma rota da SPA como `/login` e o
    histórico administrativo. Confirme nos logs que o watchdog consegue ler as estações.
 
-Para preservar o monitoramento contínuo, mantenha uma instância ativa sem
-hibernação/scale-to-zero. Comece com uma réplica: o watchdog roda dentro de cada
-processo Node; esta task não adiciona coordenação entre réplicas. Se o provedor
-suspender o processo, o monitoramento pausa até ele retornar, mesmo usando Docker.
-A recuperação e a conciliação existentes continuam disponíveis.
+Mantenha uma réplica ativa do backend para o watchdog da Tuya. Ele consulta
+os carregadores a cada 5 segundos e carrega as estações, as sessões abertas
+e as filas pendentes na inicialização. Cadastro e edição de estações, incluindo
+ativação e desativação, atualizam o cache do próprio processo após a gravação.
+Réplicas independentes leem uma nova configuração quando reiniciam. Antes de
+escalar o backend horizontalmente, será necessário distribuir as invalidações
+e coordenar as filas entre processos. O PostgreSQL protege a unicidade das
+sessões em andamento e das entregas Push durante eventual sobreposição de processos.
+
+Um backend ativo pode monitorar a Tuya com o Neon suspenso. A inicialização,
+requisições que usam o banco (incluindo `/health/db`), trabalho de sessão,
+leituras durante a carga, transições de conexão/carga para Web Push e retentativas
+pendentes podem acordar o compute. `/health` responde apenas pelo processo HTTP.
+Se o provedor suspender o backend, o polling da Tuya pausa até a retomada.
 
 O build do frontend precisa de mais memória que o processo em runtime. Se a Dado
 limitar também o ambiente de compilação, ajuste os recursos de build ou publique
