@@ -34,10 +34,10 @@ function createAdminPush({ db, webpush, config, logger }) {
   }
 
   async function persistObservation(stationId, sample) {
-    const result = await db.withTransaction(async (tx) => {
+    const state = await db.withTransaction(async (tx) => {
       const [previous] = await tx.query('SELECT * FROM push_station_state WHERE station_id=$1 FOR UPDATE', [stationId]);
       if (sample.charging == null && sample.waiting && previous.charging !== true) sample.charging = false;
-      if (sample.observedAt <= new Date(previous.observed_at)) return { state: previous, events: [] };
+      if (sample.observedAt <= new Date(previous.observed_at)) return previous;
       const events = transitions(previous, sample);
       const [state] = await tx.query(`UPDATE push_station_state SET connected=COALESCE($2,connected), charging=COALESCE($3,charging),
         connection_cycle=connection_cycle+$5, charging_cycle=charging_cycle+$6, observed_at=$4 WHERE station_id=$1 RETURNING *`,
@@ -46,10 +46,11 @@ function createAdminPush({ db, webpush, config, logger }) {
         const cycle = kind === 'connected' ? state.connection_cycle : state.charging_cycle;
         await tx.query(`INSERT INTO push_events(event_key,station_id,kind) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`, [`${kind}:${stationId}:${cycle}`, stationId, kind]);
       }
-      return { state, events };
+      return state;
     });
-    if (result.events.length) wake();
-    return result.state;
+    // A retry may encounter a transition that committed before its response was lost.
+    wake();
+    return state;
   }
 
   async function observe(stationId, status) {
@@ -86,7 +87,6 @@ function createAdminPush({ db, webpush, config, logger }) {
     wake();
     stationStates.set(key, await persistObservation(stationId, sample));
     pendingSamples.delete(key);
-    wake();
   }
 
   async function subscribe(authSessionId, subscription) {
