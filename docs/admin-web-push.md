@@ -131,8 +131,8 @@ e [Apple — Web Push em apps e navegadores](https://developer.apple.com/documen
 
 - Estado anterior e contadores de ciclos são persistidos por estação; leituras
   repetidas/fora de ordem não repetem transições. Eventos têm chave única; a
-  finalização usa o ID da recarga. Cada inscrição recebe no máximo uma tentativa
-  por evento, com chave única de entrega e reserva atômica no PostgreSQL.
+  finalização usa o ID da recarga. A entrega por evento e inscrição tem chave
+  única, e cada envio exige reserva atômica no PostgreSQL.
 - A primeira leitura estabelece uma referência: não inventa um aviso de conexão ou
   início para um veículo já conectado ao ligar a plataforma pela primeira vez.
   Reinícios reutilizam o estado salvo. Não é possível reconstruir vários ciclos
@@ -147,10 +147,12 @@ e [Apple — Web Push em apps e navegadores](https://developer.apple.com/documen
   corrigida e validada após a migração pode produzir seu primeiro aviso de finalização.
 - Somente eventos recentes (até 15 minutos) e posteriores à ativação da inscrição
   são entregues. Não há envio retroativo ilimitado após indisponibilidade.
-- A estratégia privilegia **não duplicar**: reserva antes de enviar, sem repetição
-  automática em caso de erro/timeout. Uma queda entre reserva e entrega pode perder
-  aquele aviso; não existe garantia de entrega exatamente uma vez via Web Push.
-  O mesmo `tag` também agrupa apresentações repetidas do mesmo evento no aparelho.
+- O dispatcher recupera entregas pendentes na inicialização e volta a consultar
+  quando há um evento ou uma retentativa. Respostas `429/503` agendam nova tentativa
+  após um minuto, dentro da janela de entrega. A reserva ocorre imediatamente antes
+  do envio. Uma queda após a reserva ou um timeout pode deixar o resultado incerto.
+  Nesses casos, a entrega é preservada para auditoria e o envio encerra ali para
+  evitar repetição. O mesmo `tag` agrupa apresentações do evento no aparelho.
 - Erros de envio são registrados por evento/inscrição/código, sem endpoint, chaves ou
   corpo da resposta do provedor. `404/410` desativam a inscrição inválida. O histórico
   e a conciliação não aguardam a rede Push e não são revertidos por falha no aviso.

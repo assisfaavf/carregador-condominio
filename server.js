@@ -256,9 +256,32 @@ const USER_LIST_MAX_LIMIT = 200;
 const STATION_MIN_CURRENT_A = 6;
 const STATION_MAX_CURRENT_A = 32;
 const runningSessionMonitor = new Map();
+const monitoredStations = new Map();
+const monitoredSessions = new Map();
+const startingSessions = new Set();
+const failedStarts = new Map();
+const pendingEnds = new Map();
+const endedDuringStartup = new Set();
+const reconciliationQueue = new Map();
+let monitoringLoaded = false;
+
+function cacheStation(station) {
+  monitoredStations.set(String(station.id), station);
+}
+
+function cacheSession(session) {
+  monitoredSessions.set(String(session.station_id), session);
+}
+
+function forgetSession(session) {
+  if (!monitoringLoaded) endedDuringStartup.add(session.id);
+  const key = String(session.station_id);
+  if (monitoredSessions.get(key)?.id === session.id) monitoredSessions.delete(key);
+  runningSessionMonitor.delete(session.id);
+  pendingEnds.delete(session.id);
+}
 const externalSessionBaselineCache = new Map();
 const totalPowerTrendCache = new Map();
-let sessionWatchdogTimer = null;
 let sessionWatchdogRunning = false;
 
 function sleep(ms) {
@@ -1453,6 +1476,7 @@ app.post("/api/admin/stations", requireAuth, requireAdmin, async (req, res) => {
       is_active: isActive,
     });
 
+    cacheStation(station);
     return res.status(201).json({ success: true, station });
   } catch (error) {
     if (error?.code === "DUPLICATE_TUYA_DEVICE") {
@@ -1505,6 +1529,7 @@ app.patch("/api/admin/stations/:id", requireAuth, requireAdmin, async (req, res)
       : await stationsRepo.update(stationId, payload);
 
     if (!station) return res.status(404).json({ success: false, message: "Estacao nao encontrada." });
+    cacheStation(station);
     return res.json({ success: true, station });
   } catch (error) {
     if (error?.code === "DUPLICATE_TUYA_DEVICE") {
@@ -1769,16 +1794,19 @@ async function runStopPolling(station) {
   return lastStatus;
 }
 
-async function finalizeSessionAsFailed(sessionId, message) {
+async function finalizeSessionAsFailed(session, message) {
+  failedStarts.set(session.id, message);
   try {
-    await sessionsRepo.finishSession(sessionId, {
+    await sessionsRepo.finishSession(session.id, {
       status: "failed",
       end_time: new Date(),
       needs_review: true,
       notes: message,
     });
-  } catch (_error) {
-    // no-op
+    failedStarts.delete(session.id);
+    forgetSession(session);
+  } catch (error) {
+    appLogger.warn({ err: error, session_id: session.id }, 'Falha ao registrar início malsucedido; será tentado novamente.');
   }
 }
 
@@ -1795,6 +1823,8 @@ async function startSessionFlow({ userId, addressId, station }) {
     tariff_per_kwh: tariffPerKwh,
   });
 
+  cacheSession(session);
+  startingSessions.add(session.id);
   try {
     await persistEnergyReading(session.id, statusBefore, 'start');
     const { started, lastStatus, lastFlow } = await runStartCommands(station);
@@ -1802,7 +1832,7 @@ async function startSessionFlow({ userId, addressId, station }) {
     if (!started) {
       await safeSwitchOff(station.tuya_device_id);
       const diag = diagnoseStartFailure(lastStatus);
-      await finalizeSessionAsFailed(session.id, diag.reasonMessage);
+      await finalizeSessionAsFailed(session, diag.reasonMessage);
       return {
         success: false,
         statusCode: 409,
@@ -1823,8 +1853,10 @@ async function startSessionFlow({ userId, addressId, station }) {
     };
   } catch (error) {
     await safeSwitchOff(station.tuya_device_id);
-    await finalizeSessionAsFailed(session.id, `Falha ao enviar comandos Tuya: ${String(error.message || error)}`);
+    await finalizeSessionAsFailed(session, `Falha ao enviar comandos Tuya: ${String(error.message || error)}`);
     throw error;
+  } finally {
+    startingSessions.delete(session.id);
   }
 }
 
@@ -1987,19 +2019,19 @@ async function recoverHistoricalReadings(session, station, endTime = Date.now())
   }
 }
 
-async function stopSessionFlow({ running, station, finalStatus: suppliedFinalStatus = null }) {
+async function stopSessionFlow({ running, station, finalStatus: suppliedFinalStatus = null, detectedAt = new Date() }) {
   const finalStatus = suppliedFinalStatus || await runStopPolling(station);
   await persistEnergyReading(running.id, finalStatus, 'end');
   let readings = await energyReadingsRepo.list(running.id);
   const previous = readings.filter((reading) => reading.source !== 'end').slice(-1)[0];
-  const monitoringGap = !previous || Date.now() - new Date(previous.observed_at).getTime() > config.energyValidation.maxGapSeconds * 1000;
+  const monitoringGap = !previous || detectedAt - new Date(previous.observed_at).getTime() > config.energyValidation.maxGapSeconds * 1000;
   let verifiedEnd = null;
   if (suppliedFinalStatus && monitoringGap) {
     try {
-      await recoverHistoricalReadings(running, station);
+      await recoverHistoricalReadings(running, station, detectedAt.getTime());
       readings = await energyReadingsRepo.list(running.id);
       const logs = extractDeviceLogs(await getDeviceLogs(station.tuya_device_id, {
-        code: 'work_state', startTime: new Date(running.start_time).getTime(), endTime: Date.now(),
+        code: 'work_state', startTime: new Date(running.start_time).getTime(), endTime: detectedAt.getTime(),
       })).filter((entry) => Number.isFinite(Number(entry.event_time)) && Number(entry.event_time) >= new Date(running.start_time).getTime())
         .sort((a, b) => Number(b.event_time) - Number(a.event_time));
       if (['charger_end', 'charger_finish', 'charger_finished'].includes(logs[0]?.value)) verifiedEnd = new Date(Number(logs[0].event_time));
@@ -2020,9 +2052,9 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
   const energySource = energyFromTotal != null ? "total_delta" : (energyOnce != null ? "once" : null);
   const explicitEnd = detectExplicitChargingEnd(finalStatus);
   const signalTime = explicitEnd ? Number(findDp(finalStatus, explicitEnd.code)?.time) : NaN;
-  const timestampedEnd = Number.isFinite(signalTime) && signalTime >= new Date(running.start_time).getTime() && signalTime <= Date.now()
+  const timestampedEnd = Number.isFinite(signalTime) && signalTime >= new Date(running.start_time).getTime() && signalTime <= detectedAt.getTime()
     ? new Date(signalTime) : null;
-  const endTime = suppliedFinalStatus ? timestampedEnd || verifiedEnd || (monitoringGap ? null : new Date()) : new Date();
+  const endTime = suppliedFinalStatus ? timestampedEnd || verifiedEnd || (monitoringGap ? null : detectedAt) : new Date();
   const durationSeconds = endTime ? Math.max(0, Math.floor((endTime - new Date(running.start_time)) / 1000)) : null;
   const tariff = running.tariff_per_kwh ?? await getTariffPerKwh();
   const priceCalculated = energyKwh != null ? round2(energyKwh * tariff) : null;
@@ -2045,7 +2077,8 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
   }
 
   const endTimeSource = timestampedEnd ? 'tuya_event' : verifiedEnd ? 'tuya_history' : endTime ? 'detection_estimate' : 'unknown';
-  let validation = { status: 'pending', proposed_kwh: energyFromTotal, end_detected_at: new Date().toISOString(), end_time_source: endTimeSource, end_time_uncertain: !endTime || endTimeSource === 'detection_estimate', reconciled_kwh: null };
+  let validation = { status: 'pending', proposed_kwh: energyFromTotal, end_detected_at: (suppliedFinalStatus ? detectedAt : endTime).toISOString(), end_time_source: endTimeSource, end_time_uncertain: !endTime || endTimeSource === 'detection_estimate', reconciled_kwh: null };
+  reconciliationQueue.set(running.id, Date.now() + RECONCILIATION_DELAY_MS);
   const finished = await pgDb.withTransaction(async (tx) => {
     const [latest] = await tx.query('SELECT tariff_per_kwh FROM sessions WHERE id=$1 FOR UPDATE', [running.id]);
     const appliedTariff = latest?.tariff_per_kwh ?? tariff;
@@ -2055,10 +2088,12 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
     }
     return result;
   });
+  forgetSession(running);
   if (!finished) return null;
   try {
     validation = { ...reconcile({ ...running, ...patch }, readings, config.energyValidation), end_detected_at: validation.end_detected_at, end_time_source: endTimeSource, end_time_uncertain: validation.end_time_uncertain, last_attempt_at: new Date().toISOString() };
-    await energyReadingsRepo.revise(running.id, null, { reconciliation: validation }, 'Encerramento detectado e fontes comparadas.');
+    await reviseEnergy(running.id, null, { reconciliation: validation }, 'Encerramento detectado e fontes comparadas.');
+    if (!needsReconciliation(validation)) reconciliationQueue.delete(running.id);
   } catch (error) {
     appLogger.warn({ session_id: running.id }, 'Sessão encerrada; conciliação ficará pendente para nova tentativa.');
     validation = { status: 'pending', reconciled_kwh: null, proposed_kwh: energyFromTotal };
@@ -2077,6 +2112,14 @@ async function stopSessionFlow({ running, station, finalStatus: suppliedFinalSta
     end_work_state: findDp(finalStatus, "work_state")?.value || null,
     end_connection_state: findDp(finalStatus, "connection_state")?.value || null,
   };
+}
+
+async function reviseEnergy(sessionId, actorId, patch, reason) {
+  try {
+    return await energyReadingsRepo.revise(sessionId, actorId, patch, reason);
+  } finally {
+    if (patch.reconciliation?.status === 'validated') adminPush.wake();
+  }
 }
 
 async function buildLivePayload(stationId) {
@@ -2244,82 +2287,76 @@ async function buildLivePayload(stationId) {
   };
 }
 
-async function detectExternalSessions(telemetryByStation = new Map()) {
-  const stations = await stationsRepo.listActive();
+async function detectExternalSession(station, status) {
+  const workState = findDp(status, "work_state")?.value || null;
+  const sw = findDp(status, "switch")?.value ?? false;
+  if (!isActivelyCharging(workState, sw)) return;
 
-  for (const station of stations) {
-    try {
-      const status = await getDeviceShadow(station.tuya_device_id);
-      telemetryByStation.set(String(station.id), status);
-      await observePushSafely(station.id, status);
-      const existing = await sessionsRepo.getRunningByStation(station.id);
-      if (existing) continue;
-      const workState = findDp(status, "work_state")?.value || null;
-      const sw = findDp(status, "switch")?.value ?? false;
-      if (!isActivelyCharging(workState, sw)) continue;
-
-      const totalKwh = scale2ToKwh(readDpNumber(status, "forward_energy_total"));
-      const external = await resolveExternalSessionEnergy(
-        station.tuya_device_id,
-        totalKwh,
-        true
-      );
-      if (external.energyKwh == null || !external.startedAt || totalKwh == null) continue;
-
-      const startEnergyTotal = Math.max(0, totalKwh - external.energyKwh);
-      const duplicate = await sessionsRepo.findExternalNearStart({
-        station_id: station.id,
-        start_time: external.startedAt,
-        start_energy_total: startEnergyTotal,
-      });
-      if (duplicate) {
-        appLogger.info({
-          existing_session_id: duplicate.id,
-          station_id: station.id,
-          start_time: external.startedAt,
-        }, "[watchdog] Carga externa ja registrada; ignorando duplicata.");
-        continue;
-      }
-
-      const recovered = await sessionsRepo.recoverRecentlyEndedProgramSession({
-        station_id: station.id,
-        start_time: external.startedAt,
-        start_energy_total: startEnergyTotal,
-      });
-      if (recovered) {
-        runningSessionMonitor.set(recovered.id, { explicitEndCount: 0, zeroPowerCount: 0 });
-        appLogger.info({
-          session_id: recovered.id,
-          station_id: station.id,
-          start_time: recovered.start_time,
-        }, "[watchdog] Sessao iniciada pelo programa foi reaberta; carga nao sera registrada como externa.");
-        continue;
-      }
-
-      const tariffPerKwh = await getTariffPerKwh();
-      const session = await sessionsRepo.createRunning({
-        user_id: null,
-        address_id: null,
-        station_id: station.id,
-        start_time: external.startedAt,
-        start_energy_total: startEnergyTotal,
-        tariff_per_kwh: tariffPerKwh,
-        origin: "external",
-        authorization_method: "unknown",
-        detected_at: new Date(),
-        notes: "Carga externa detectada automaticamente. Metodo de autorizacao nao informado pela Tuya.",
-      });
-
-      appLogger.info({
-        session_id: session.id,
-        station_id: station.id,
-        start_time: external.startedAt,
-      }, "[watchdog] Carga externa registrada automaticamente.");
-    } catch (error) {
-      if (isUniqueRunningByStation(error)) continue;
-      appLogger.warn({ err: error, station_id: station.id }, "[watchdog] Falha ao detectar carga externa.");
-    }
+  const existing = await sessionsRepo.getRunningByStation(station.id);
+  if (existing) {
+    cacheSession(existing);
+    return;
   }
+
+  const totalKwh = scale2ToKwh(readDpNumber(status, "forward_energy_total"));
+  const external = await resolveExternalSessionEnergy(
+    station.tuya_device_id,
+    totalKwh,
+    true
+  );
+  if (external.energyKwh == null || !external.startedAt || totalKwh == null) return;
+
+  const startEnergyTotal = Math.max(0, totalKwh - external.energyKwh);
+  const duplicate = await sessionsRepo.findExternalNearStart({
+    station_id: station.id,
+    start_time: external.startedAt,
+    start_energy_total: startEnergyTotal,
+  });
+  if (duplicate) {
+    appLogger.info({
+      existing_session_id: duplicate.id,
+      station_id: station.id,
+      start_time: external.startedAt,
+    }, "[watchdog] Carga externa ja registrada; ignorando duplicata.");
+    return;
+  }
+
+  const recovered = await sessionsRepo.recoverRecentlyEndedProgramSession({
+    station_id: station.id,
+    start_time: external.startedAt,
+    start_energy_total: startEnergyTotal,
+  });
+  if (recovered) {
+    cacheSession(recovered);
+    reconciliationQueue.delete(recovered.id);
+    appLogger.info({
+      session_id: recovered.id,
+      station_id: station.id,
+      start_time: recovered.start_time,
+    }, "[watchdog] Sessao iniciada pelo programa foi reaberta; carga nao sera registrada como externa.");
+    return;
+  }
+
+  const tariffPerKwh = await getTariffPerKwh();
+  const session = await sessionsRepo.createRunning({
+    user_id: null,
+    address_id: null,
+    station_id: station.id,
+    start_time: external.startedAt,
+    start_energy_total: startEnergyTotal,
+    tariff_per_kwh: tariffPerKwh,
+    origin: "external",
+    authorization_method: "unknown",
+    detected_at: new Date(),
+    notes: "Carga externa detectada automaticamente. Metodo de autorizacao nao informado pela Tuya.",
+  });
+
+  cacheSession(session);
+  appLogger.info({
+    session_id: session.id,
+    station_id: station.id,
+    start_time: external.startedAt,
+  }, "[watchdog] Carga externa registrada automaticamente.");
 }
 
 async function runSessionWatchdogTick() {
@@ -2327,91 +2364,129 @@ async function runSessionWatchdogTick() {
   sessionWatchdogRunning = true;
 
   try {
-    const telemetryByStation = new Map();
-    await detectExternalSessions(telemetryByStation);
-    const runningSessions = await sessionsRepo.listCurrentRunning();
-    const activeIds = new Set();
+    if (!monitoringLoaded) await loadMonitoring();
 
-    for (const session of runningSessions) {
-      activeIds.add(session.id);
+    const stations = new Map([...monitoredStations].filter(([, station]) => station.is_active));
+    for (const [key, session] of monitoredSessions) {
+      const station = monitoredStations.get(key) || session.station;
+      if (station?.tuya_device_id) stations.set(key, station);
+    }
+
+    await Promise.all([...stations].map(async ([key, station]) => {
+      const session = monitoredSessions.get(key);
+      let status;
+      try {
+        status = await getDeviceShadow(station.tuya_device_id);
+        const workState = findDp(status, "work_state")?.value;
+        if (workState && !isActivelyCharging(workState, findDp(status, "switch")?.value)) {
+          externalSessionBaselineCache.delete(station.tuya_device_id);
+        }
+        if (station.is_active && monitoredStations.get(key) === station) await observePushSafely(station.id, status);
+      } catch (error) {
+        appLogger.warn({ err: error, station_id: station.id }, '[watchdog] Falha ao consultar Tuya.');
+      }
 
       try {
-        const station = session.station || await stationsRepo.getById(session.station_id);
-        if (!station?.tuya_device_id) {
-          runningSessionMonitor.delete(session.id);
-          continue;
+        let running = monitoredSessions.get(key);
+        // A request may have changed the station or session while Tuya was queried.
+        if (session?.id !== running?.id || (monitoredStations.has(key) && monitoredStations.get(key) !== station)) return;
+        if (!running && status && station.is_active) {
+          await detectExternalSession(station, status);
+          running = monitoredSessions.get(key);
         }
-
-        const status = telemetryByStation.get(String(station.id)) || await getDeviceShadow(station.tuya_device_id);
-        await persistEnergyReading(session.id, status);
-        const monitorState = runningSessionMonitor.get(session.id) || { zeroPowerCount: 0 };
-        const detection = didChargingEnd(status, monitorState, session);
-
-        if (!detection.ended) {
-          runningSessionMonitor.set(session.id, {
-            explicitEndCount: detection.explicitEndCount || 0,
-            zeroPowerCount: detection.zeroPowerCount || 0,
+        if (!running || startingSessions.has(running.id)) return;
+        if (failedStarts.has(running.id)) {
+          await finalizeSessionAsFailed(running, failedStarts.get(running.id));
+          return;
+        }
+        if (!pendingEnds.has(running.id)) {
+          if (!status) return;
+          const detection = didChargingEnd(status, runningSessionMonitor.get(running.id), running);
+          runningSessionMonitor.set(running.id, detection);
+          if (!detection.ended) {
+            await persistEnergyReading(running.id, status);
+            return;
+          }
+          pendingEnds.set(running.id, {
+            status, detectedAt: new Date(),
+            note: `auto-ended: car reached full / charger reported finished (${detection.reason})`,
           });
-          continue;
         }
 
-        const latestRunning = await sessionsRepo.getRunningByStation(session.station_id);
-        if (!latestRunning || latestRunning.id !== session.id) {
-          runningSessionMonitor.delete(session.id);
-          continue;
+        const latest = await sessionsRepo.getRunningByStation(station.id);
+        if (latest?.id !== running.id) {
+          forgetSession(running);
+          if (latest && !monitoredSessions.has(key)) cacheSession(latest);
+          return;
         }
-
-        const autoEndNote = `auto-ended: car reached full / charger reported finished (${detection.reason})`;
+        const end = pendingEnds.get(running.id);
+        if (!end) return;
         const finalized = await stopSessionFlow({
-          running: { ...latestRunning, auto_end_note: autoEndNote },
+          running: { ...latest, auto_end_note: end.note },
           station,
-          finalStatus: status,
+          finalStatus: end.status,
+          detectedAt: end.detectedAt,
         });
-
-        runningSessionMonitor.delete(session.id);
-        if (finalized) {
-          appLogger.info({
-            session_id: session.id,
-            station_id: station.id,
-          }, "[watchdog] Sessao finalizada automaticamente.");
-        }
+        if (finalized) appLogger.info({ session_id: running.id, station_id: station.id }, '[watchdog] Sessão finalizada automaticamente.');
       } catch (error) {
-        appLogger.warn({
-          err: error,
-          session_id: session.id,
-          station_id: session.station_id,
-        }, "[watchdog] Falha ao processar sessao.");
-        continue;
+        if (!isUniqueRunningByStation(error)) {
+          appLogger.warn({ err: error, station_id: station.id }, '[watchdog] Falha ao processar esta??o.');
+        }
       }
-    }
-
-    for (const sessionId of Array.from(runningSessionMonitor.keys())) {
-      if (!activeIds.has(sessionId)) {
-        runningSessionMonitor.delete(sessionId);
-      }
-    }
+    }));
   } catch (error) {
-    appLogger.error({ err: error }, "[watchdog] Erro no monitor de sessoes.");
+    appLogger.error({ err: error }, '[watchdog] Falha ao recuperar monitoramento.');
   } finally {
     sessionWatchdogRunning = false;
   }
 }
 
+const RECONCILIATION_FILTER = `s.status='done' AND s.reconciliation->>'status' IN ('pending','inconclusive')
+  AND COALESCE(s.reconciliation->>'manual','false') <> 'true'
+  AND s.start_time >= NOW() - INTERVAL '7 days'`;
+const RECONCILIATION_DELAY_MS = 5 * 60 * 1000;
+const needsReconciliation = (validation) => !validation.manual && ['pending', 'inconclusive'].includes(validation.status);
+
+async function loadMonitoring() {
+  const [stations, sessions, pending] = await Promise.all([
+    stationsRepo.listAll(),
+    sessionsRepo.listCurrentRunning(),
+    pgDb.query(`SELECT s.id, s.reconciliation->>'last_attempt_at' AS last_attempt_at
+      FROM sessions s WHERE ${RECONCILIATION_FILTER}`),
+  ]);
+  for (const station of stations) {
+    if (!monitoredStations.has(String(station.id))) cacheStation(station);
+  }
+  for (const session of sessions) {
+    if (!endedDuringStartup.has(session.id) && !monitoredSessions.has(String(session.station_id))) cacheSession(session);
+  }
+  for (const session of pending) {
+    if (!reconciliationQueue.has(session.id)) {
+      reconciliationQueue.set(session.id, session.last_attempt_at ? Date.parse(session.last_attempt_at) + RECONCILIATION_DELAY_MS : 0);
+    }
+  }
+  monitoringLoaded = true;
+  endedDuringStartup.clear();
+}
+
 let reconciliationRetryRunning = false;
 function startReconciliationRetries() {
   const timer = setInterval(async () => {
-    if (reconciliationRetryRunning) return;
+    if (!monitoringLoaded || reconciliationRetryRunning) return;
+    const next = [...reconciliationQueue]
+      .filter(([, due]) => due <= Date.now())
+      .sort(([, first], [, second]) => first - second)[0];
+    if (!next) return;
+    const [id] = next;
     reconciliationRetryRunning = true;
+    reconciliationQueue.set(id, Date.now() + RECONCILIATION_DELAY_MS);
     try {
       const [session] = await pgDb.query(`SELECT s.*, st.tuya_device_id FROM sessions s
-        JOIN stations st ON st.id=s.station_id
-        WHERE s.status='done' AND s.reconciliation->>'status' IN ('pending','inconclusive')
-          AND COALESCE(s.reconciliation->>'manual','false') <> 'true'
-          AND s.start_time >= NOW() - INTERVAL '7 days'
-          AND (s.reconciliation->>'last_attempt_at' IS NULL
-            OR (s.reconciliation->>'last_attempt_at')::timestamptz < NOW() - INTERVAL '5 minutes')
-        ORDER BY s.reconciliation->>'last_attempt_at' NULLS FIRST, s.id LIMIT 1`);
-      if (!session) return;
+        JOIN stations st ON st.id=s.station_id WHERE s.id=$1 AND ${RECONCILIATION_FILTER}`, [id]);
+      if (!session) {
+        reconciliationQueue.delete(id);
+        return;
+      }
       const attempted = new Date().toISOString();
       const endBound = new Date(session.reconciliation.end_detected_at || session.end_time).getTime();
       try {
@@ -2428,34 +2503,31 @@ function startReconciliationRetries() {
             session.end_time = verifiedEndTime;
           }
         }
-        const validation = { ...reconcile(session, await energyReadingsRepo.list(session.id), config.energyValidation),
+        const validation = { ...reconcile(session, await energyReadingsRepo.list(id), config.energyValidation),
           end_detected_at: session.reconciliation.end_detected_at, end_time_source: verifiedEndTime ? 'tuya_history' : session.reconciliation.end_time_source,
           end_time_uncertain: verifiedEndTime ? false : session.reconciliation.end_time_uncertain, last_attempt_at: attempted };
-        await energyReadingsRepo.revise(session.id, null, { reconciliation: validation, verified_end_time: verifiedEndTime }, 'Nova tentativa após indisponibilidade ou dados insuficientes.');
+        await reviseEnergy(id, null, { reconciliation: validation, verified_end_time: verifiedEndTime }, 'Nova tentativa após indisponibilidade ou dados insuficientes.');
+        if (!needsReconciliation(validation)) reconciliationQueue.delete(id);
       } catch (error) {
         await pgDb.query(`UPDATE sessions SET reconciliation=jsonb_set(reconciliation, '{last_attempt_at}', to_jsonb($2::text))
           WHERE id=$1 AND reconciliation->>'status' IN ('pending','inconclusive')
-            AND COALESCE(reconciliation->>'manual','false') <> 'true'`, [session.id, attempted]);
-        appLogger.warn({ session_id: session.id }, 'Conciliação pendente: histórico Tuya ainda indisponível.');
+            AND COALESCE(reconciliation->>'manual','false') <> 'true'`, [id, attempted]);
+        appLogger.warn({ session_id: id }, 'Conciliação pendente: histórico Tuya ainda indisponível.');
       }
-    } catch (error) { appLogger.warn('Falha na nova tentativa de conciliação.'); }
+    } catch (error) { appLogger.warn('Falha na nova tentativa de concilia??o.'); }
     finally { reconciliationRetryRunning = false; }
   }, 60000);
   timer.unref();
 }
 
-function startSessionWatchdog() {
-  if (sessionWatchdogTimer) return;
+function startBackgroundJobs() {
+  const watchdogTimer = setInterval(runSessionWatchdogTick, SESSION_WATCHDOG_INTERVAL_MS);
+  watchdogTimer.unref();
+  startReconciliationRetries();
+  const pushTimer = setInterval(adminPush.tick, 15000);
+  pushTimer.unref();
 
-  sessionWatchdogTimer = setInterval(() => {
-    void runSessionWatchdogTick();
-  }, SESSION_WATCHDOG_INTERVAL_MS);
-
-  if (typeof sessionWatchdogTimer.unref === "function") {
-    sessionWatchdogTimer.unref();
-  }
-
-  void runSessionWatchdogTick();
+  return Promise.all([runSessionWatchdogTick(), adminPush.tick()]);
 }
 
 async function stopSessionAsAdmin(body) {
@@ -2818,7 +2890,7 @@ app.post('/api/admin/sessions/:id/validate', requireAuth, requireAdmin, async (r
       result = { ...sessionPresentation(session).reconciliation, status: 'validated', reconciled_kwh: energy, manual: true, validated_by: req.user.id, validated_at: new Date().toISOString() };
     }
     const reason = normalizeNullableText(req.body?.reason) || (req.body?.action === 'reconcile' ? 'Nova comparação das leituras persistidas.' : 'Correção manual do consumo.');
-    await energyReadingsRepo.revise(id, req.user.id, { reconciliation: result }, reason);
+    await reviseEnergy(id, req.user.id, { reconciliation: result }, reason);
     const [updated] = await sessionsRepo.listAdmin({ id, limit: 1 });
     return res.json({ success: true, session: mapAdminSessionForUi(updated) });
   } catch (error) { return sendErrorResponse(res, 409, 'Não foi possível validar a sessão.', error); }
@@ -2889,7 +2961,7 @@ app.patch("/api/admin/sessions/:id", requireAuth, requireAdmin, async (req, res)
       return res.status(400).json({ success: false, message: "Nenhum campo valido para atualizar." });
     }
 
-    const updated = await energyReadingsRepo.revise(sessionId, req.user.id, patch, normalizeNullableText(body.reason) || 'Atualizacao administrativa.');
+    const updated = await reviseEnergy(sessionId, req.user.id, patch, normalizeNullableText(body.reason) || 'Atualizacao administrativa.');
     if (!updated) return res.status(404).json({ success: false, message: "Sessao nao encontrada." });
 
     const [sessionWithRelations] = await sessionsRepo.listAdmin({
@@ -2982,7 +3054,7 @@ app.post("/admin/set-paid", requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: "Informe paid (boolean) ou payment_status (string)." });
     }
 
-    const updated = await energyReadingsRepo.revise(id, req.user.id, { payment_status: paymentStatus }, 'Atualizacao de pagamento.');
+    const updated = await reviseEnergy(id, req.user.id, { payment_status: paymentStatus }, 'Atualizacao de pagamento.');
     if (!updated) return res.status(404).json({ success: false, message: "Sessao nao encontrada." });
     return res.json({ success: true, session: updated });
   } catch (error) {
@@ -3111,9 +3183,6 @@ app.use((error, req, res, next) => {
 
 const PORT = config.port;
 app.listen(PORT, "0.0.0.0", () => {
-  startSessionWatchdog();
-  startReconciliationRetries();
-  const pushTimer = setInterval(() => { void adminPush.dispatch(); }, 15000);
-  pushTimer.unref();
+  void startBackgroundJobs();
   appLogger.info({ port: PORT }, `Servidor rodando em http://localhost:${PORT}`);
 });

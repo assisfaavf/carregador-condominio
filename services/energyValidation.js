@@ -19,11 +19,18 @@ function reconcile(session, readings, options = {}) {
   let system = 0;
   let covered = 0;
   let chargingSeconds = 0;
-  for (let i = 1; i < samples.length; i++) {
-    const previous = samples[i - 1];
-    const current = samples[i];
+  const counters = samples.filter((sample) => finite(sample.total_kwh) != null);
+  if (counters.some((sample, index) => index > 0 && Number(sample.total_kwh) < Number(counters[index - 1].total_kwh))) {
+    issues.push('counter_reset');
+  }
+  // Tuya returns energy totals and phase telemetry as separate historical DPs.
+  // Counter-only history can verify the counter, but cannot interrupt power integration.
+  const powerSamples = samples.filter((sample) => !(sample.source === 'tuya_history'
+    && sample.raw_fields?.forward_energy_total && !sample.raw_fields?.phase_a));
+  for (let i = 1; i < powerSamples.length; i++) {
+    const previous = powerSamples[i - 1];
+    const current = powerSamples[i];
     const elapsed = new Date(current.observed_at) - new Date(previous.observed_at);
-    if (finite(current.total_kwh) != null && finite(previous.total_kwh) != null && Number(current.total_kwh) < Number(previous.total_kwh)) issues.push('counter_reset');
     if (elapsed <= 0) continue;
     if (elapsed > maxGapMs) { issues.push('missing_samples'); continue; }
     const a = finite(previous.power_kw);
@@ -45,7 +52,7 @@ function reconcile(session, readings, options = {}) {
   // once is diagnostic only until the device's semantics and same-session association are verified.
   const once = finite(session.energy_once);
   const onceTrusted = options.onceVerified === true && options.onceAssociated === true;
-  const systemReliable = samples.length > 1 && !issues.includes('incomplete_coverage') && !issues.includes('missing_samples') && !issues.includes('invalid_power');
+  const systemReliable = powerSamples.length > 1 && !issues.includes('incomplete_coverage') && !issues.includes('missing_samples') && !issues.includes('invalid_power');
   const references = [systemReliable ? system : null, counter, onceTrusted ? once : null].filter((n) => n != null);
   const all = [systemReliable ? system : null, counter, once].filter((n) => n != null && n >= 0);
   const differs = (a, b) => Math.abs(a - b) > Math.max(absolute, Math.max(a, b) * relative);
@@ -55,7 +62,7 @@ function reconcile(session, readings, options = {}) {
   const energy = status === 'validated' ? counter ?? system : null;
   const proposed = !issues.includes('counter_reset') ? counter : null;
   const suggested = energy ?? proposed ?? (systemReliable ? system : finite(session.energy_kwh));
-  return { status, proposed_kwh: suggested != null && suggested >= 0 ? round(suggested) : null, system_kwh: samples.length > 1 ? round(system) : null, counter_kwh: round(counter), once_kwh: once, once_trusted: onceTrusted, reconciled_kwh: round(energy), charging_seconds: chargingSeconds, covered_seconds: covered, sample_count: samples.length, issues: [...new Set(issues)], end_time_uncertain: !session.end_time, tolerance: { absolute, relative } };
+  return { status, proposed_kwh: suggested != null && suggested >= 0 ? round(suggested) : null, system_kwh: powerSamples.length > 1 ? round(system) : null, counter_kwh: round(counter), once_kwh: once, once_trusted: onceTrusted, reconciled_kwh: round(energy), charging_seconds: chargingSeconds, covered_seconds: covered, sample_count: samples.length, issues: [...new Set(issues)], end_time_uncertain: !session.end_time, tolerance: { absolute, relative } };
 }
 
 function billingReady(session, result = session.reconciliation) {

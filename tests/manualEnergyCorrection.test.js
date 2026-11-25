@@ -18,6 +18,7 @@ function correctionRoute(status = 'done') {
     parsePositiveInt: (value) => Number(value),
     normalizeNullableText: (value) => typeof value === 'string' ? value.trim() || null : null,
     sessionPresentation,
+    adminPush: { wake() {} },
     sessionsRepo: { getById: async () => session, listAdmin: async () => [session] },
     energyReadingsRepo: { revise: async (...args) => { calls.push(args); session.reconciliation = args[2].reconciliation; session.needs_review = false; } },
     mapAdminSessionForUi: (value) => value,
@@ -25,6 +26,7 @@ function correctionRoute(status = 'done') {
   };
   vm.createContext(context);
   vm.runInContext(source.slice(source.indexOf('function toFiniteNumber('), source.indexOf('function round2(')), context);
+  vm.runInContext(source.slice(source.indexOf("async function reviseEnergy("), source.indexOf("async function buildLivePayload(")), context);
   vm.runInContext(source.slice(start, end), context);
   return {
     calls,
